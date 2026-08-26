@@ -96,3 +96,44 @@ export function ScreenHeader({
     </View>
   );
 }
+
+export function ScreenBody({
+  children,
+  className = '',
+  padded = true,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  padded?: boolean;
+}) {
+  return (
+    <View className={`flex-1 ${padded ? 'px-5 pb-8 pt-4' : ''} ${className}`}>
+      {children}
+    </View>
+  );
+}
+
+export function SectionHeader({
+  title,
+  action,
+  onAction,
+  className = '',
+}: {
+  title: string;
+  action?: string;
+  onAction?: () => void;
+  className?: string;
+}) {
+  return (
+    <View className={`mb-3 flex-row items-baseline justify-between gap-3 ${className}`}>
+      <Text className="text-[16px] font-semibold tracking-tight text-ink">
+        {title}
+      </Text>
+      {action && onAction && (
+        <Pressable onPress={onAction} hitSlop={8}>
+          <Text className="text-[13px] font-medium text-brand">{action}</Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}

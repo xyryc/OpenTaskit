@@ -177,18 +177,29 @@ export interface ToggleProps {
   onChange: (v: boolean) => void;
   label: string;
   description?: string;
+  tone?: 'light' | 'dark';
 }
 
-export function Toggle({ checked, onChange, label, description }: ToggleProps) {
+export function Toggle({ checked, onChange, label, description, tone = 'light' }: ToggleProps) {
   return (
     <Pressable
       onPress={() => onChange(!checked)}
       className="flex-row items-center justify-between gap-4 py-1"
     >
       <View className="flex-1">
-        <Text className="text-[15px] font-medium text-ink">{label}</Text>
+        <Text
+          className={`text-[15px] font-semibold ${
+            tone === 'dark' ? 'text-white' : 'text-ink'
+          }`}
+        >
+          {label}
+        </Text>
         {description && (
-          <Text className="mt-0.5 text-[12.5px] leading-snug text-ink-500">
+          <Text
+            className={`mt-0.5 text-[12.5px] leading-snug ${
+              tone === 'dark' ? 'text-white/70' : 'text-ink-500'
+            }`}
+          >
             {description}
           </Text>
         )}
@@ -196,7 +207,7 @@ export function Toggle({ checked, onChange, label, description }: ToggleProps) {
 
       <View
         className={`h-7 w-12 rounded-full p-0.5 justify-center ${
-          checked ? 'bg-brand items-end' : 'bg-ink-200 items-start'
+          checked ? 'bg-brand items-end' : tone === 'dark' ? 'bg-white/20 items-start' : 'bg-ink-200 items-start'
         }`}
       >
         <View className="h-6 w-6 rounded-full bg-white shadow-sm" />
