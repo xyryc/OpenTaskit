@@ -106,7 +106,7 @@ export default function WelcomeScreen() {
           full
           size="lg"
           variant="brand"
-          onPress={() => router.push('/onboarding')}
+          onPress={() => router.push('/language')}
         >
           Get started
         </Button>
