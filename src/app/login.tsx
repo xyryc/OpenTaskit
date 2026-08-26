@@ -160,7 +160,7 @@ export default function LoginScreen() {
               <Text className="text-[13.5px] text-ink-700">Remember me</Text>
             </Pressable>
 
-            <Pressable onPress={() => toast({ title: 'Password reset link sent to email', variant: 'info' })}>
+            <Pressable onPress={() => router.push('/forgot')}>
               <Text className="text-[13.5px] font-medium text-brand">
                 Forgot password?
               </Text>

@@ -62,11 +62,11 @@ export default function SignUpScreen() {
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-      signIn();
-      dispatch(setAuthed(true));
-      toast({ title: 'Account created! Welcome to OpenTaskit', variant: 'success' });
-      router.replace('/home');
-    }, 850);
+      router.push({
+        pathname: '/verify',
+        params: { flow: 'signup', phone: form.phone },
+      } as any);
+    }, 800);
   };
 
   return (
