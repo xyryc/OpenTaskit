@@ -183,11 +183,11 @@ export function StepProgress({
   return (
     <View>
       <View className="flex-row items-baseline justify-between">
-        <Text className="font-geist font-medium text-[12px] uppercase tracking-[0.08em] text-ink-400">
+        <Text className="font-geist-medium text-[12px] uppercase tracking-[0.08em] text-ink-400">
           Step {current} of {total}
         </Text>
         {label && (
-          <Text className="font-geist font-medium text-[12.5px] text-ink-700">
+          <Text className="font-geist-medium text-[12.5px] text-ink-700">
             {label}
           </Text>
         )}

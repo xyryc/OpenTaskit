@@ -45,7 +45,7 @@ export function PhotoPicker({ open, onClose, selected, onToggle }: PhotoPickerPr
           className="flex-1 items-center rounded-2xl border border-dashed border-ink-300 py-4 active:bg-ink-100"
         >
           <Camera size={20} color="#2B3A41" />
-          <Text className="mt-1.5 font-geist font-medium text-[12.5px] text-ink-700">
+          <Text className="mt-1.5 font-geist-medium text-[12.5px] text-ink-700">
             Take photo
           </Text>
         </Pressable>
@@ -55,13 +55,13 @@ export function PhotoPicker({ open, onClose, selected, onToggle }: PhotoPickerPr
           className="flex-1 items-center rounded-2xl border border-dashed border-ink-300 py-4 active:bg-ink-100"
         >
           <ImagePlus size={20} color="#2B3A41" />
-          <Text className="mt-1.5 font-geist font-medium text-[12.5px] text-ink-700">
+          <Text className="mt-1.5 font-geist-medium text-[12.5px] text-ink-700">
             Upload file
           </Text>
         </Pressable>
       </View>
 
-      <Text className="mb-2.5 mt-5 text-[13px] font-geist font-semibold uppercase tracking-[0.07em] text-ink-400">
+      <Text className="mb-2.5 mt-5 text-[13px] font-geist-semibold uppercase tracking-[0.07em] text-ink-400">
         Recent photos
       </Text>
 

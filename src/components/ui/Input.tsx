@@ -18,7 +18,7 @@ export function Field({ label, hint, error, children, optional }: FieldProps) {
           className="mb-2 flex-row items-baseline justify-between"
           style={{ marginBottom: 8 }}
         >
-          <Text className="text-[13px] font-geist font-medium text-ink-700">{label}</Text>
+          <Text className="text-[13px] font-geist-medium text-ink-700">{label}</Text>
           {optional && <Text className="font-geist text-[12px] text-ink-400">Optional</Text>}
         </View>
       )}
@@ -26,7 +26,7 @@ export function Field({ label, hint, error, children, optional }: FieldProps) {
       {error ? (
         <View className="mt-1.5 flex-row items-center" style={{ marginTop: 6 }}>
           <AlertCircle size={14} color="#C7382F" />
-          <Text className="ml-1.5 text-[12px] font-geist font-medium text-danger">{error}</Text>
+          <Text className="ml-1.5 text-[12px] font-geist-medium text-danger">{error}</Text>
         </View>
       ) : hint ? (
         <View className="mt-1.5" style={{ marginTop: 6 }}>

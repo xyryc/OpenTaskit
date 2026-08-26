@@ -9,7 +9,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { store } from '@/store';
 import { AppProvider } from '@/contexts/AppContext';
 
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({

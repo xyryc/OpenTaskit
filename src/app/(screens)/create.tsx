@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,31 +7,29 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
-} from "react-native";
-import { useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Image } from "expo-image";
-import { Camera, ChevronLeft, Plus, X } from "lucide-react-native";
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Image } from 'expo-image';
+import {
+  Camera,
+  ChevronLeft,
+  Plus,
+  X,
+} from 'lucide-react-native';
 
-import { useApp } from "@/contexts/AppContext";
-import { categories } from "@/data/categories";
-import { Screen } from "@/components/layout/Screen";
-import { Button } from "@/components/ui/Button";
-import { TextField, TextArea } from "@/components/ui/Input";
-import { StepProgress } from "@/components/ui/Segmented";
-import { ConfirmDialog } from "@/components/ui/Overlay";
-import { CategoryIcon } from "@/components/CategoryIcon";
-import { PhotoPicker } from "@/components/create/PhotoPicker";
+import { useApp } from '@/contexts/AppContext';
+import { categories } from '@/data/categories';
+import { Screen } from '@/components/layout/Screen';
+import { Button } from '@/components/ui/Button';
+import { TextField, TextArea } from '@/components/ui/Input';
+import { StepProgress } from '@/components/ui/Segmented';
+import { ConfirmDialog } from '@/components/ui/Overlay';
+import { CategoryIcon } from '@/components/CategoryIcon';
+import { PhotoPicker } from '@/components/create/PhotoPicker';
 
-const steps = [
-  "Basics",
-  "Photos",
-  "Location",
-  "Budget & payment",
-  "Schedule",
-  "Review",
-];
+const steps = ['Basics', 'Photos', 'Location', 'Budget & payment', 'Schedule', 'Review'];
 
 function chunkArray<T>(arr: T[], size: number): T[][] {
   const chunks: T[][] = [];
@@ -47,9 +45,9 @@ export default function CreateTaskScreen() {
   const { requireAccount, toast } = useApp();
 
   const [step, setStep] = useState(1);
-  const [title, setTitle] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [description, setDescription] = useState("");
+  const [title, setTitle] = useState('');
+  const [categoryId, setCategoryId] = useState('');
+  const [description, setDescription] = useState('');
   const [images, setImages] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [photoOpen, setPhotoOpen] = useState(false);
@@ -57,8 +55,8 @@ export default function CreateTaskScreen() {
 
   // Require account for posting
   useEffect(() => {
-    if (!requireAccount("post")) {
-      router.replace("/home");
+    if (!requireAccount('post')) {
+      router.replace('/home');
     }
   }, [requireAccount, router]);
 
@@ -68,8 +66,8 @@ export default function CreateTaskScreen() {
   // Photo grid items in rows of 3
   const photoRows = useMemo(() => {
     const items = [
-      ...images.map((src, index) => ({ type: "image" as const, src, index })),
-      { type: "add" as const },
+      ...images.map((src, index) => ({ type: 'image' as const, src, index })),
+      { type: 'add' as const },
     ];
     return chunkArray(items, 3);
   }, [images]);
@@ -78,14 +76,13 @@ export default function CreateTaskScreen() {
     const next: Record<string, string> = {};
     if (target > 1) {
       if (title.trim().length < 8) {
-        next.title = "Give your task a clear title (at least 8 characters)";
+        next.title = 'Give your task a clear title (at least 8 characters)';
       }
       if (!categoryId) {
-        next.categoryId = "Pick the closest category";
+        next.categoryId = 'Pick the closest category';
       }
       if (description.trim().length < 20) {
-        next.description =
-          "Add a few details so offers are accurate (minimum 20 characters)";
+        next.description = 'Add a few details so offers are accurate (minimum 20 characters)';
       }
     }
     setErrors(next);
@@ -98,18 +95,18 @@ export default function CreateTaskScreen() {
       setStep(2);
     } else if (step === 2) {
       toast({
-        title: "Step 1 & 2 completed!",
-        description: "Steps 3–6 will be implemented in the next phase.",
-        variant: "success",
+        title: 'Step 1 & 2 completed!',
+        description: 'Steps 3–6 will be implemented in the next phase.',
+        variant: 'success',
       });
     }
   };
 
   const handleSkipPhotos = () => {
     toast({
-      title: "Photos skipped",
-      description: "Steps 3–6 will be implemented in the next phase.",
-      variant: "info",
+      title: 'Photos skipped',
+      description: 'Steps 3–6 will be implemented in the next phase.',
+      variant: 'info',
     });
   };
 
@@ -122,7 +119,7 @@ export default function CreateTaskScreen() {
   };
 
   return (
-    <Screen tone="canvas" edges={["top"]}>
+    <Screen tone="canvas" edges={['top']}>
       <StatusBar style="dark" />
 
       {/* Screen Header */}
@@ -136,7 +133,7 @@ export default function CreateTaskScreen() {
             <ChevronLeft size={24} color="#0C1417" />
           </Pressable>
 
-          <Text className="flex-1 text-[17px] font-geist font-semibold tracking-[-0.02em] text-ink">
+          <Text className="flex-1 text-[17px] font-geist-semibold tracking-[-0.02em] text-ink">
             Post a task
           </Text>
 
@@ -145,7 +142,7 @@ export default function CreateTaskScreen() {
             hitSlop={10}
             className="ml-2 py-1"
           >
-            <Text className="font-geist font-medium text-[13.5px] text-ink-500">
+            <Text className="font-geist-medium text-[13.5px] text-ink-500">
               Cancel
             </Text>
           </Pressable>
@@ -159,7 +156,7 @@ export default function CreateTaskScreen() {
 
       <KeyboardAvoidingView
         className="flex-1"
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
           className="flex-1 bg-canvas"
@@ -182,8 +179,7 @@ export default function CreateTaskScreen() {
                     value={title}
                     onChangeText={(val) => {
                       setTitle(val);
-                      if (errors.title)
-                        setErrors((prev) => ({ ...prev, title: "" }));
+                      if (errors.title) setErrors((prev) => ({ ...prev, title: '' }));
                     }}
                     error={errors.title}
                     placeholder="e.g. Deep clean a 2-bedroom apartment"
@@ -198,7 +194,7 @@ export default function CreateTaskScreen() {
                     className="mb-2.5 flex-row items-baseline justify-between"
                     style={{ marginBottom: 10 }}
                   >
-                    <Text className="text-[13px] font-geist font-medium text-ink-700">
+                    <Text className="text-[13px] font-geist-medium text-ink-700">
                       Category
                     </Text>
                   </View>
@@ -218,29 +214,26 @@ export default function CreateTaskScreen() {
                               onPress={() => {
                                 setCategoryId(category.id);
                                 if (errors.categoryId) {
-                                  setErrors((prev) => ({
-                                    ...prev,
-                                    categoryId: "",
-                                  }));
+                                  setErrors((prev) => ({ ...prev, categoryId: '' }));
                                 }
                               }}
                               className={`flex-1 items-center justify-center rounded-2xl border px-1 py-3.5 ${
                                 active
-                                  ? "border-brand bg-brand-tint"
-                                  : "border-ink-200 bg-white active:bg-ink-100"
+                                  ? 'border-brand bg-brand-tint'
+                                  : 'border-ink-200 bg-white active:bg-ink-100'
                               }`}
                             >
                               <CategoryIcon
                                 categoryId={category.id}
                                 size={20}
-                                color={active ? "#0072C4" : "#5B6A72"}
+                                color={active ? '#0072C4' : '#5B6A72'}
                               />
                               <Text
                                 numberOfLines={1}
                                 className={`mt-1.5 w-full text-center text-[11.5px] ${
                                   active
-                                    ? "font-geist font-semibold text-brand-dark"
-                                    : "font-geist font-medium text-ink-500"
+                                    ? 'font-geist-semibold text-brand-dark'
+                                    : 'font-geist-medium text-ink-500'
                                 }`}
                               >
                                 {category.name}
@@ -253,7 +246,7 @@ export default function CreateTaskScreen() {
                   </View>
 
                   {errors.categoryId && (
-                    <Text className="mt-2 text-[12px] font-geist font-medium text-danger">
+                    <Text className="mt-2 text-[12px] font-geist-medium text-danger">
                       {errors.categoryId}
                     </Text>
                   )}
@@ -267,7 +260,7 @@ export default function CreateTaskScreen() {
                     onChangeText={(val) => {
                       setDescription(val);
                       if (errors.description) {
-                        setErrors((prev) => ({ ...prev, description: "" }));
+                        setErrors((prev) => ({ ...prev, description: '' }));
                       }
                     }}
                     error={errors.description}
@@ -296,7 +289,7 @@ export default function CreateTaskScreen() {
                       style={{ gap: 10, marginBottom: 10 }}
                     >
                       {row.map((item) => {
-                        if (item.type === "image") {
+                        if (item.type === 'image') {
                           const { src, index } = item;
                           return (
                             <View
@@ -312,24 +305,18 @@ export default function CreateTaskScreen() {
                               {/* Delete Photo Button */}
                               <Pressable
                                 onPress={() =>
-                                  setImages((prev) =>
-                                    prev.filter((x) => x !== src),
-                                  )
+                                  setImages((prev) => prev.filter((x) => x !== src))
                                 }
                                 hitSlop={8}
                                 className="absolute right-1.5 top-1.5 h-6 w-6 items-center justify-center rounded-full bg-ink/70 active:bg-ink"
                               >
-                                <X
-                                  size={13}
-                                  color="#FFFFFF"
-                                  strokeWidth={2.5}
-                                />
+                                <X size={13} color="#FFFFFF" strokeWidth={2.5} />
                               </Pressable>
 
                               {/* Cover Label or Make Cover Action */}
                               {index === 0 ? (
                                 <View className="absolute bottom-1.5 left-1.5 rounded-full bg-white/90 px-2 py-0.5 shadow-sm">
-                                  <Text className="text-[10px] font-geist font-semibold text-ink">
+                                  <Text className="text-[10px] font-geist-semibold text-ink">
                                     Cover
                                   </Text>
                                 </View>
@@ -345,7 +332,7 @@ export default function CreateTaskScreen() {
                                   }}
                                   className="absolute bottom-1.5 left-1.5 rounded-full bg-white/90 px-2 py-0.5 shadow-sm"
                                 >
-                                  <Text className="text-[10px] font-geist font-semibold text-ink">
+                                  <Text className="text-[10px] font-geist-semibold text-ink">
                                     Make cover
                                   </Text>
                                 </Pressable>
@@ -362,7 +349,7 @@ export default function CreateTaskScreen() {
                             className="aspect-square flex-1 items-center justify-center rounded-2xl border border-dashed border-ink-300 bg-white active:bg-ink-100"
                           >
                             <Plus size={20} color="#5B6A72" />
-                            <Text className="mt-1 font-geist font-medium text-[11.5px] text-ink-500">
+                            <Text className="mt-1 font-geist-medium text-[11.5px] text-ink-500">
                               Add
                             </Text>
                           </Pressable>
@@ -370,14 +357,12 @@ export default function CreateTaskScreen() {
                       })}
 
                       {/* Invisible Spacers for incomplete row so cards never stretch */}
-                      {Array.from({ length: 3 - row.length }).map(
-                        (_, spacerIndex) => (
-                          <View
-                            key={`spacer-${spacerIndex}`}
-                            className="flex-1"
-                          />
-                        ),
-                      )}
+                      {Array.from({ length: 3 - row.length }).map((_, spacerIndex) => (
+                        <View
+                          key={`spacer-${spacerIndex}`}
+                          className="flex-1"
+                        />
+                      ))}
                     </View>
                   ))}
                 </View>
@@ -391,7 +376,7 @@ export default function CreateTaskScreen() {
                   <View className="mr-3.5 h-10 w-10 items-center justify-center rounded-xl bg-ink-100">
                     <Camera size={18} color="#2B3A41" />
                   </View>
-                  <Text className="flex-1 text-[14px] font-geist font-medium text-ink">
+                  <Text className="flex-1 text-[14px] font-geist-medium text-ink">
                     Take a photo or upload from gallery
                   </Text>
                 </Pressable>
@@ -443,7 +428,7 @@ export default function CreateTaskScreen() {
         selected={images}
         onToggle={(src) =>
           setImages((prev) =>
-            prev.includes(src) ? prev.filter((x) => x !== src) : [...prev, src],
+            prev.includes(src) ? prev.filter((x) => x !== src) : [...prev, src]
           )
         }
       />
@@ -453,7 +438,7 @@ export default function CreateTaskScreen() {
         open={discardOpen}
         onClose={() => setDiscardOpen(false)}
         onConfirm={() => {
-          toast({ title: "Draft discarded", variant: "info" });
+          toast({ title: 'Draft discarded', variant: 'info' });
           router.back();
         }}
         title="Discard this task?"
@@ -469,11 +454,11 @@ export default function CreateTaskScreen() {
 function StepIntro({ title, body }: { title: string; body: string }) {
   return (
     <View>
-      <Text className="text-[22px] font-geist-bold font-semibold leading-tight tracking-[-0.03em] text-ink">
+      <Text className="text-[22px] font-geist-semibold leading-tight tracking-[-0.03em] text-ink">
         {title}
       </Text>
       <View className="mt-1.5" style={{ marginTop: 6 }}>
-        <Text className="font-geist font-normal text-[14px] leading-relaxed text-ink-500">
+        <Text className="font-geist text-[14px] leading-relaxed text-ink-500">
           {body}
         </Text>
       </View>
@@ -483,7 +468,7 @@ function StepIntro({ title, body }: { title: string; body: string }) {
 
 const styles = StyleSheet.create({
   cardImage: {
-    width: "100%",
-    height: "100%",
+    width: '100%',
+    height: '100%',
   },
 });

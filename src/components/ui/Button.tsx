@@ -101,7 +101,7 @@ export function Button({
 
       {typeof children === 'string' ? (
         <Text
-          className={`font-geist font-semibold tracking-tight ${variantTextClasses[variant]} ${sizeTextClasses[size]} ${textClassName}`}
+          className={`font-geist-semibold tracking-tight ${variantTextClasses[variant]} ${sizeTextClasses[size]} ${textClassName}`}
         >
           {children}
         </Text>
