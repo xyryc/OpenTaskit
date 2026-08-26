@@ -170,3 +170,38 @@ export function TabBar<T extends string>({ tabs, value, onChange }: TabBarProps<
     </View>
   );
 }
+
+export function StepProgress({
+  current,
+  total,
+  label,
+}: {
+  current: number;
+  total: number;
+  label?: string;
+}) {
+  return (
+    <View>
+      <View className="flex-row items-baseline justify-between">
+        <Text className="font-geist font-medium text-[12px] uppercase tracking-[0.08em] text-ink-400">
+          Step {current} of {total}
+        </Text>
+        {label && (
+          <Text className="font-geist font-medium text-[12.5px] text-ink-700">
+            {label}
+          </Text>
+        )}
+      </View>
+      <View className="mt-2 flex-row gap-1.5">
+        {Array.from({ length: total }).map((_, i) => (
+          <View
+            key={i}
+            className={`h-1.5 flex-1 rounded-full ${
+              i < current ? 'bg-brand' : 'bg-ink-200'
+            }`}
+          />
+        ))}
+      </View>
+    </View>
+  );
+}

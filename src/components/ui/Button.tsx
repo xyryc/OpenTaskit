@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import {
   Pressable,
   Text,
@@ -101,7 +101,7 @@ export function Button({
 
       {typeof children === 'string' ? (
         <Text
-          className={`font-geist-semibold font-semibold tracking-tight ${variantTextClasses[variant]} ${sizeTextClasses[size]} ${textClassName}`}
+          className={`font-geist font-semibold tracking-tight ${variantTextClasses[variant]} ${sizeTextClasses[size]} ${textClassName}`}
         >
           {children}
         </Text>

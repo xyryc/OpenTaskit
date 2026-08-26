@@ -1,27 +1,3 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-.font-geist {
-  font-family: 'Geist-Regular';
-  font-weight: 400;
-}
-.font-geist-medium {
-  font-family: 'Geist-Medium';
-  font-weight: 500;
-}
-.font-geist-semibold {
-  font-family: 'Geist-SemiBold';
-  font-weight: 600;
-}
-.font-geist-bold {
-  font-family: 'Geist-Bold';
-  font-weight: 700;
-}
-.font-geist-mono {
-  font-family: 'GeistMono-Regular';
-}
-.font-geist-mono-bold {
-  font-family: 'GeistMono-Bold';
-  font-weight: 700;
-}

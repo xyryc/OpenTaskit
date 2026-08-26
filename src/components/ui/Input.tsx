@@ -12,21 +12,26 @@ interface FieldProps {
 
 export function Field({ label, hint, error, children, optional }: FieldProps) {
   return (
-    <View className="gap-1.5">
+    <View>
       {label && (
-        <View className="flex-row items-baseline justify-between">
-          <Text className="text-[13px] font-geist-medium font-medium text-ink-700">{label}</Text>
+        <View
+          className="mb-2 flex-row items-baseline justify-between"
+          style={{ marginBottom: 8 }}
+        >
+          <Text className="text-[13px] font-geist font-medium text-ink-700">{label}</Text>
           {optional && <Text className="font-geist text-[12px] text-ink-400">Optional</Text>}
         </View>
       )}
       {children}
       {error ? (
-        <View className="flex-row items-center gap-1.5 mt-0.5">
+        <View className="mt-1.5 flex-row items-center" style={{ marginTop: 6 }}>
           <AlertCircle size={14} color="#C7382F" />
-          <Text className="text-[12px] font-geist-medium font-medium text-danger">{error}</Text>
+          <Text className="ml-1.5 text-[12px] font-geist font-medium text-danger">{error}</Text>
         </View>
       ) : hint ? (
-        <Text className="font-geist text-[12px] leading-snug text-ink-400 mt-0.5">{hint}</Text>
+        <View className="mt-1.5" style={{ marginTop: 6 }}>
+          <Text className="font-geist text-[12px] leading-snug text-ink-400">{hint}</Text>
+        </View>
       ) : null}
     </View>
   );
@@ -79,6 +84,7 @@ export function TextField({
           value={value}
           onChangeText={handleChangeText}
           placeholderTextColor="#8A959B"
+          style={[{ fontFamily: 'Geist-Regular' }, props.style]}
           className={`flex-1 text-[15px] text-ink font-geist ${className}`}
           {...props}
         />
@@ -129,6 +135,7 @@ export function TextArea({
           value={value}
           onChangeText={handleChangeText}
           placeholderTextColor="#8A959B"
+          style={[{ fontFamily: 'Geist-Regular' }, props.style]}
           className={`flex-1 text-[15px] text-ink font-geist ${className}`}
           {...props}
         />
@@ -140,32 +147,39 @@ export function TextArea({
 export interface SearchInputProps extends TextInputProps {
   onClear?: () => void;
   className?: string;
+  containerClassName?: string;
 }
 
 export function SearchInput({
-  onClear,
-  className = '',
   value,
   onChangeText,
+  onClear,
+  className = '',
+  containerClassName = '',
+  placeholder = 'Search tasks or categories…',
   ...props
 }: SearchInputProps) {
   return (
-    <View className={`relative flex-row items-center h-12 rounded-2xl border border-ink-200 bg-white px-4 ${className}`}>
-      <Search size={18} color="#8A959B" />
+    <View
+      className={`relative flex-row items-center h-12 rounded-2xl border border-ink-200 bg-white px-4 ${className} ${containerClassName}`}
+    >
+      <Search size={18} color="#8A959B" className="mr-2" />
       <TextInput
         value={value}
         onChangeText={onChangeText}
+        placeholder={placeholder}
         placeholderTextColor="#8A959B"
-        className="font-geist flex-1 ml-3 text-[15px] text-ink"
+        style={[{ fontFamily: 'Geist-Regular' }, props.style]}
+        className="flex-1 text-[15px] text-ink font-geist"
         {...props}
       />
-      {!!value && onClear && (
+      {value && value.length > 0 && onClear && (
         <Pressable
           onPress={onClear}
           hitSlop={8}
-          className="h-6 w-6 rounded-full bg-ink-100 items-center justify-center"
+          className="ml-2 h-6 w-6 items-center justify-center rounded-full bg-ink-100 active:bg-ink-200"
         >
-          <X size={14} color="#5B6A72" />
+          <X size={12} color="#5B6A72" />
         </Pressable>
       )}
     </View>
@@ -188,7 +202,7 @@ export function Toggle({ checked, onChange, label, description, tone = 'light' }
     >
       <View className="flex-1">
         <Text
-          className={`text-[15px] font-geist-semibold font-semibold ${
+          className={`text-[15px] font-geist-semibold ${
             tone === 'dark' ? 'text-white' : 'text-ink'
           }`}
         >
@@ -196,7 +210,7 @@ export function Toggle({ checked, onChange, label, description, tone = 'light' }
         </Text>
         {description && (
           <Text
-            className={`font-geist mt-0.5 text-[12.5px] leading-snug ${
+            className={`mt-0.5 text-[12.5px] leading-snug font-geist ${
               tone === 'dark' ? 'text-white/70' : 'text-ink-500'
             }`}
           >
