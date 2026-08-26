@@ -81,7 +81,7 @@ export function TaskCard({
           <View className="flex-row items-center justify-between gap-2 bg-brand-tint px-3.5 py-2.5">
             <View className="flex-row items-center gap-2 flex-1 min-w-0">
               <CategoryBadge categoryId={task.categoryId} size="md" />
-              <Text numberOfLines={1} className="text-[12px] font-semibold text-brand-dark flex-1">
+              <Text numberOfLines={1} className="text-[12px] font-geist-semibold font-semibold text-brand-dark flex-1">
                 {category?.name}
               </Text>
             </View>
@@ -93,22 +93,22 @@ export function TaskCard({
             <View>
               <Text
                 numberOfLines={2}
-                className="text-[14px] font-semibold leading-snug tracking-tight text-ink"
+                className="text-[14px] font-geist-semibold font-semibold leading-snug tracking-tight text-ink"
               >
                 {task.title}
               </Text>
 
               <View className="mt-1.5 flex-row items-center justify-between">
-                <Text className="text-[15px] font-bold text-ink">{money(task.budget)}</Text>
+                <Text className="text-[15px] font-geist-bold font-bold text-ink">{money(task.budget)}</Text>
                 <View className="flex-row items-center gap-1">
                   <MapPin size={13} color="#8A959B" />
-                  <Text className="text-[12px] text-ink-500">{distance(task.distanceKm)}</Text>
+                  <Text className="font-geist text-[12px] text-ink-500">{distance(task.distanceKm)}</Text>
                 </View>
               </View>
 
               <View className="mt-1 flex-row items-center gap-1">
                 <Clock size={13} color="#8A959B" />
-                <Text numberOfLines={1} className="text-[11.5px] text-ink-500 flex-1">
+                <Text numberOfLines={1} className="font-geist text-[11.5px] text-ink-500 flex-1">
                   {scheduleLabel(task.schedule).replace('As soon as possible', 'ASAP')}
                 </Text>
               </View>
@@ -116,13 +116,13 @@ export function TaskCard({
 
             <View className="flex-row items-center justify-between border-t border-ink-100 pt-2">
               {hideRequester ? (
-                <Text className="text-[11.5px] text-ink-400">
+                <Text className="font-geist text-[11.5px] text-ink-400">
                   {paymentMethodLabel(task.paymentMethod)}
                 </Text>
               ) : (
                 <View className="flex-row items-center gap-1.5 min-w-0">
                   <Avatar user={requester} size="xs" />
-                  <Text numberOfLines={1} className="text-[11.5px] text-ink-500 max-w-[90px]">
+                  <Text numberOfLines={1} className="font-geist text-[11.5px] text-ink-500 max-w-[90px]">
                     {requester.name.split(' ')[0]}
                   </Text>
                 </View>
@@ -131,7 +131,7 @@ export function TaskCard({
               {badge ?? (
                 <View className="flex-row items-center gap-1">
                   <Users size={13} color="#0072C4" />
-                  <Text className="text-[11.5px] font-medium text-brand-dark">
+                  <Text className="text-[11.5px] font-geist-medium font-medium text-brand-dark">
                     {offerCount} {offerCount === 1 ? 'offer' : 'offers'}
                   </Text>
                 </View>
@@ -163,7 +163,7 @@ export function TaskCard({
           <View className="flex-1 min-w-0">
             {mine && (
               <View className="mb-1.5 self-start rounded-full bg-brand px-2 py-0.5">
-                <Text className="text-[10px] font-bold uppercase tracking-wider text-white">
+                <Text className="text-[10px] font-geist-bold font-bold uppercase tracking-wider text-white">
                   Your task
                 </Text>
               </View>
@@ -172,7 +172,7 @@ export function TaskCard({
             <View className="flex-row items-start justify-between gap-2">
               <Text
                 numberOfLines={2}
-                className="flex-1 text-[14.5px] font-semibold leading-snug tracking-tight text-ink"
+                className="flex-1 text-[14.5px] font-geist-semibold font-semibold leading-snug tracking-tight text-ink"
               >
                 {task.title}
               </Text>
@@ -181,14 +181,14 @@ export function TaskCard({
 
             {/* Category · Distance · Schedule */}
             <View className="mt-1.5 flex-row flex-wrap items-center gap-x-2.5 gap-y-1">
-              <Text className="text-[12px] font-semibold text-ink-700">{category?.name}</Text>
+              <Text className="text-[12px] font-geist-semibold font-semibold text-ink-700">{category?.name}</Text>
               <View className="flex-row items-center gap-1">
                 <MapPin size={13} color="#8A959B" />
-                <Text className="text-[12px] text-ink-500">{distance(task.distanceKm)}</Text>
+                <Text className="font-geist text-[12px] text-ink-500">{distance(task.distanceKm)}</Text>
               </View>
               <View className="flex-row items-center gap-1">
                 <Clock size={13} color="#8A959B" />
-                <Text className="text-[12px] text-ink-500">
+                <Text className="font-geist text-[12px] text-ink-500">
                   {scheduleLabel(task.schedule).replace('As soon as possible', 'ASAP')}
                 </Text>
               </View>
@@ -197,11 +197,11 @@ export function TaskCard({
             {/* Budget & Status/Offers */}
             <View className="mt-2.5 flex-row items-end justify-between gap-2">
               <View className="flex-row items-baseline gap-1">
-                <Text className="text-[17px] font-bold tracking-tight text-ink">
+                <Text className="text-[17px] font-geist-bold font-bold tracking-tight text-ink">
                   {money(task.budget)}
                 </Text>
                 {task.flexibleBudget && (
-                  <Text className="text-[11.5px] text-ink-400">flexible</Text>
+                  <Text className="font-geist text-[11.5px] text-ink-400">flexible</Text>
                 )}
               </View>
 
@@ -211,7 +211,7 @@ export function TaskCard({
                 ) : (
                   <View className="flex-row items-center gap-1 rounded-full bg-brand-tint px-2 py-0.5">
                     <Users size={12} color="#0072C4" />
-                    <Text className="text-[11.5px] font-medium text-brand-dark">
+                    <Text className="text-[11.5px] font-geist-medium font-medium text-brand-dark">
                       {offerCount} {offerCount === 1 ? 'offer' : 'offers'}
                     </Text>
                   </View>
@@ -225,11 +225,11 @@ export function TaskCard({
         <View className="mt-3 flex-row items-center justify-between gap-2 border-t border-ink-100 pt-3">
           {hideRequester ? (
             <View className="flex-1 flex-row flex-wrap items-center gap-x-1.5 min-w-0">
-              <Text className="text-[12px] font-medium text-ink-700">
+              <Text className="text-[12px] font-geist-medium font-medium text-ink-700">
                 {paymentMethodLabel(task.paymentMethod)}
               </Text>
-              <Text className="text-[12px] text-ink-400">·</Text>
-              <Text numberOfLines={1} className="text-[12px] text-ink-500 flex-1">
+              <Text className="font-geist text-[12px] text-ink-400">·</Text>
+              <Text numberOfLines={1} className="font-geist text-[12px] text-ink-500 flex-1">
                 {task.location}
               </Text>
             </View>
@@ -237,7 +237,7 @@ export function TaskCard({
             <View className="flex-1 flex-row items-center gap-2 min-w-0">
               <Avatar user={requester} size="xs" showVerified />
               <View className="min-w-0 flex-1">
-                <Text numberOfLines={1} className="text-[12.5px] font-semibold text-ink">
+                <Text numberOfLines={1} className="text-[12.5px] font-geist-semibold font-semibold text-ink">
                   {requester.name}
                 </Text>
                 <StarRating value={requester.rating} count={requester.reviewCount} size="sm" />
@@ -245,7 +245,7 @@ export function TaskCard({
             </View>
           )}
 
-          <Text className="shrink-0 text-[11.5px] text-ink-400">
+          <Text className="font-geist shrink-0 text-[11.5px] text-ink-400">
             {timeAgo(task.postedAt)}
           </Text>
         </View>

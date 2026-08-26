@@ -53,10 +53,10 @@ export default function ResetPasswordScreen() {
           <CheckCircle2 size={40} color="#0094F7" />
         </Animated.View>
 
-        <Text className="mt-6 text-[24px] font-bold tracking-tight text-ink text-center">
+        <Text className="mt-6 text-[24px] font-geist-bold font-bold tracking-tight text-ink text-center">
           Password updated
         </Text>
-        <Text className="mt-2 text-[14.5px] leading-relaxed text-ink-500 text-center">
+        <Text className="font-geist mt-2 text-[14.5px] leading-relaxed text-ink-500 text-center">
           Your password has been changed. Log in with your new password to continue.
         </Text>
 
@@ -118,7 +118,7 @@ export default function ResetPasswordScreen() {
                 </View>
                 <Text
                   className={`text-[13px] ${
-                    rule.ok ? 'font-medium text-ink' : 'text-ink-500'
+                    rule.ok ? 'font-geist-medium font-medium text-ink' : 'text-ink-500'
                   }`}
                 >
                   {rule.label}

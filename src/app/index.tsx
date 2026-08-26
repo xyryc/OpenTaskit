@@ -86,7 +86,7 @@ export default function SplashScreen() {
       {/* Brand Title */}
       <Animated.Text
         entering={FadeInDown.delay(250).duration(500)}
-        className="mt-6 text-[30px] font-bold tracking-tight text-white"
+        className="mt-6 text-[30px] font-geist-bold font-bold tracking-tight text-white"
       >
         OpenTaskit
       </Animated.Text>
@@ -94,7 +94,7 @@ export default function SplashScreen() {
       {/* Tagline */}
       <Animated.Text
         entering={FadeIn.delay(450).duration(600)}
-        className="mt-1.5 text-[13.5px] tracking-wide text-white/60"
+        className="font-geist mt-1.5 text-[13.5px] tracking-wide text-white/60"
       >
         Local services, done right.
       </Animated.Text>

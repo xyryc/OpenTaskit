@@ -41,7 +41,7 @@ export function Avatar({
       <View
         className={`h-full w-full items-center justify-center rounded-full bg-brand-tint border border-white ${user.tone ?? 'bg-brand-tint'}`}
       >
-        <Text className={`font-bold text-brand-dark ${sizeTextClasses[size]}`}>
+        <Text className={`font-geist-bold font-bold text-brand-dark ${sizeTextClasses[size]}`}>
           {user.initials}
         </Text>
       </View>
@@ -63,7 +63,7 @@ export function VerifiedPill({ verified }: { verified: boolean }) {
   if (!verified) {
     return (
       <View className="flex-row items-center gap-1 rounded-full bg-ink-100 px-2 py-0.5">
-        <Text className="text-[11px] font-medium text-ink-500">Not verified</Text>
+        <Text className="text-[11px] font-geist-medium font-medium text-ink-500">Not verified</Text>
       </View>
     );
   }
@@ -71,7 +71,7 @@ export function VerifiedPill({ verified }: { verified: boolean }) {
   return (
     <View className="flex-row items-center gap-1 rounded-full bg-brand-tint px-2 py-0.5">
       <BadgeCheck size={12} color="#0072C4" />
-      <Text className="text-[11px] font-medium text-brand-dark">Verified</Text>
+      <Text className="text-[11px] font-geist-medium font-medium text-brand-dark">Verified</Text>
     </View>
   );
 }

@@ -17,6 +17,7 @@ export default function ScreensLayout() {
       <Stack.Screen name="create" />
       <Stack.Screen name="saved" />
       <Stack.Screen name="chats" />
+      <Stack.Screen name="chat/[taskId]" />
       <Stack.Screen name="task/[id]" />
     </Stack>
   );

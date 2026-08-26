@@ -59,10 +59,10 @@ export function EmptyState({
       <View className="relative mb-4 h-16 w-16 items-center justify-center rounded-[24px] bg-brand-tint">
         {icon}
       </View>
-      <Text className="text-[16px] font-bold tracking-tight text-ink text-center">
+      <Text className="text-[16px] font-geist-bold font-bold tracking-tight text-ink text-center">
         {title}
       </Text>
-      <Text className="mt-1.5 max-w-[260px] text-[13.5px] leading-relaxed text-ink-500 text-center">
+      <Text className="font-geist mt-1.5 max-w-[260px] text-[13.5px] leading-relaxed text-ink-500 text-center">
         {message}
       </Text>
     </View>

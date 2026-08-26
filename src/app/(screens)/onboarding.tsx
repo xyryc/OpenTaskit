@@ -137,7 +137,7 @@ export default function OnboardingScreen() {
           onPress={() => router.push('/signup' as any)}
           hitSlop={{ top: 10, bottom: 10, left: 14, right: 14 }}
         >
-          <Text className="text-[13.5px] font-medium text-ink-500">Skip</Text>
+          <Text className="text-[13.5px] font-geist-medium font-medium text-ink-500">Skip</Text>
         </Pressable>
       </View>
 
@@ -154,12 +154,12 @@ export default function OnboardingScreen() {
           </View>
 
           {/* Heading */}
-          <Text className="mt-8 text-[26px] font-bold leading-tight tracking-tight text-ink">
+          <Text className="mt-8 text-[26px] font-geist-bold font-bold leading-tight tracking-tight text-ink">
             {slide.heading}
           </Text>
 
           {/* Description */}
-          <Text className="mt-2.5 text-[15px] leading-relaxed text-ink-500">
+          <Text className="font-geist mt-2.5 text-[15px] leading-relaxed text-ink-500">
             {slide.body}
           </Text>
         </Animated.View>

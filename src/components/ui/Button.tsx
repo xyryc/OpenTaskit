@@ -87,7 +87,7 @@ export function Button({
       onPress={handlePress}
       disabled={disabled || loading}
       style={style}
-      className={`flex-row items-center justify-center gap-2 font-medium ${
+      className={`flex-row items-center justify-center gap-2 font-geist-medium font-medium ${
         variantContainerClasses[variant]
       } ${sizeContainerClasses[size]} ${full ? 'w-full' : ''} ${
         disabled || loading ? 'opacity-45' : ''
@@ -101,7 +101,7 @@ export function Button({
 
       {typeof children === 'string' ? (
         <Text
-          className={`font-semibold tracking-tight ${variantTextClasses[variant]} ${sizeTextClasses[size]} ${textClassName}`}
+          className={`font-geist-semibold font-semibold tracking-tight ${variantTextClasses[variant]} ${sizeTextClasses[size]} ${textClassName}`}
         >
           {children}
         </Text>

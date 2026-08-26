@@ -45,7 +45,7 @@ export function BrandLockup({ tone = 'brand', size = 40 }: BrandLockupProps) {
     <View className="flex-row items-center gap-2.5">
       <BrandMark size={size} tone={markTone} />
       <Text
-        className={`text-[22px] font-semibold tracking-[-0.03em] ${
+        className={`text-[22px] font-geist-semibold font-semibold tracking-[-0.03em] ${
           tone === 'white' ? 'text-white' : 'text-ink'
         }`}
       >

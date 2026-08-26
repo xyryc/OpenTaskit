@@ -90,17 +90,21 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 13,
+    fontFamily: 'Geist-Medium',
   },
   activeText: {
     color: '#0C1417',
+    fontFamily: 'Geist-Bold',
     fontWeight: '700',
   },
   inactiveLightText: {
     color: '#5B6A72',
+    fontFamily: 'Geist-Medium',
     fontWeight: '500',
   },
   inactiveDarkText: {
     color: 'rgba(255, 255, 255, 0.7)',
+    fontFamily: 'Geist-Medium',
     fontWeight: '500',
   },
 });
@@ -136,7 +140,7 @@ export function TabBar<T extends string>({ tabs, value, onChange }: TabBarProps<
             <View className="flex-row items-center gap-1.5">
               <Text
                 className={`text-[14px] ${
-                  active ? 'font-bold text-ink' : 'font-medium text-ink-400'
+                  active ? 'font-geist-bold font-bold text-ink' : 'font-geist-medium font-medium text-ink-400'
                 }`}
               >
                 {tab.label}
@@ -148,8 +152,8 @@ export function TabBar<T extends string>({ tabs, value, onChange }: TabBarProps<
                   }`}
                 >
                   <Text
-                    className={`text-[11px] font-bold ${
-                      active ? 'text-brand-dark' : 'text-ink-400'
+                    className={`text-[11px] ${
+                      active ? 'font-geist-bold font-bold text-brand-dark' : 'font-geist-medium font-medium text-ink-400'
                     }`}
                   >
                     {tab.count}

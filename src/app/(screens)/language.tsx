@@ -35,10 +35,10 @@ export default function LanguageSelectScreen() {
         </View>
 
         {/* Title & Subtitle */}
-        <Text className="mt-5 text-[26px] font-bold leading-tight tracking-tight text-ink">
+        <Text className="mt-5 text-[26px] font-geist-bold font-bold leading-tight tracking-tight text-ink">
           Choose your language
         </Text>
-        <Text className="mt-2 text-[14.5px] leading-relaxed text-ink-500">
+        <Text className="font-geist mt-2 text-[14.5px] leading-relaxed text-ink-500">
           You can change this any time in Settings. OpenTaskit works in English, Sinhala and Tamil.
         </Text>
 
@@ -55,10 +55,10 @@ export default function LanguageSelectScreen() {
                 }`}
               >
                 <View>
-                  <Text className="text-[16px] font-semibold tracking-tight text-ink">
+                  <Text className="text-[16px] font-geist-semibold font-semibold tracking-tight text-ink">
                     {item.native}
                   </Text>
-                  <Text className="mt-0.5 text-[12.5px] text-ink-500">
+                  <Text className="font-geist mt-0.5 text-[12.5px] text-ink-500">
                     {item.label}
                   </Text>
                 </View>

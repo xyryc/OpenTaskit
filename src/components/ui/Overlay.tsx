@@ -40,12 +40,12 @@ export function BottomSheet({
           <View className="flex-row items-start justify-between">
             <View className="flex-1 pr-4">
               {title && (
-                <Text className="text-[20px] font-bold tracking-tight text-ink">
+                <Text className="text-[20px] font-geist-bold font-bold tracking-tight text-ink">
                   {title}
                 </Text>
               )}
               {description && (
-                <Text className="mt-1 text-[13.5px] leading-relaxed text-ink-500">
+                <Text className="font-geist mt-1 text-[13.5px] leading-relaxed text-ink-500">
                   {description}
                 </Text>
               )}
@@ -132,11 +132,11 @@ export function ConfirmDialog({
             </View>
           )}
 
-          <Text className="text-[17px] font-bold tracking-tight text-ink text-center">
+          <Text className="text-[17px] font-geist-bold font-bold tracking-tight text-ink text-center">
             {title}
           </Text>
 
-          <Text className="mt-2 text-[13.5px] leading-relaxed text-ink-500 text-center">
+          <Text className="font-geist mt-2 text-[13.5px] leading-relaxed text-ink-500 text-center">
             {message}
           </Text>
 

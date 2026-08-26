@@ -80,10 +80,10 @@ export default function LoginScreen() {
       >
         <BrandLockup size={34} />
 
-        <Text className="mt-8 text-[26px] font-bold leading-tight tracking-tight text-ink">
+        <Text className="mt-8 text-[26px] font-geist-bold font-bold leading-tight tracking-tight text-ink">
           Welcome back
         </Text>
-        <Text className="mt-2 text-[14.5px] text-ink-500">
+        <Text className="font-geist mt-2 text-[14.5px] text-ink-500">
           Log in to pick up where you left off.
         </Text>
 
@@ -91,8 +91,8 @@ export default function LoginScreen() {
         {problem === 'invalid' && (
           <View className="mt-5 flex-row gap-2.5 rounded-2xl bg-danger/10 p-3.5 items-start">
             <AlertTriangle size={18} color="#C7382F" className="mt-0.5" />
-            <Text className="text-[13px] leading-snug text-danger flex-1">
-              <Text className="font-bold">Incorrect password.</Text> Try again or reset your password.
+            <Text className="font-geist text-[13px] leading-snug text-danger flex-1">
+              <Text className="font-geist-bold font-bold">Incorrect password.</Text> Try again or reset your password.
             </Text>
           </View>
         )}
@@ -101,8 +101,8 @@ export default function LoginScreen() {
           <View className="mt-5 flex-row gap-2.5 rounded-2xl bg-warning/10 p-3.5 items-start">
             <ShieldAlert size={18} color="#B4690E" className="mt-0.5" />
             <View className="flex-1">
-              <Text className="text-[13px] leading-snug text-warning">
-                <Text className="font-bold">This account is suspended.</Text> Contact support to review your account.
+              <Text className="font-geist text-[13px] leading-snug text-warning">
+                <Text className="font-geist-bold font-bold">This account is suspended.</Text> Contact support to review your account.
               </Text>
             </View>
           </View>
@@ -155,13 +155,13 @@ export default function LoginScreen() {
                   remember ? 'border-brand bg-brand' : 'border-ink-300 bg-white'
                 }`}
               >
-                {remember && <Text className="text-white text-[11px] font-bold">✓</Text>}
+                {remember && <Text className="text-white text-[11px] font-geist-bold font-bold">✓</Text>}
               </View>
-              <Text className="text-[13.5px] text-ink-700">Remember me</Text>
+              <Text className="font-geist text-[13.5px] text-ink-700">Remember me</Text>
             </Pressable>
 
             <Pressable onPress={() => router.push('/forgot')}>
-              <Text className="text-[13.5px] font-medium text-brand">
+              <Text className="text-[13.5px] font-geist-medium font-medium text-brand">
                 Forgot password?
               </Text>
             </Pressable>
@@ -170,7 +170,7 @@ export default function LoginScreen() {
 
         {/* Prototype tip */}
         <View className="mt-6 rounded-2xl bg-ink-100 p-3.5">
-          <Text className="text-[12px] leading-snug text-ink-500">
+          <Text className="font-geist text-[12px] leading-snug text-ink-500">
             Prototype tip: log in with any details. Use a password shorter than 4 characters to see the error state, or start the email with “suspended” for the suspended-account state.
           </Text>
         </View>

@@ -82,7 +82,7 @@ export default function ActivityScreen() {
       {/* Screen Header */}
       <View className="z-20 shrink-0 bg-white px-5 pt-4 pb-0 border-b border-ink-100">
         <View className="flex-row items-center justify-between">
-          <Text className="text-[22px] font-bold tracking-tight text-ink">
+          <Text className="text-[22px] font-geist-bold font-bold tracking-tight text-ink">
             Activity
           </Text>
 
@@ -96,7 +96,7 @@ export default function ActivityScreen() {
               <Bookmark size={18} color="#0C1417" />
               {savedTaskIds.length > 0 && (
                 <View className="absolute -right-0.5 -top-0.5 h-4 min-w-[16px] items-center justify-center rounded-full bg-ink px-1">
-                  <Text className="text-[10px] font-bold text-white">
+                  <Text className="text-[10px] font-geist-bold font-bold text-white">
                     {savedTaskIds.length}
                   </Text>
                 </View>
@@ -112,7 +112,7 @@ export default function ActivityScreen() {
               <MessageCircle size={18} color="#0C1417" />
               {unreadMessages > 0 && (
                 <View className="absolute -right-0.5 -top-0.5 h-4 min-w-[16px] items-center justify-center rounded-full bg-danger px-1">
-                  <Text className="text-[10px] font-bold text-white">
+                  <Text className="text-[10px] font-geist-bold font-bold text-white">
                     {unreadMessages}
                   </Text>
                 </View>
@@ -182,7 +182,7 @@ export default function ActivityScreen() {
                   hideRequester
                   footer={
                     <View className="flex-row items-center justify-between gap-3">
-                      <Text className="text-[12px] text-ink-500 flex-1">
+                      <Text className="font-geist text-[12px] text-ink-500 flex-1">
                         {deletionPenaltyFor(task.budget, task.status) > 0
                           ? `Deleting now costs ${money(
                               deletionPenaltyFor(task.budget, task.status)
@@ -202,7 +202,7 @@ export default function ActivityScreen() {
                         }}
                       >
                         <Trash2 size={13} color="#C7382F" />
-                        <Text className="text-[12.5px] font-medium text-danger">
+                        <Text className="text-[12.5px] font-geist-medium font-medium text-danger">
                           Delete
                         </Text>
                       </Pressable>
@@ -259,9 +259,9 @@ export default function ActivityScreen() {
                       </Chip>
                     }
                     footer={
-                      <View className="flex-row items-center justify-between text-[12px]">
-                        <Text className="text-[12px] text-ink-500">Your offer</Text>
-                        <Text className="text-[14px] font-semibold text-ink">
+                      <View className="font-geist flex-row items-center justify-between text-[12px]">
+                        <Text className="font-geist text-[12px] text-ink-500">Your offer</Text>
+                        <Text className="text-[14px] font-geist-semibold font-semibold text-ink">
                           {money(offer.price)}
                         </Text>
                       </View>
@@ -304,15 +304,15 @@ export default function ActivityScreen() {
                     <View className="min-w-0 flex-1">
                       <Text
                         numberOfLines={2}
-                        className="text-[14.5px] font-semibold leading-snug tracking-tight text-ink"
+                        className="text-[14.5px] font-geist-semibold font-semibold leading-snug tracking-tight text-ink"
                       >
                         {task.title}
                       </Text>
-                      <Text className="mt-1 text-[12.5px] text-ink-500">
+                      <Text className="font-geist mt-1 text-[12.5px] text-ink-500">
                         {task.schedule.date ?? 'Flexible'} · {task.location}
                       </Text>
                     </View>
-                    <Text className="shrink-0 text-[16px] font-semibold tracking-tight text-ink">
+                    <Text className="shrink-0 text-[16px] font-geist-semibold font-semibold tracking-tight text-ink">
                       {money(task.budget)}
                     </Text>
                   </View>
@@ -321,7 +321,7 @@ export default function ActivityScreen() {
                     <StatusChip status={task.status} />
                     <View className="flex-row items-center gap-1.5">
                       <Briefcase size={14} color="#0094F7" />
-                      <Text className="text-[12.5px] font-medium text-brand">
+                      <Text className="text-[12.5px] font-geist-medium font-medium text-brand">
                         Open job
                       </Text>
                     </View>

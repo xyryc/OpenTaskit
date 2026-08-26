@@ -43,10 +43,10 @@ export default function WelcomeScreen() {
           entering={FadeInDown.duration(400)}
           className="mt-9"
         >
-          <Text className="text-[32px] font-bold leading-[38px] tracking-tight text-ink">
+          <Text className="text-[32px] font-geist-bold font-bold leading-[38px] tracking-tight text-ink">
             Need something done?{'\n'}Find the right person.
           </Text>
-          <Text className="mt-3.5 text-[15px] leading-6 text-ink-500">
+          <Text className="font-geist mt-3.5 text-[15px] leading-6 text-ink-500">
             Post a task, compare real offers from verified people nearby, and pay only when the work is done.
           </Text>
         </Animated.View>
@@ -59,38 +59,38 @@ export default function WelcomeScreen() {
           {/* Tag */}
           <View className="flex-row items-center gap-2">
             <ArrowLeftRight size={16} color="#0072C4" />
-            <Text className="text-[12px] font-bold uppercase tracking-wider text-brand-dark">
+            <Text className="text-[12px] font-geist-bold font-bold uppercase tracking-wider text-brand-dark">
               One account, both sides
             </Text>
           </View>
 
           {/* Description */}
-          <Text className="mt-2.5 text-[14px] leading-relaxed text-ink-700">
+          <Text className="font-geist mt-2.5 text-[14px] leading-relaxed text-ink-700">
             Hire help when you need it, and earn by taking on tasks when you have time. Switch between{' '}
-            <Text className="font-semibold text-ink">“I need a service”</Text> and{' '}
-            <Text className="font-semibold text-ink">“I provide services”</Text> any time — no second account.
+            <Text className="font-geist-semibold font-semibold text-ink">“I need a service”</Text> and{' '}
+            <Text className="font-geist-semibold font-semibold text-ink">“I provide services”</Text> any time — no second account.
           </Text>
 
           {/* Stats Grid */}
           <View className="mt-4 flex-row gap-2.5">
             <View className="flex-1 rounded-2xl bg-white p-3.5 shadow-sm">
-              <Text className="text-[19px] font-bold tracking-tight text-ink">12k+</Text>
-              <Text className="mt-0.5 text-[11.5px] text-ink-500">tasks completed</Text>
+              <Text className="text-[19px] font-geist-bold font-bold tracking-tight text-ink">12k+</Text>
+              <Text className="font-geist mt-0.5 text-[11.5px] text-ink-500">tasks completed</Text>
             </View>
 
             <View className="flex-1 rounded-2xl bg-white p-3.5 shadow-sm">
               <View className="flex-row items-center gap-1">
-                <Text className="text-[19px] font-bold tracking-tight text-ink">4.9</Text>
+                <Text className="text-[19px] font-geist-bold font-bold tracking-tight text-ink">4.9</Text>
                 <Star size={16} color="#E0A400" fill="#E0A400" />
               </View>
-              <Text className="mt-0.5 text-[11.5px] text-ink-500">average rating</Text>
+              <Text className="font-geist mt-0.5 text-[11.5px] text-ink-500">average rating</Text>
             </View>
           </View>
 
           {/* Trust Badge */}
           <View className="mt-3.5 flex-row items-center gap-2">
             <BadgeCheck size={16} color="#0094F7" />
-            <Text className="text-[12.5px] text-ink-500 flex-1">
+            <Text className="font-geist text-[12.5px] text-ink-500 flex-1">
               Identity-verified members and protected payments
             </Text>
           </View>
@@ -130,22 +130,22 @@ export default function WelcomeScreen() {
           Continue as guest
         </Button>
 
-        <Text className="mt-1 text-center text-[11.5px] text-ink-400">
+        <Text className="font-geist mt-1 text-center text-[11.5px] text-ink-400">
           Browse every posted job first. An account is only needed to post a job or send an offer.
         </Text>
 
-        <Text className="text-center text-[11.5px] leading-relaxed text-ink-400">
+        <Text className="font-geist text-center text-[11.5px] leading-relaxed text-ink-400">
           By continuing you agree to our{' '}
           <Text
             onPress={() => router.push('/settings/legal/terms' as any)}
-            className="font-medium text-ink-700 underline"
+            className="font-geist-medium font-medium text-ink-700 underline"
           >
             Terms
           </Text>{' '}
           and{' '}
           <Text
             onPress={() => router.push('/settings/legal/privacy' as any)}
-            className="font-medium text-ink-700 underline"
+            className="font-geist-medium font-medium text-ink-700 underline"
           >
             Privacy Policy
           </Text>

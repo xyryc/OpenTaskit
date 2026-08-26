@@ -24,7 +24,7 @@ export function StarRating({
       <Star size={iconSize} color="#E0A400" fill="#E0A400" />
       {showValue && (
         <Text
-          className={`font-semibold text-ink ${
+          className={`font-geist-semibold font-semibold text-ink ${
             size === 'sm' ? 'text-[12.5px]' : 'text-[14px]'
           }`}
         >
@@ -33,7 +33,7 @@ export function StarRating({
       )}
       {count !== undefined && (
         <Text
-          className={`text-ink-400 ${
+          className={`font-geist text-ink-400 ${
             size === 'sm' ? 'text-[12px]' : 'text-[13px]'
           }`}
         >

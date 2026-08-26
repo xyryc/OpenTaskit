@@ -51,7 +51,7 @@ export function AccountGate() {
           {content.points.map((point) => (
             <View key={point} className="flex-row items-start gap-2.5">
               <BadgeCheck size={16} color="#0094F7" className="mt-0.5" />
-              <Text className="flex-1 text-[13px] leading-snug text-ink-700">
+              <Text className="font-geist flex-1 text-[13px] leading-snug text-ink-700">
                 {point}
               </Text>
             </View>
@@ -86,7 +86,7 @@ export function AccountGate() {
 
         <View className="flex-row items-start gap-2 pt-1">
           <ShieldCheck size={14} color="#8A959B" className="mt-0.5" />
-          <Text className="flex-1 text-[11.5px] leading-relaxed text-ink-400">
+          <Text className="font-geist flex-1 text-[11.5px] leading-relaxed text-ink-400">
             Nothing you have looked at is lost — you come straight back here after signing in.
           </Text>
         </View>
@@ -107,10 +107,10 @@ export function GuestBanner() {
       </View>
 
       <View className="flex-1 min-w-0">
-        <Text className="text-[13.5px] font-semibold text-ink">
+        <Text className="text-[13.5px] font-geist-semibold font-semibold text-ink">
           You are browsing as a guest
         </Text>
-        <Text className="mt-0.5 text-[12px] leading-snug text-ink-500">
+        <Text className="font-geist mt-0.5 text-[12px] leading-snug text-ink-500">
           Look around freely. You will need an account to post a job or send an offer.
         </Text>
       </View>
@@ -119,7 +119,7 @@ export function GuestBanner() {
         onPress={() => router.push('/signup')}
         className="rounded-full bg-ink px-3.5 py-2"
       >
-        <Text className="text-[12.5px] font-semibold text-white">Sign up</Text>
+        <Text className="text-[12.5px] font-geist-semibold font-semibold text-white">Sign up</Text>
       </Pressable>
     </View>
   );
@@ -134,10 +134,10 @@ export function GuestProfile() {
         <UserRound size={36} color="#0094F7" />
       </View>
 
-      <Text className="mt-6 text-[24px] font-bold text-ink text-center">
+      <Text className="mt-6 text-[24px] font-geist-bold font-bold text-ink text-center">
         You are browsing as a guest
       </Text>
-      <Text className="mt-2 text-[14px] text-ink-500 text-center">
+      <Text className="font-geist mt-2 text-[14px] text-ink-500 text-center">
         Create an account to build a profile, post jobs, send offers and keep your chats and payments in one place.
       </Text>
 

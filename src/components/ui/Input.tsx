@@ -15,18 +15,18 @@ export function Field({ label, hint, error, children, optional }: FieldProps) {
     <View className="gap-1.5">
       {label && (
         <View className="flex-row items-baseline justify-between">
-          <Text className="text-[13px] font-medium text-ink-700">{label}</Text>
-          {optional && <Text className="text-[12px] text-ink-400">Optional</Text>}
+          <Text className="text-[13px] font-geist-medium font-medium text-ink-700">{label}</Text>
+          {optional && <Text className="font-geist text-[12px] text-ink-400">Optional</Text>}
         </View>
       )}
       {children}
       {error ? (
         <View className="flex-row items-center gap-1.5 mt-0.5">
           <AlertCircle size={14} color="#C7382F" />
-          <Text className="text-[12px] font-medium text-danger">{error}</Text>
+          <Text className="text-[12px] font-geist-medium font-medium text-danger">{error}</Text>
         </View>
       ) : hint ? (
-        <Text className="text-[12px] leading-snug text-ink-400 mt-0.5">{hint}</Text>
+        <Text className="font-geist text-[12px] leading-snug text-ink-400 mt-0.5">{hint}</Text>
       ) : null}
     </View>
   );
@@ -73,13 +73,13 @@ export function TextField({
             : 'border-ink-200 focus:border-brand'
         } ${containerClassName}`}
       >
-        {leading && <View className="mr-3 text-ink-400">{leading}</View>}
+        {leading && <View className="font-geist mr-3 text-ink-400">{leading}</View>}
 
         <TextInput
           value={value}
           onChangeText={handleChangeText}
           placeholderTextColor="#8A959B"
-          className={`flex-1 text-[15px] text-ink font-normal ${className}`}
+          className={`flex-1 text-[15px] text-ink font-geist ${className}`}
           {...props}
         />
 
@@ -129,7 +129,7 @@ export function TextArea({
           value={value}
           onChangeText={handleChangeText}
           placeholderTextColor="#8A959B"
-          className={`flex-1 text-[15px] text-ink font-normal ${className}`}
+          className={`flex-1 text-[15px] text-ink font-geist ${className}`}
           {...props}
         />
       </View>
@@ -156,7 +156,7 @@ export function SearchInput({
         value={value}
         onChangeText={onChangeText}
         placeholderTextColor="#8A959B"
-        className="flex-1 ml-3 text-[15px] text-ink"
+        className="font-geist flex-1 ml-3 text-[15px] text-ink"
         {...props}
       />
       {!!value && onClear && (
@@ -188,7 +188,7 @@ export function Toggle({ checked, onChange, label, description, tone = 'light' }
     >
       <View className="flex-1">
         <Text
-          className={`text-[15px] font-semibold ${
+          className={`text-[15px] font-geist-semibold font-semibold ${
             tone === 'dark' ? 'text-white' : 'text-ink'
           }`}
         >
@@ -196,7 +196,7 @@ export function Toggle({ checked, onChange, label, description, tone = 'light' }
         </Text>
         {description && (
           <Text
-            className={`mt-0.5 text-[12.5px] leading-snug ${
+            className={`font-geist mt-0.5 text-[12.5px] leading-snug ${
               tone === 'dark' ? 'text-white/70' : 'text-ink-500'
             }`}
           >

@@ -34,10 +34,10 @@ export function LocationSheet({ open, onClose }: { open: boolean; onClose: () =>
           <View className="h-11 w-11 items-center justify-center rounded-2xl bg-warning/15">
             <ShieldOff size={22} color="#B4690E" />
           </View>
-          <Text className="mt-3 text-[15px] font-bold text-ink">
+          <Text className="mt-3 text-[15px] font-geist-bold font-bold text-ink">
             Location is turned off
           </Text>
-          <Text className="mt-1 text-[13px] leading-relaxed text-ink-500">
+          <Text className="font-geist mt-1 text-[13px] leading-relaxed text-ink-500">
             Without location we cannot show distance or nearby tasks. You can still search by area name below.
           </Text>
           <Button
@@ -59,10 +59,10 @@ export function LocationSheet({ open, onClose }: { open: boolean; onClose: () =>
             <Navigation size={20} color="#0094F7" />
           </View>
           <View className="flex-1 min-w-0">
-            <Text className="text-[11.5px] font-bold uppercase tracking-wider text-brand-dark">
+            <Text className="text-[11.5px] font-geist-bold font-bold uppercase tracking-wider text-brand-dark">
               Current location
             </Text>
-            <Text numberOfLines={1} className="text-[14.5px] font-semibold text-ink">
+            <Text numberOfLines={1} className="text-[14.5px] font-geist-semibold font-semibold text-ink">
               {currentLocation}
             </Text>
           </View>
@@ -72,7 +72,7 @@ export function LocationSheet({ open, onClose }: { open: boolean; onClose: () =>
               toast({ title: 'Location turned off', description: 'Distances are hidden now.', variant: 'info' });
             }}
           >
-            <Text className="text-[12.5px] font-semibold text-ink-500">Turn off</Text>
+            <Text className="text-[12.5px] font-geist-semibold font-semibold text-ink-500">Turn off</Text>
           </Pressable>
         </View>
       )}
@@ -97,13 +97,13 @@ export function LocationSheet({ open, onClose }: { open: boolean; onClose: () =>
             className="flex-row items-center gap-3 py-3.5"
           >
             <MapPin size={18} color="#8A959B" />
-            <Text className="text-[14.5px] text-ink">{item}</Text>
+            <Text className="font-geist text-[14.5px] text-ink">{item}</Text>
           </Pressable>
         ))}
 
         {filtered.length === 0 && (
           <View className="py-6 items-center">
-            <Text className="text-[13.5px] text-ink-500">No areas match "{query}".</Text>
+            <Text className="font-geist text-[13.5px] text-ink-500">No areas match "{query}".</Text>
           </View>
         )}
       </View>

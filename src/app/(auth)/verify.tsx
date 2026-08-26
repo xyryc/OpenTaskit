@@ -95,11 +95,11 @@ export default function OtpVerifyScreen() {
           <MessageSquare size={24} color="#0072C4" />
         </View>
 
-        <Text className="mt-4 text-[24px] font-bold leading-tight tracking-tight text-ink">
+        <Text className="mt-4 text-[24px] font-geist-bold font-bold leading-tight tracking-tight text-ink">
           Enter the 6-digit code
         </Text>
-        <Text className="mt-2 text-[14.5px] leading-relaxed text-ink-500">
-          We sent it to <Text className="font-semibold text-ink">{phone}</Text>. It expires in 10 minutes.
+        <Text className="font-geist mt-2 text-[14.5px] leading-relaxed text-ink-500">
+          We sent it to <Text className="font-geist-semibold font-semibold text-ink">{phone}</Text>. It expires in 10 minutes.
         </Text>
 
         {/* 6 Digit Inputs */}
@@ -118,7 +118,7 @@ export default function OtpVerifyScreen() {
                 keyboardType="number-pad"
                 maxLength={1}
                 textAlign="center"
-                className={`h-14 flex-1 rounded-2xl border text-center text-[20px] font-bold text-ink bg-white ${
+                className={`h-14 flex-1 rounded-2xl border text-center text-[20px] font-geist-bold font-bold text-ink bg-white ${
                   hasError
                     ? 'border-danger bg-danger/5'
                     : digit
@@ -132,7 +132,7 @@ export default function OtpVerifyScreen() {
 
         {/* Status Messages */}
         {status === 'error' && (
-          <Text className="mt-3 text-[13px] font-medium text-danger">
+          <Text className="mt-3 text-[13px] font-geist-medium font-medium text-danger">
             That code is not valid. Request a new one and try again.
           </Text>
         )}
@@ -140,7 +140,7 @@ export default function OtpVerifyScreen() {
         {status === 'done' && (
           <Animated.View entering={FadeInUp.duration(300)} className="mt-3 flex-row items-center gap-1.5">
             <CheckCircle2 size={16} color="#0F8A5F" />
-            <Text className="text-[13px] font-medium text-success">
+            <Text className="text-[13px] font-geist-medium font-medium text-success">
               Verified — taking you in…
             </Text>
           </Animated.View>
@@ -148,7 +148,7 @@ export default function OtpVerifyScreen() {
 
         {/* Resend OTP */}
         <View className="mt-6 flex-row items-center justify-between">
-          <Text className="text-[13.5px] text-ink-500">
+          <Text className="font-geist text-[13.5px] text-ink-500">
             {seconds > 0
               ? `Resend code in 0:${seconds.toString().padStart(2, '0')}`
               : 'Did not get the code?'}
@@ -164,7 +164,7 @@ export default function OtpVerifyScreen() {
             }}
           >
             <Text
-              className={`text-[13.5px] font-semibold ${
+              className={`text-[13.5px] font-geist-semibold font-semibold ${
                 seconds > 0 ? 'text-ink-300' : 'text-brand'
               }`}
             >
@@ -178,14 +178,14 @@ export default function OtpVerifyScreen() {
           onPress={() => router.back()}
           className="mt-4 w-full rounded-2xl border border-ink-200 py-3.5 items-center justify-center active:bg-ink-100"
         >
-          <Text className="text-[13.5px] font-semibold text-ink-700">
+          <Text className="text-[13.5px] font-geist-semibold font-semibold text-ink-700">
             Change phone number
           </Text>
         </Pressable>
 
         {/* Prototype tip */}
         <View className="mt-6 rounded-2xl bg-ink-100 p-3.5">
-          <Text className="text-[12px] leading-snug text-ink-500">
+          <Text className="font-geist text-[12px] leading-snug text-ink-500">
             Prototype tip: any 6 digits verify successfully. Enter 000000 to see the invalid-code state.
           </Text>
         </View>

@@ -152,10 +152,10 @@ export function PosterTodo() {
         <View className="h-12 w-12 items-center justify-center rounded-2xl bg-success/15">
           <CheckCircle2 size={24} color="#0F8A5F" />
         </View>
-        <Text className="mt-3 text-[15px] font-bold text-ink">
+        <Text className="mt-3 text-[15px] font-geist-bold font-bold text-ink">
           Nothing needs you right now
         </Text>
-        <Text className="mt-1 text-[12.5px] leading-relaxed text-ink-500 text-center max-w-[260px]">
+        <Text className="font-geist mt-1 text-[12.5px] leading-relaxed text-ink-500 text-center max-w-[260px]">
           When offers arrive, work finishes or a payment is due, it will show up here.
         </Text>
         <Button
@@ -192,13 +192,13 @@ export function PosterTodo() {
             </View>
 
             <View className="flex-1 min-w-0">
-              <Text className="text-[14px] font-bold leading-snug text-ink">
+              <Text className="text-[14px] font-geist-bold font-bold leading-snug text-ink">
                 {todo.title}
               </Text>
-              <Text numberOfLines={2} className="mt-0.5 text-[12.5px] leading-snug text-ink-500">
+              <Text numberOfLines={2} className="font-geist mt-0.5 text-[12.5px] leading-snug text-ink-500">
                 {todo.detail}
               </Text>
-              <Text className="mt-1.5 text-[12.5px] font-semibold text-brand">
+              <Text className="mt-1.5 text-[12.5px] font-geist-semibold font-semibold text-brand">
                 {todo.cta}
               </Text>
             </View>

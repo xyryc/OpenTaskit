@@ -34,7 +34,7 @@ function CustomTabBar({ state, navigation }: any) {
             color={currentRouteName === 'home' ? '#0094F7' : '#8A959B'}
           />
           <Text
-            className={`text-[10.5px] font-semibold ${
+            className={`text-[10.5px] font-geist-semibold font-semibold ${
               currentRouteName === 'home' ? 'text-brand' : 'text-ink-400'
             }`}
           >
@@ -55,7 +55,7 @@ function CustomTabBar({ state, navigation }: any) {
             color={currentRouteName === 'discover' ? '#0094F7' : '#8A959B'}
           />
           <Text
-            className={`text-[10.5px] font-semibold ${
+            className={`text-[10.5px] font-geist-semibold font-semibold ${
               currentRouteName === 'discover' ? 'text-brand' : 'text-ink-400'
             }`}
           >
@@ -91,14 +91,14 @@ function CustomTabBar({ state, navigation }: any) {
             />
             {pendingOfferCount > 0 && (
               <View className="absolute -right-2.5 -top-1 h-4 min-w-[16px] items-center justify-center rounded-full bg-danger px-1">
-                <Text className="text-[10px] font-bold text-white">
+                <Text className="text-[10px] font-geist-bold font-bold text-white">
                   {pendingOfferCount}
                 </Text>
               </View>
             )}
           </View>
           <Text
-            className={`text-[10.5px] font-semibold ${
+            className={`text-[10.5px] font-geist-semibold font-semibold ${
               currentRouteName === 'activity' ? 'text-brand' : 'text-ink-400'
             }`}
           >
@@ -124,7 +124,7 @@ function CustomTabBar({ state, navigation }: any) {
             )}
           </View>
           <Text
-            className={`text-[10.5px] font-semibold ${
+            className={`text-[10.5px] font-geist-semibold font-semibold ${
               currentRouteName === 'profile' ? 'text-brand' : 'text-ink-400'
             }`}
           >

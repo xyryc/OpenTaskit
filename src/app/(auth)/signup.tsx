@@ -153,18 +153,18 @@ export default function SignUpScreen() {
                     : 'border-ink-300 bg-white'
                 }`}
               >
-                {terms && <Text className="text-white text-[11px] font-bold">✓</Text>}
+                {terms && <Text className="text-white text-[11px] font-geist-bold font-bold">✓</Text>}
               </View>
 
-              <Text className="text-[13px] leading-snug text-ink-700 flex-1">
+              <Text className="font-geist text-[13px] leading-snug text-ink-700 flex-1">
                 I agree to the{' '}
-                <Text className="font-semibold underline text-ink">Terms of Service</Text> and{' '}
-                <Text className="font-semibold underline text-ink">Privacy Policy</Text>, including how my identity is verified.
+                <Text className="font-geist-semibold font-semibold underline text-ink">Terms of Service</Text> and{' '}
+                <Text className="font-geist-semibold font-semibold underline text-ink">Privacy Policy</Text>, including how my identity is verified.
               </Text>
             </Pressable>
 
             {errors.terms && (
-              <Text className="mt-1.5 text-[12px] font-medium text-danger">
+              <Text className="mt-1.5 text-[12px] font-geist-medium font-medium text-danger">
                 {errors.terms}
               </Text>
             )}

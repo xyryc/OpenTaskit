@@ -49,10 +49,10 @@ export default function ForgotPasswordScreen() {
           <KeyRound size={24} color="#0072C4" />
         </View>
 
-        <Text className="mt-4 text-[24px] font-bold leading-tight tracking-tight text-ink">
+        <Text className="mt-4 text-[24px] font-geist-bold font-bold leading-tight tracking-tight text-ink">
           Let’s get you back in
         </Text>
-        <Text className="mt-2 text-[14.5px] leading-relaxed text-ink-500">
+        <Text className="font-geist mt-2 text-[14.5px] leading-relaxed text-ink-500">
           Enter the email or phone number linked to your account and we will send a verification code.
         </Text>
 

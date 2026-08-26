@@ -52,33 +52,33 @@ export default function ProviderDashboardScreen() {
       >
         {/* Balance Card */}
         <View className="overflow-hidden rounded-4xl bg-brand-deep p-5 shadow-lg">
-          <Text className="text-[12px] font-bold uppercase tracking-wider text-white/60">
+          <Text className="text-[12px] font-geist-bold font-bold uppercase tracking-wider text-white/60">
             Available balance
           </Text>
-          <Text className="mt-1 text-[32px] font-bold tracking-tight text-white">
+          <Text className="mt-1 text-[32px] font-geist-bold font-bold tracking-tight text-white">
             {money(wallet.available)}
           </Text>
 
           <View className="mt-4 flex-row gap-2">
             <View className="flex-1 rounded-2xl bg-white/10 py-2.5 items-center">
-              <Text className="text-[18px] font-bold text-white">
+              <Text className="text-[18px] font-geist-bold font-bold text-white">
                 {activeOffers.length}
               </Text>
-              <Text className="text-[10.5px] text-white/60">Active offers</Text>
+              <Text className="font-geist text-[10.5px] text-white/60">Active offers</Text>
             </View>
 
             <View className="flex-1 rounded-2xl bg-white/10 py-2.5 items-center">
-              <Text className="text-[18px] font-bold text-white">
+              <Text className="text-[18px] font-geist-bold font-bold text-white">
                 {upcoming.length}
               </Text>
-              <Text className="text-[10.5px] text-white/60">Upcoming</Text>
+              <Text className="font-geist text-[10.5px] text-white/60">Upcoming</Text>
             </View>
 
             <View className="flex-1 rounded-2xl bg-white/10 py-2.5 items-center">
-              <Text className="text-[18px] font-bold text-white">
+              <Text className="text-[18px] font-geist-bold font-bold text-white">
                 {completed.length}
               </Text>
-              <Text className="text-[10.5px] text-white/60">Completed</Text>
+              <Text className="font-geist text-[10.5px] text-white/60">Completed</Text>
             </View>
           </View>
 
@@ -151,10 +151,10 @@ export default function ProviderDashboardScreen() {
                 >
                   <CategoryBadge categoryId={task.categoryId} size="md" />
                   <View className="flex-1 min-w-0">
-                    <Text numberOfLines={1} className="text-[14px] font-bold text-ink">
+                    <Text numberOfLines={1} className="text-[14px] font-geist-bold font-bold text-ink">
                       {task.title}
                     </Text>
-                    <Text className="text-[12.5px] text-ink-500">
+                    <Text className="font-geist text-[12.5px] text-ink-500">
                       {task.schedule.date ?? 'Flexible'} · {money(task.budget)}
                     </Text>
                   </View>
@@ -182,10 +182,10 @@ export default function ProviderDashboardScreen() {
               {completed.map((task) => (
                 <View key={task.id} className="flex-row items-center gap-3 py-3.5">
                   <CheckCircle2 size={18} color="#0F8A5F" />
-                  <Text numberOfLines={1} className="flex-1 text-[13.5px] font-medium text-ink">
+                  <Text numberOfLines={1} className="flex-1 text-[13.5px] font-geist-medium font-medium text-ink">
                     {task.title}
                   </Text>
-                  <Text className="text-[13px] font-semibold text-ink-700">
+                  <Text className="text-[13px] font-geist-semibold font-semibold text-ink-700">
                     {money(task.budget)}
                   </Text>
                 </View>
@@ -193,7 +193,7 @@ export default function ProviderDashboardScreen() {
             </View>
           ) : (
             <View className="rounded-3xl border border-ink-200/70 bg-white p-4">
-              <Text className="text-[13.5px] text-ink-500 text-center">
+              <Text className="font-geist text-[13.5px] text-ink-500 text-center">
                 Completed jobs and their payouts will be listed here.
               </Text>
             </View>
@@ -233,7 +233,7 @@ function Action({
       <View className="h-10 w-10 items-center justify-center rounded-xl bg-brand-tint">
         {icon}
       </View>
-      <Text className="text-[14px] font-semibold text-ink">{label}</Text>
+      <Text className="text-[14px] font-geist-semibold font-semibold text-ink">{label}</Text>
     </Pressable>
   );
 }

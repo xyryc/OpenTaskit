@@ -35,12 +35,12 @@ export function ProviderSnapshot() {
       <View className="flex-row items-start justify-between">
         <View>
           <Text
-            className="text-[12px] font-bold uppercase tracking-wider"
+            className="text-[12px] font-geist-bold font-bold uppercase tracking-wider"
             style={{ color: 'rgba(255, 255, 255, 0.6)' }}
           >
             Available balance
           </Text>
-          <Text className="mt-1 text-[30px] font-bold tracking-tight text-white">
+          <Text className="mt-1 text-[30px] font-geist-bold font-bold tracking-tight text-white">
             {money(wallet.available)}
           </Text>
         </View>
@@ -97,7 +97,7 @@ export function ProviderSnapshot() {
         onPress={() => router.push('/provider-dashboard' as any)}
         className="mt-4 flex-row items-center justify-between rounded-2xl bg-white px-4 py-3.5"
       >
-        <Text className="text-[14px] font-semibold text-ink">
+        <Text className="text-[14px] font-geist-semibold font-semibold text-ink">
           Open provider dashboard
         </Text>
         <ArrowRight size={16} color="#0C1417" />
@@ -124,13 +124,13 @@ function Metric({
         {icon}
         <Text
           numberOfLines={1}
-          className="text-[11px]"
+          className="font-geist text-[11px]"
           style={{ color: 'rgba(255, 255, 255, 0.6)' }}
         >
           {label}
         </Text>
       </View>
-      <Text className="mt-1 text-[18px] font-bold tracking-tight text-white">
+      <Text className="mt-1 text-[18px] font-geist-bold font-bold tracking-tight text-white">
         {value}
       </Text>
     </View>

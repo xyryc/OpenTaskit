@@ -38,7 +38,7 @@ export function Chip({ children, tone = 'neutral', icon, className = '' }: ChipP
     >
       {icon}
       {typeof children === 'string' ? (
-        <Text className={`text-[11.5px] font-medium leading-none ${toneTextClasses[tone]}`}>
+        <Text className={`text-[11.5px] font-geist-medium font-medium leading-none ${toneTextClasses[tone]}`}>
           {children}
         </Text>
       ) : (
@@ -68,7 +68,7 @@ export function SelectChip({ children, selected, onPress, onClick, className = '
       } ${className}`}
     >
       <Text
-        className={`text-[13px] font-medium ${
+        className={`text-[13px] font-geist-medium font-medium ${
           selected ? 'text-white' : 'text-ink-700'
         }`}
       >
@@ -105,7 +105,7 @@ export function StatusChip({ status, className = '' }: { status: TaskStatus; cla
   return (
     <Chip tone={meta.tone} className={className}>
       <View className={`h-1.5 w-1.5 rounded-full ${toneDotClasses[meta.tone]}`} />
-      <Text className={`text-[11.5px] font-medium ${toneTextClasses[meta.tone]}`}>
+      <Text className={`text-[11.5px] font-geist-medium font-medium ${toneTextClasses[meta.tone]}`}>
         {meta.label}
       </Text>
     </Chip>
