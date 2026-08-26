@@ -20,13 +20,8 @@ export default function RootLayout() {
             }}
           >
             <Stack.Screen name="index" options={{ headerShown: false }} />
-            <Stack.Screen name="welcome" options={{ headerShown: false }} />
-            <Stack.Screen name="language" options={{ headerShown: false }} />
-            <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+            <Stack.Screen name="(screens)" options={{ headerShown: false }} />
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-            <Stack.Screen name="provider-dashboard" options={{ headerShown: false }} />
-            <Stack.Screen name="wallet" options={{ headerShown: false }} />
-            <Stack.Screen name="task/[id]" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           </Stack>
         </SafeAreaProvider>

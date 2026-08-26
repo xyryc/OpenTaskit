@@ -69,7 +69,7 @@ export function TextField({
       <View
         className={`relative flex-row items-center h-[52px] rounded-2xl border bg-white px-4 ${
           error
-            ? 'border-danger/60'
+            ? 'border-danger'
             : 'border-ink-200 focus:border-brand'
         } ${containerClassName}`}
       >
@@ -119,7 +119,7 @@ export function TextArea({
     <Field label={label} hint={hint} error={error} optional={optional}>
       <View
         className={`min-h-[120px] rounded-2xl border bg-white p-3.5 ${
-          error ? 'border-danger/60' : 'border-ink-200'
+          error ? 'border-danger' : 'border-ink-200'
         }`}
       >
         <TextInput

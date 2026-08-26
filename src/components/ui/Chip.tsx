@@ -51,14 +51,16 @@ export function Chip({ children, tone = 'neutral', icon, className = '' }: ChipP
 export interface SelectChipProps {
   children: React.ReactNode;
   selected: boolean;
-  onPress: () => void;
+  onPress?: () => void;
+  onClick?: () => void;
   className?: string;
 }
 
-export function SelectChip({ children, selected, onPress, className = '' }: SelectChipProps) {
+export function SelectChip({ children, selected, onPress, onClick, className = '' }: SelectChipProps) {
+  const handlePress = onPress ?? onClick;
   return (
     <Pressable
-      onPress={onPress}
+      onPress={handlePress}
       className={`rounded-full border px-3.5 py-2 ${
         selected
           ? 'border-brand bg-brand'
@@ -88,11 +90,21 @@ const statusMeta: Record<TaskStatus, { label: string; tone: ChipTone }> = {
   disputed: { label: 'Disputed', tone: 'danger' },
 };
 
+const toneDotClasses: Record<ChipTone, string> = {
+  neutral: 'bg-ink-700',
+  brand: 'bg-brand-dark',
+  success: 'bg-success',
+  warning: 'bg-warning',
+  danger: 'bg-danger',
+  info: 'bg-info',
+  outline: 'bg-ink-700',
+};
+
 export function StatusChip({ status, className = '' }: { status: TaskStatus; className?: string }) {
   const meta = statusMeta[status] ?? statusMeta.posted;
   return (
     <Chip tone={meta.tone} className={className}>
-      <View className="h-1.5 w-1.5 rounded-full bg-current" />
+      <View className={`h-1.5 w-1.5 rounded-full ${toneDotClasses[meta.tone]}`} />
       <Text className={`text-[11.5px] font-medium ${toneTextClasses[meta.tone]}`}>
         {meta.label}
       </Text>

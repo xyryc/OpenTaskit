@@ -5,10 +5,12 @@ import { Bookmark, Clock, MapPin, Users } from 'lucide-react-native';
 import type { Task } from '@/types';
 import { useApp } from '@/contexts/AppContext';
 import { categoryById } from '@/data/categories';
-import { distance, money, scheduleLabel } from '@/utils/format';
+import { distance, money, scheduleLabel, timeAgo } from '@/utils/format';
 import { paymentMethodLabel } from '@/utils/payment';
 import { CategoryBadge } from '@/components/CategoryIcon';
 import { Avatar } from '@/components/ui/Avatar';
+import { StarRating } from '@/components/ui/Rating';
+import { StatusChip } from '@/components/ui/Chip';
 
 export interface TaskCardProps {
   task: Task;
@@ -143,10 +145,10 @@ export function TaskCard({
 
   return (
     <View
-      className={`overflow-hidden rounded-3xl border ${
-        mine ? 'border-brand bg-brand-tint' : 'border-ink-200 bg-white'
-      }`}
+      className="overflow-hidden rounded-3xl border"
       style={{
+        borderColor: mine ? '#CCE8FD' : '#E2E7E9',
+        backgroundColor: mine ? '#F5FAFF' : '#FFFFFF',
         elevation: 1,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
@@ -160,8 +162,8 @@ export function TaskCard({
 
           <View className="flex-1 min-w-0">
             {mine && (
-              <View className="mb-1 self-start rounded-full bg-brand px-2 py-0.5">
-                <Text className="text-[10.5px] font-bold uppercase tracking-wider text-white">
+              <View className="mb-1.5 self-start rounded-full bg-brand px-2 py-0.5">
+                <Text className="text-[10px] font-bold uppercase tracking-wider text-white">
                   Your task
                 </Text>
               </View>
@@ -177,8 +179,9 @@ export function TaskCard({
               {bookmarkButton}
             </View>
 
+            {/* Category · Distance · Schedule */}
             <View className="mt-1.5 flex-row flex-wrap items-center gap-x-2.5 gap-y-1">
-              <Text className="text-[12px] font-medium text-ink-700">{category?.name}</Text>
+              <Text className="text-[12px] font-semibold text-ink-700">{category?.name}</Text>
               <View className="flex-row items-center gap-1">
                 <MapPin size={13} color="#8A959B" />
                 <Text className="text-[12px] text-ink-500">{distance(task.distanceKm)}</Text>
@@ -191,28 +194,72 @@ export function TaskCard({
               </View>
             </View>
 
+            {/* Budget & Status/Offers */}
             <View className="mt-2.5 flex-row items-end justify-between gap-2">
               <View className="flex-row items-baseline gap-1">
-                <Text className="text-[17px] font-bold text-ink">{money(task.budget)}</Text>
+                <Text className="text-[17px] font-bold tracking-tight text-ink">
+                  {money(task.budget)}
+                </Text>
                 {task.flexibleBudget && (
                   <Text className="text-[11.5px] text-ink-400">flexible</Text>
                 )}
               </View>
 
               {badge ?? (
-                <View className="flex-row items-center gap-1 rounded-full bg-brand-tint px-2 py-0.5">
-                  <Users size={12} color="#0072C4" />
-                  <Text className="text-[11.5px] font-medium text-brand-dark">
-                    {offerCount} {offerCount === 1 ? 'offer' : 'offers'}
-                  </Text>
-                </View>
+                showStatus ? (
+                  <StatusChip status={task.status} />
+                ) : (
+                  <View className="flex-row items-center gap-1 rounded-full bg-brand-tint px-2 py-0.5">
+                    <Users size={12} color="#0072C4" />
+                    <Text className="text-[11.5px] font-medium text-brand-dark">
+                      {offerCount} {offerCount === 1 ? 'offer' : 'offers'}
+                    </Text>
+                  </View>
+                )
               )}
             </View>
           </View>
         </View>
 
-        {footer && <View className="mt-3 pt-2.5 border-t border-ink-100">{footer}</View>}
+        {/* Requester or Payment Method Bar with timeAgo */}
+        <View className="mt-3 flex-row items-center justify-between gap-2 border-t border-ink-100 pt-3">
+          {hideRequester ? (
+            <View className="flex-1 flex-row flex-wrap items-center gap-x-1.5 min-w-0">
+              <Text className="text-[12px] font-medium text-ink-700">
+                {paymentMethodLabel(task.paymentMethod)}
+              </Text>
+              <Text className="text-[12px] text-ink-400">·</Text>
+              <Text numberOfLines={1} className="text-[12px] text-ink-500 flex-1">
+                {task.location}
+              </Text>
+            </View>
+          ) : (
+            <View className="flex-1 flex-row items-center gap-2 min-w-0">
+              <Avatar user={requester} size="xs" showVerified />
+              <View className="min-w-0 flex-1">
+                <Text numberOfLines={1} className="text-[12.5px] font-semibold text-ink">
+                  {requester.name}
+                </Text>
+                <StarRating value={requester.rating} count={requester.reviewCount} size="sm" />
+              </View>
+            </View>
+          )}
+
+          <Text className="shrink-0 text-[11.5px] text-ink-400">
+            {timeAgo(task.postedAt)}
+          </Text>
+        </View>
       </Pressable>
+
+      {/* Footer (Delete action or custom footer) */}
+      {footer && (
+        <View
+          className="border-t border-ink-100 px-4 py-3"
+          style={{ paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#F8FAFB' }}
+        >
+          {footer}
+        </View>
+      )}
     </View>
   );
 }

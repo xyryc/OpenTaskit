@@ -115,3 +115,54 @@ export function ProgressBar({ value, tone = 'brand' }: { value: number; tone?: '
     </View>
   );
 }
+
+export interface TabBarProps<T extends string> {
+  tabs: { value: T; label: string; count?: number }[];
+  value: T;
+  onChange: (value: T) => void;
+}
+
+export function TabBar<T extends string>({ tabs, value, onChange }: TabBarProps<T>) {
+  return (
+    <View className="flex-row border-b border-ink-200 px-1">
+      {tabs.map((tab) => {
+        const active = tab.value === value;
+        return (
+          <Pressable
+            key={tab.value}
+            onPress={() => onChange(tab.value)}
+            className="relative flex-1 items-center pb-3 pt-2"
+          >
+            <View className="flex-row items-center gap-1.5">
+              <Text
+                className={`text-[14px] ${
+                  active ? 'font-bold text-ink' : 'font-medium text-ink-400'
+                }`}
+              >
+                {tab.label}
+              </Text>
+              {tab.count !== undefined && tab.count > 0 && (
+                <View
+                  className={`rounded-full px-1.5 py-0.5 ${
+                    active ? 'bg-brand-tint' : 'bg-ink-100'
+                  }`}
+                >
+                  <Text
+                    className={`text-[11px] font-bold ${
+                      active ? 'text-brand-dark' : 'text-ink-400'
+                    }`}
+                  >
+                    {tab.count}
+                  </Text>
+                </View>
+              )}
+            </View>
+            {active && (
+              <View className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-brand" />
+            )}
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
