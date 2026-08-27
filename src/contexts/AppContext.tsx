@@ -80,6 +80,7 @@ interface AppState {
   locationPermission: LocationPermission;
   setLocationPermission: (p: LocationPermission) => void;
   currentLocation: string;
+  setCurrentLocation: (loc: string) => void;
   tasks: Task[];
   offers: Offer[];
   messages: Message[];
@@ -153,6 +154,7 @@ export function AppProvider({ children }: {children: React.ReactNode;}) {
   const [available, setAvailable] = useState(true);
   const [kyc, setKyc] = useState<KycStatus>('verified');
   const [locationPermission, setLocationPermission] = useState<LocationPermission>('granted');
+  const [currentLocation, setCurrentLocation] = useState('Kirulapone, Colombo 05');
   const [tasks, setTasks] = useState<Task[]>(seedTasks);
   const [offers, setOffers] = useState<Offer[]>(seedOffers);
   const [messages, setMessages] = useState<Message[]>(seedMessages);
@@ -762,7 +764,8 @@ export function AppProvider({ children }: {children: React.ReactNode;}) {
     setKyc,
     locationPermission,
     setLocationPermission,
-    currentLocation: locationPermission === 'granted' ? 'Kirulapone, Colombo 05' : 'Location off',
+    currentLocation: locationPermission === 'granted' ? currentLocation : 'Location off',
+    setCurrentLocation,
     tasks,
     offers,
     messages,

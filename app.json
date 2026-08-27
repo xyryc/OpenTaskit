@@ -42,6 +42,12 @@
           "photosPermission": "Allow OpenTaskit to access your photos to attach images to your task.",
           "cameraPermission": "Allow OpenTaskit to access your camera to take photos for your task."
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow OpenTaskit to access your location to find nearby tasks and set task locations."
+        }
       ]
     ],
     "experiments": {
