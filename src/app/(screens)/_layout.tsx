@@ -29,6 +29,9 @@ export default function ScreensLayout() {
       <Stack.Screen name="legal/[doc]" />
       <Stack.Screen name="help-center" />
       <Stack.Screen name="kyc" />
+      <Stack.Screen name="notifications" />
+      <Stack.Screen name="category/[categoryId]/index" />
+      <Stack.Screen name="category/[categoryId]/providers" />
     </Stack>
   );
 }
