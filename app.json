@@ -35,6 +35,13 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow OpenTaskit to access your photos to attach images to your task.",
+          "cameraPermission": "Allow OpenTaskit to access your camera to take photos for your task."
+        }
       ]
     ],
     "experiments": {

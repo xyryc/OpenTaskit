@@ -99,14 +99,14 @@ export function Button({
         icon
       )}
 
-      {typeof children === 'string' ? (
+      {React.isValidElement(children) ? (
+        children
+      ) : (
         <Text
           className={`font-geist-semibold tracking-tight ${variantTextClasses[variant]} ${sizeTextClasses[size]} ${textClassName}`}
         >
           {children}
         </Text>
-      ) : (
-        children
       )}
 
       {!loading && iconRight}

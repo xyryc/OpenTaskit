@@ -15,6 +15,7 @@ import { Image } from 'expo-image';
 import {
   Camera,
   ChevronLeft,
+  MapPin,
   Plus,
   X,
 } from 'lucide-react-native';
@@ -28,6 +29,7 @@ import { StepProgress } from '@/components/ui/Segmented';
 import { ConfirmDialog } from '@/components/ui/Overlay';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { PhotoPicker } from '@/components/create/PhotoPicker';
+import { LocationPicker } from '@/components/create/LocationPicker';
 
 const steps = ['Basics', 'Photos', 'Location', 'Budget & payment', 'Schedule', 'Review'];
 
@@ -42,15 +44,19 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
 export default function CreateTaskScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { requireAccount, toast } = useApp();
+  const { requireAccount, currentLocation, toast } = useApp();
 
   const [step, setStep] = useState(1);
   const [title, setTitle] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [description, setDescription] = useState('');
   const [images, setImages] = useState<string[]>([]);
+  const [location, setLocation] = useState(
+    currentLocation === 'Location off' ? '' : currentLocation
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [photoOpen, setPhotoOpen] = useState(false);
+  const [locationOpen, setLocationOpen] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
 
   // Require account for posting
@@ -85,6 +91,9 @@ export default function CreateTaskScreen() {
         next.description = 'Add a few details so offers are accurate (minimum 20 characters)';
       }
     }
+    if (target > 3 && !location.trim()) {
+      next.location = 'Set where the task happens';
+    }
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -94,20 +103,19 @@ export default function CreateTaskScreen() {
       if (!validate(2)) return;
       setStep(2);
     } else if (step === 2) {
+      setStep(3);
+    } else if (step === 3) {
+      if (!validate(4)) return;
       toast({
-        title: 'Step 1 & 2 completed!',
-        description: 'Steps 3–6 will be implemented in the next phase.',
+        title: 'Step 1, 2 & 3 completed!',
+        description: 'Steps 4–6 will be implemented in the next phase.',
         variant: 'success',
       });
     }
   };
 
   const handleSkipPhotos = () => {
-    toast({
-      title: 'Photos skipped',
-      description: 'Steps 3–6 will be implemented in the next phase.',
-      variant: 'info',
-    });
+    setStep(3);
   };
 
   const handleBack = () => {
@@ -382,6 +390,61 @@ export default function CreateTaskScreen() {
                 </Pressable>
               </View>
             )}
+
+            {/* STEP 3: LOCATION */}
+            {step === 3 && (
+              <View>
+                {/* 1. Intro Section */}
+                <StepIntro
+                  title="Where is the task?"
+                  body="We show your area publicly, never your exact address."
+                />
+
+                {/* 2. Location Picker Card Button */}
+                <View className="mt-7" style={{ marginTop: 24 }}>
+                  <Pressable
+                    onPress={() => setLocationOpen(true)}
+                    className={`flex-row items-center rounded-2xl border p-4 bg-white active:bg-ink-100/60 ${
+                      errors.location ? 'border-danger' : 'border-ink-200'
+                    }`}
+                    style={{ gap: 12 }}
+                  >
+                    <View className="h-10 w-10 items-center justify-center rounded-xl bg-brand-tint">
+                      <MapPin size={18} color="#0072C4" />
+                    </View>
+
+                    <View className="flex-1 min-w-0">
+                      <Text className="text-[12px] font-geist text-ink-400">
+                        Task location
+                      </Text>
+                      <Text
+                        numberOfLines={1}
+                        className="mt-0.5 text-[14.5px] font-geist-medium text-ink"
+                      >
+                        {location || 'Choose a location'}
+                      </Text>
+                    </View>
+
+                    <Text className="font-geist-medium text-[13px] text-brand">
+                      Change
+                    </Text>
+                  </Pressable>
+
+                  {errors.location && (
+                    <Text className="mt-1.5 text-[12px] font-geist-medium text-danger">
+                      {errors.location}
+                    </Text>
+                  )}
+                </View>
+
+                {/* 3. Privacy Callout Note */}
+                <View className="mt-4 rounded-2xl bg-ink-100/70 p-4">
+                  <Text className="text-[12.5px] font-geist leading-relaxed text-ink-700">
+                    People within your chosen radius will see this task. You can share the exact address in chat after you accept an offer.
+                  </Text>
+                </View>
+              </View>
+            )}
           </View>
         </ScrollView>
 
@@ -390,11 +453,7 @@ export default function CreateTaskScreen() {
           className="shrink-0 border-t border-ink-100 bg-white px-5 pt-3"
           style={{ paddingBottom: Math.max(insets.bottom, 16) + 4 }}
         >
-          {step === 1 ? (
-            <Button full size="lg" variant="brand" onPress={goNext}>
-              Continue
-            </Button>
-          ) : (
+          {step === 2 ? (
             <View className="flex-row gap-3" style={{ gap: 12 }}>
               <View className="flex-1">
                 <Button
@@ -417,6 +476,10 @@ export default function CreateTaskScreen() {
                 </Button>
               </View>
             </View>
+          ) : (
+            <Button full size="lg" variant="brand" onPress={goNext}>
+              Continue
+            </Button>
           )}
         </View>
       </KeyboardAvoidingView>
@@ -431,6 +494,27 @@ export default function CreateTaskScreen() {
             prev.includes(src) ? prev.filter((x) => x !== src) : [...prev, src]
           )
         }
+        onAddImages={(newUris) => {
+          setImages((prev) => {
+            const next = [...prev];
+            for (const uri of newUris) {
+              if (!next.includes(uri)) next.push(uri);
+            }
+            return next;
+          });
+        }}
+      />
+
+      {/* Location Picker Modal */}
+      <LocationPicker
+        open={locationOpen}
+        onClose={() => setLocationOpen(false)}
+        onSelect={(selectedLoc) => {
+          setLocation(selectedLoc);
+          if (errors.location) {
+            setErrors((prev) => ({ ...prev, location: '' }));
+          }
+        }}
       />
 
       {/* Discard Confirmation Modal */}
