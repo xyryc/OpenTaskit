@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { Check, CheckCheck, Clock } from 'lucide-react-native';
 import type { Message } from '@/types';
 import { clockTime } from '@/utils/format';
+import { resolveImageSource } from '@/utils/images';
 
 export function ChatBubble({
   message,
@@ -20,7 +21,7 @@ export function ChatBubble({
         {/* Attachment if present */}
         {message.attachment && (
           <Image
-            source={{ uri: message.attachment }}
+            source={resolveImageSource(message.attachment)}
             style={[
               styles.attachment,
               mine ? styles.attachmentMine : styles.attachmentOther,

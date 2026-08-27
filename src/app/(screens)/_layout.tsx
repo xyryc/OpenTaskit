@@ -19,6 +19,9 @@ export default function ScreensLayout() {
       <Stack.Screen name="chats" />
       <Stack.Screen name="chat/[taskId]" />
       <Stack.Screen name="task/[id]" />
+      <Stack.Screen name="posted" />
+      <Stack.Screen name="edit-profile" />
+      <Stack.Screen name="provider/[userId]" />
     </Stack>
   );
 }

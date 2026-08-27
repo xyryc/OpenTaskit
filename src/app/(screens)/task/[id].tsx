@@ -50,6 +50,7 @@ import { Skeleton } from '@/components/ui/Feedback';
 import { BottomSheet, ConfirmDialog } from '@/components/ui/Overlay';
 import { CategoryBadge } from '@/components/CategoryIcon';
 import { LeafletMap } from '@/components/create/LeafletMap';
+import { resolveImageSource } from '@/utils/images';
 
 const ETA_PRESETS = [
   'Today · 2-3 hrs',
@@ -228,7 +229,7 @@ export default function TaskDetailScreen() {
                 {task.images.map((imgUri, index) => (
                   <Image
                     key={index}
-                    source={{ uri: imgUri }}
+                    source={resolveImageSource(imgUri)}
                     style={{ width: screenWidth, height: 256 }}
                     contentFit="cover"
                   />
@@ -429,8 +430,8 @@ export default function TaskDetailScreen() {
                   router.push('/(tabs)/profile');
                 } else {
                   router.push({
-                    pathname: '/(screens)/provider-dashboard',
-                    params: { providerId: requester.id },
+                    pathname: '/(screens)/provider/[userId]',
+                    params: { userId: requester.id },
                   } as any);
                 }
               }}

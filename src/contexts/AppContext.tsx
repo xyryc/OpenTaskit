@@ -72,6 +72,7 @@ interface AppState {
   requireAccount: (intent: AccountGateIntent) => boolean;
   closeGate: () => void;
   me: User;
+  updateMe: (patch: Partial<User>) => void;
   users: User[];
   available: boolean;
   toggleAvailable: () => void;
@@ -190,10 +191,15 @@ export function AppProvider({ children }: {children: React.ReactNode;}) {
     (id: string) => seedUsers.find((u) => u.id === id) ?? seedUsers[0],
     []
   );
+  const [meCustom, setMeCustom] = useState<Partial<User>>({});
+  const updateMe = useCallback((patch: Partial<User>) => {
+    setMeCustom((prev) => ({ ...prev, ...patch }));
+  }, []);
+
   const me = useMemo(() => {
     const base = userById(ME);
-    return { ...base, available, kyc, verified: kyc === 'verified' };
-  }, [available, kyc, userById]);
+    return { ...base, ...meCustom, available, kyc, verified: kyc === 'verified' };
+  }, [available, kyc, userById, meCustom]);
 
   const taskById = useCallback((id: string) => tasks.find((x) => x.id === id), [tasks]);
   const offersForTask = useCallback(
@@ -748,6 +754,7 @@ export function AppProvider({ children }: {children: React.ReactNode;}) {
     },
     closeGate: () => setGateIntent(null),
     me,
+    updateMe,
     users: seedUsers,
     available,
     toggleAvailable: () => {

@@ -25,7 +25,7 @@ export type PaymentMethod = 'cash' | 'card' | 'wallet';
 export interface PortfolioItem {
   id: string;
   title: string;
-  image: string;
+  image: string | any;
 }
 
 export interface User {
@@ -73,7 +73,7 @@ export interface Task {
   title: string;
   categoryId: string;
   description: string;
-  images: string[];
+  images: (string | any)[];
   budget: number;
   flexibleBudget: boolean;
   location: string;
