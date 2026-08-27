@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
+  TextInput,
   Pressable,
   ScrollView,
   KeyboardAvoidingView,
@@ -13,10 +14,15 @@ import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import {
+  Banknote,
   Camera,
+  Check,
   ChevronLeft,
+  CreditCard,
+  Lock,
   MapPin,
   Plus,
+  Wallet2,
   X,
 } from 'lucide-react-native';
 
@@ -24,12 +30,16 @@ import { useApp } from '@/contexts/AppContext';
 import { categories } from '@/data/categories';
 import { Screen } from '@/components/layout/Screen';
 import { Button } from '@/components/ui/Button';
-import { TextField, TextArea } from '@/components/ui/Input';
+import { TextField, TextArea, Toggle } from '@/components/ui/Input';
+import { SelectChip } from '@/components/ui/Chip';
 import { StepProgress } from '@/components/ui/Segmented';
 import { ConfirmDialog } from '@/components/ui/Overlay';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { PhotoPicker } from '@/components/create/PhotoPicker';
 import { LocationPicker } from '@/components/create/LocationPicker';
+import { PAYMENT_METHODS, walletCovers } from '@/utils/payment';
+import { money } from '@/utils/format';
+import type { PaymentMethod } from '@/types';
 
 const steps = ['Basics', 'Photos', 'Location', 'Budget & payment', 'Schedule', 'Review'];
 
@@ -41,10 +51,12 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
   return chunks;
 }
 
+const PRESET_AMOUNTS = [3000, 5000, 8000, 12000, 20000];
+
 export default function CreateTaskScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { requireAccount, currentLocation, toast } = useApp();
+  const { requireAccount, currentLocation, wallet, toast } = useApp();
 
   const [step, setStep] = useState(1);
   const [title, setTitle] = useState('');
@@ -54,6 +66,9 @@ export default function CreateTaskScreen() {
   const [location, setLocation] = useState(
     currentLocation === 'Location off' ? '' : currentLocation
   );
+  const [budget, setBudget] = useState('');
+  const [flexible, setFlexible] = useState(true);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | ''>('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [photoOpen, setPhotoOpen] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
@@ -78,6 +93,9 @@ export default function CreateTaskScreen() {
     return chunkArray(items, 3);
   }, [images]);
 
+  const budgetValue = Number(budget) || 0;
+  const walletAvailable = walletCovers(wallet.available, budgetValue);
+
   const validate = (target: number) => {
     const next: Record<string, string> = {};
     if (target > 1) {
@@ -94,6 +112,18 @@ export default function CreateTaskScreen() {
     if (target > 3 && !location.trim()) {
       next.location = 'Set where the task happens';
     }
+    if (target > 4) {
+      const value = Number(budget);
+      if (!value || value < 500) {
+        next.budget = 'Enter a realistic budget (minimum Rs 500)';
+      }
+      if (!paymentMethod) {
+        next.paymentMethod = 'Choose how you will pay for this task';
+      } else if (paymentMethod === 'wallet' && !walletCovers(wallet.available, value)) {
+        next.paymentMethod =
+          'Your wallet balance does not cover this budget — top up or pick another method';
+      }
+    }
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -106,9 +136,12 @@ export default function CreateTaskScreen() {
       setStep(3);
     } else if (step === 3) {
       if (!validate(4)) return;
+      setStep(4);
+    } else if (step === 4) {
+      if (!validate(5)) return;
       toast({
-        title: 'Step 1, 2 & 3 completed!',
-        description: 'Steps 4–6 will be implemented in the next phase.',
+        title: 'Step 1–4 completed!',
+        description: 'Steps 5 & 6 will be implemented in the next phase.',
         variant: 'success',
       });
     }
@@ -123,6 +156,20 @@ export default function CreateTaskScreen() {
       setDiscardOpen(true);
     } else {
       setStep(step - 1);
+    }
+  };
+
+  const renderPaymentIcon = (id: PaymentMethod, active: boolean) => {
+    const color = active ? '#0094F7' : '#5B6A72';
+    switch (id) {
+      case 'cash':
+        return <Banknote size={18} color={color} />;
+      case 'card':
+        return <CreditCard size={18} color={color} />;
+      case 'wallet':
+        return <Wallet2 size={18} color={color} />;
+      default:
+        return null;
     }
   };
 
@@ -443,6 +490,188 @@ export default function CreateTaskScreen() {
                     People within your chosen radius will see this task. You can share the exact address in chat after you accept an offer.
                   </Text>
                 </View>
+              </View>
+            )}
+
+            {/* STEP 4: BUDGET & PAYMENT */}
+            {step === 4 && (
+              <View>
+                {/* 1. Intro Section */}
+                <StepIntro
+                  title="What is your budget?"
+                  body="A realistic budget attracts serious offers."
+                />
+
+                {/* 2. Budget Input */}
+                <View className="mt-7" style={{ marginTop: 24 }}>
+                  <Text className="mb-1.5 text-[13px] font-geist-medium text-ink-700">
+                    Budget
+                  </Text>
+                  <View
+                    className={`flex-row items-center rounded-2xl border bg-white px-4 h-[56px] ${
+                      errors.budget ? 'border-danger' : 'border-ink-200'
+                    }`}
+                  >
+                    <Text className="mr-2 text-[18px] font-geist-semibold text-ink-400">
+                      Rs
+                    </Text>
+                    <TextInput
+                      value={budget}
+                      onChangeText={(val) => {
+                        setBudget(val.replace(/\D/g, ''));
+                        if (errors.budget) setErrors((prev) => ({ ...prev, budget: '' }));
+                      }}
+                      placeholder="8000"
+                      placeholderTextColor="#8A959B"
+                      keyboardType="numeric"
+                      style={[{ fontFamily: 'Geist-Bold' }]}
+                      className="flex-1 text-[22px] font-geist-bold text-ink"
+                    />
+                  </View>
+                  {errors.budget && (
+                    <Text className="mt-1.5 text-[12px] font-geist-medium text-danger">
+                      {errors.budget}
+                    </Text>
+                  )}
+                </View>
+
+                {/* 3. Preset Quick Chips */}
+                <View className="mt-3 flex-row flex-wrap gap-2" style={{ gap: 8 }}>
+                  {PRESET_AMOUNTS.map((amount) => (
+                    <SelectChip
+                      key={amount}
+                      selected={budget === String(amount)}
+                      onPress={() => {
+                        setBudget(String(amount));
+                        if (errors.budget) setErrors((prev) => ({ ...prev, budget: '' }));
+                      }}
+                    >
+                      {money(amount)}
+                    </SelectChip>
+                  ))}
+                </View>
+
+                {/* 4. Flexible Budget Toggle Card */}
+                <View className="mt-5 rounded-2xl border border-ink-200 bg-white p-4">
+                  <Toggle
+                    checked={flexible}
+                    onChange={setFlexible}
+                    label="My budget is flexible"
+                    description="People can offer a different price with a reason."
+                  />
+                </View>
+
+                {/* 5. Payment Methods */}
+                <View className="mt-6">
+                  <Text className="mb-1 text-[13px] font-geist-medium text-ink-700">
+                    How will you pay?
+                  </Text>
+                  <Text className="mb-2.5 text-[12px] font-geist leading-snug text-ink-500">
+                    Taskers see this on your task, so they know whether to bring change.
+                  </Text>
+
+                  <View className="gap-2.5" style={{ gap: 10 }}>
+                    {PAYMENT_METHODS.map((method) => {
+                      const disabled = method.id === 'wallet' && !walletAvailable;
+                      const active = paymentMethod === method.id;
+
+                      return (
+                        <Pressable
+                          key={method.id}
+                          disabled={disabled}
+                          onPress={() => {
+                            setPaymentMethod(method.id);
+                            if (errors.paymentMethod) {
+                              setErrors((prev) => ({ ...prev, paymentMethod: '' }));
+                            }
+                          }}
+                          className={`flex-row items-center gap-3 rounded-2xl border p-4 active:bg-ink-100/60 ${
+                            disabled
+                              ? 'border-ink-200 bg-ink-100/60 opacity-60'
+                              : active
+                              ? 'border-brand bg-brand-tint/50'
+                              : 'border-ink-200 bg-white'
+                          }`}
+                          style={{ gap: 12 }}
+                        >
+                          <View
+                            className="h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+                            style={{ backgroundColor: active ? '#FFFFFF' : '#F0F3F4' }}
+                          >
+                            {renderPaymentIcon(method.id, active)}
+                          </View>
+
+                          <View className="flex-1 min-w-0">
+                            <View className="flex-row items-center gap-1.5">
+                              <Text
+                                className={`text-[14.5px] font-geist-semibold ${
+                                  disabled ? 'text-ink-400' : 'text-ink'
+                                }`}
+                              >
+                                {method.label}
+                              </Text>
+                              {method.id === 'wallet' && (
+                                <Text className="ml-1 text-[11.5px] font-geist-medium text-ink-400">
+                                  · {money(wallet.available)} available
+                                </Text>
+                              )}
+                              {disabled && <Lock size={13} color="#8A959B" />}
+                            </View>
+
+                            <Text className="mt-0.5 text-[12.5px] font-geist leading-snug text-ink-500">
+                              {disabled
+                                ? budgetValue > 0
+                                  ? `Balance is short of ${money(
+                                      budgetValue
+                                    )} — top up or choose another method.`
+                                  : 'Enter your budget first to use your wallet balance.'
+                                : method.description}
+                            </Text>
+                          </View>
+
+                          {active && <Check size={18} color="#0094F7" strokeWidth={2.5} />}
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+
+                  {errors.paymentMethod && (
+                    <Text className="mt-1.5 text-[12px] font-geist-medium text-danger">
+                      {errors.paymentMethod}
+                    </Text>
+                  )}
+                </View>
+
+                {/* 6. What You Pay Summary Card */}
+                {!!budgetValue && (
+                  <View className="mt-6 rounded-2xl bg-brand-tint/60 p-4">
+                    <Text className="text-[12.5px] font-geist-semibold uppercase tracking-[0.07em] text-brand-dark">
+                      What you pay
+                    </Text>
+
+                    <View className="mt-2 flex-row items-center justify-between">
+                      <Text className="font-geist text-[14px] text-ink-700">
+                        Agreed price
+                      </Text>
+                      <Text className="font-geist-semibold text-[14px] text-ink">
+                        {money(budgetValue)}
+                      </Text>
+                    </View>
+
+                    <View className="mt-1 flex-row items-center justify-between">
+                      <Text className="font-geist text-[14px] text-ink-700">
+                        Service fee for you
+                      </Text>
+                      <Text className="font-geist-semibold text-[14px] text-success">
+                        Rs 0
+                      </Text>
+                    </View>
+
+                    <Text className="mt-2 font-geist text-[11.5px] leading-relaxed text-ink-500">
+                      OpenTaskit takes its commission from the provider, so your price is what you pay.
+                    </Text>
+                  </View>
+                )}
               </View>
             )}
           </View>
