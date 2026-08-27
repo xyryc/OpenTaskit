@@ -488,9 +488,9 @@ export default function ProfileScreen() {
               size="lg"
               variant="outline"
               icon={<Settings size={18} color="#0C1417" />}
-              onPress={() => router.push('/(screens)/language')}
+              onPress={() => router.push('/(screens)/settings')}
             >
-              Language & preferences
+              Settings & preferences
             </Button>
 
             <Button
