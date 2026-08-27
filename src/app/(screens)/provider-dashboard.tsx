@@ -21,6 +21,7 @@ import { Toggle } from '@/components/ui/Input';
 import { TrustStats } from '@/components/task/TrustStats';
 import { EmptyState } from '@/components/ui/Feedback';
 import { CategoryBadge } from '@/components/CategoryIcon';
+import { CardBackgroundPattern } from '@/components/ui/CardBackgroundPattern';
 
 export default function ProviderDashboardScreen() {
   const router = useRouter();
@@ -51,38 +52,39 @@ export default function ProviderDashboardScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Balance Card */}
-        <View className="overflow-hidden rounded-4xl bg-brand-deep p-5 shadow-lg">
-          <Text className="text-[12px] font-geist-bold font-bold uppercase tracking-wider text-white/60">
+        <View className="relative overflow-hidden rounded-4xl bg-brand p-5 shadow-lg border border-[#0074CB]/30">
+          <CardBackgroundPattern />
+          <Text className="text-[12px] font-geist-semibold uppercase tracking-wider text-white">
             Available balance
           </Text>
-          <Text className="mt-1 text-[32px] font-geist-bold font-bold tracking-tight text-white">
+          <Text className="mt-1 text-[34px] font-geist-bold tracking-tight text-white">
             {money(wallet.available)}
           </Text>
 
           <View className="mt-4 flex-row gap-2">
-            <View className="flex-1 rounded-2xl bg-white/10 py-2.5 items-center">
-              <Text className="text-[18px] font-geist-bold font-bold text-white">
+            <View className="flex-1 rounded-2xl bg-white/20 border border-white/30 py-2.5 items-center">
+              <Text className="text-[18px] font-geist-bold text-white">
                 {activeOffers.length}
               </Text>
-              <Text className="font-geist text-[10.5px] text-white/60">Active offers</Text>
+              <Text className="font-geist-medium text-[11px] text-white">Active offers</Text>
             </View>
 
-            <View className="flex-1 rounded-2xl bg-white/10 py-2.5 items-center">
-              <Text className="text-[18px] font-geist-bold font-bold text-white">
+            <View className="flex-1 rounded-2xl bg-white/20 border border-white/30 py-2.5 items-center">
+              <Text className="text-[18px] font-geist-bold text-white">
                 {upcoming.length}
               </Text>
-              <Text className="font-geist text-[10.5px] text-white/60">Upcoming</Text>
+              <Text className="font-geist-medium text-[11px] text-white">Upcoming</Text>
             </View>
 
-            <View className="flex-1 rounded-2xl bg-white/10 py-2.5 items-center">
-              <Text className="text-[18px] font-geist-bold font-bold text-white">
+            <View className="flex-1 rounded-2xl bg-white/20 border border-white/30 py-2.5 items-center">
+              <Text className="text-[18px] font-geist-bold text-white">
                 {completed.length}
               </Text>
-              <Text className="font-geist text-[10.5px] text-white/60">Completed</Text>
+              <Text className="font-geist-medium text-[11px] text-white">Completed</Text>
             </View>
           </View>
 
-          <View className="mt-4 rounded-2xl bg-white/10 p-3.5">
+          <View className="mt-4 rounded-2xl bg-white/20 border border-white/30 p-3.5">
             <Toggle
               tone="dark"
               checked={available}

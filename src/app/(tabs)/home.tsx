@@ -210,10 +210,8 @@ export default function HomeScreen() {
               <View className="flex-1">
                 <Button
                   size="md"
-                  variant="outline"
+                  variant="glass"
                   full
-                  className="bg-brand-dark border-brand"
-                  textClassName="text-white"
                   onPress={() => router.push('/activity' as any)}
                 >
                   {t('home.cta.activeTasks') || 'Active tasks'}

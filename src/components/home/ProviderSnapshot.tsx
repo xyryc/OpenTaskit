@@ -2,10 +2,12 @@ import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowRight, Briefcase, Send, Star, Wallet } from 'lucide-react-native';
+
 import { useApp } from '@/contexts/AppContext';
 import { ME } from '@/data/users';
 import { money } from '@/utils/format';
 import { Toggle } from '@/components/ui/Input';
+import { CardBackgroundPattern } from '@/components/ui/CardBackgroundPattern';
 
 export function ProviderSnapshot() {
   const router = useRouter();
@@ -23,7 +25,7 @@ export function ProviderSnapshot() {
 
   return (
     <View
-      className="overflow-hidden rounded-4xl bg-brand-deep p-5"
+      className="relative overflow-hidden rounded-4xl bg-brand p-5 border border-[#0074CB]/30"
       style={{
         elevation: 3,
         shadowColor: '#000',
@@ -32,15 +34,13 @@ export function ProviderSnapshot() {
         shadowRadius: 4,
       }}
     >
+      <CardBackgroundPattern />
       <View className="flex-row items-start justify-between">
         <View>
-          <Text
-            className="text-[12px] font-geist-bold font-bold uppercase tracking-wider"
-            style={{ color: 'rgba(255, 255, 255, 0.6)' }}
-          >
+          <Text className="text-[12px] font-geist-semibold uppercase tracking-wider text-white">
             Available balance
           </Text>
-          <Text className="mt-1 text-[30px] font-geist-bold font-bold tracking-tight text-white">
+          <Text className="mt-1 text-[32px] font-geist-bold tracking-tight text-white">
             {money(wallet.available)}
           </Text>
         </View>
@@ -48,8 +48,7 @@ export function ProviderSnapshot() {
         <Pressable
           onPress={() => router.push('/wallet' as any)}
           hitSlop={8}
-          className="h-10 w-10 items-center justify-center rounded-full"
-          style={{ backgroundColor: 'rgba(255, 255, 255, 0.15)' }}
+          className="h-10 w-10 items-center justify-center rounded-full bg-white/20 active:bg-white/30 border border-white/40"
         >
           <Wallet size={18} color="#FFFFFF" />
         </Pressable>
@@ -58,27 +57,24 @@ export function ProviderSnapshot() {
       {/* 3 Metrics */}
       <View className="mt-4 flex-row gap-2">
         <Metric
-          icon={<Send size={14} color="rgba(255,255,255,0.7)" />}
+          icon={<Send size={14} color="#FFFFFF" />}
           label="Active offers"
           value={String(activeOffers)}
         />
         <Metric
-          icon={<Briefcase size={14} color="rgba(255,255,255,0.7)" />}
+          icon={<Briefcase size={14} color="#FFFFFF" />}
           label="Upcoming"
           value={String(upcomingJobs)}
         />
         <Metric
-          icon={<Star size={14} color="rgba(255,255,255,0.7)" />}
+          icon={<Star size={14} color="#FFFFFF" />}
           label="Rating"
           value={me.rating.toFixed(1)}
         />
       </View>
 
       {/* Availability Toggle */}
-      <View
-        className="mt-4 rounded-2xl p-3.5"
-        style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
-      >
+      <View className="mt-4 rounded-2xl bg-white/20 border border-white/30 p-3.5">
         <Toggle
           tone="dark"
           checked={available}
@@ -95,9 +91,9 @@ export function ProviderSnapshot() {
       {/* Provider Dashboard Button */}
       <Pressable
         onPress={() => router.push('/provider-dashboard' as any)}
-        className="mt-4 flex-row items-center justify-between rounded-2xl bg-white px-4 py-3.5"
+        className="mt-4 flex-row items-center justify-between rounded-2xl bg-white px-4 py-3.5 shadow-sm active:bg-white/90"
       >
-        <Text className="text-[14px] font-geist-semibold font-semibold text-ink">
+        <Text className="text-[14px] font-geist-semibold text-ink">
           Open provider dashboard
         </Text>
         <ArrowRight size={16} color="#0C1417" />
@@ -116,21 +112,17 @@ function Metric({
   value: string;
 }) {
   return (
-    <View
-      className="flex-1 rounded-2xl p-3"
-      style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
-    >
+    <View className="flex-1 rounded-2xl bg-white/20 border border-white/30 p-3">
       <View className="flex-row items-center gap-1.5">
         {icon}
         <Text
           numberOfLines={1}
-          className="font-geist text-[11px]"
-          style={{ color: 'rgba(255, 255, 255, 0.6)' }}
+          className="font-geist-medium text-[11px] text-white"
         >
           {label}
         </Text>
       </View>
-      <Text className="mt-1 text-[18px] font-geist-bold font-bold tracking-tight text-white">
+      <Text className="mt-1 text-[18px] font-geist-bold tracking-tight text-white">
         {value}
       </Text>
     </View>

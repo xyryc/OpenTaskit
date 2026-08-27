@@ -3,6 +3,7 @@ import {
   View,
   Text,
   ScrollView,
+  Pressable,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -19,9 +20,9 @@ import {
 import { useApp } from '@/contexts/AppContext';
 import { money } from '@/utils/format';
 import { Screen, ScreenHeader } from '@/components/layout/Screen';
-import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/Feedback';
 import { SelectChip } from '@/components/ui/Chip';
+import { CardBackgroundPattern } from '@/components/ui/CardBackgroundPattern';
 import { TransactionRow } from '@/components/wallet/TransactionRow';
 
 type Filter = 'all' | 'in' | 'out';
@@ -53,8 +54,9 @@ export default function WalletScreen() {
       >
         <View className="gap-5 px-5 pt-4" style={{ gap: 20 }}>
           {/* Main Balance Hero Card */}
-          <View className="overflow-hidden rounded-4xl bg-[#002D42] p-5 text-white shadow-md">
-            <Text className="text-[12px] font-geist-medium uppercase tracking-[0.09em] text-white/60">
+          <View className="relative overflow-hidden rounded-4xl bg-brand p-5 shadow-lg border border-[#0074CB]/30">
+            <CardBackgroundPattern />
+            <Text className="text-[12px] font-geist-semibold uppercase tracking-[0.1em] text-white">
               Available balance
             </Text>
             <Text className="mt-1 text-[34px] font-geist-bold tracking-[-0.04em] text-white">
@@ -63,38 +65,38 @@ export default function WalletScreen() {
 
             {/* Sub-stats 3-grid */}
             <View className="mt-4 flex-row gap-2" style={{ gap: 8 }}>
-              <View className="flex-1 rounded-2xl bg-white/10 px-3 py-2.5">
+              <View className="flex-1 rounded-2xl bg-white/20 border border-white/30 px-3 py-2.5">
                 <View className="flex-row items-center gap-1.5" style={{ gap: 6 }}>
-                  <Receipt size={12} color="rgba(255,255,255,0.7)" />
-                  <Text className="font-geist text-[10.5px] text-white/70">
+                  <Receipt size={12} color="#FFFFFF" />
+                  <Text className="font-geist-medium text-[11px] text-white">
                     Pending
                   </Text>
                 </View>
-                <Text className="mt-1 text-[13px] font-geist-semibold text-white">
+                <Text className="mt-1 text-[13.5px] font-geist-bold text-white">
                   {money(wallet.pending)}
                 </Text>
               </View>
 
-              <View className="flex-1 rounded-2xl bg-white/10 px-3 py-2.5">
+              <View className="flex-1 rounded-2xl bg-white/20 border border-white/30 px-3 py-2.5">
                 <View className="flex-row items-center gap-1.5" style={{ gap: 6 }}>
-                  <TrendingUp size={12} color="rgba(255,255,255,0.7)" />
-                  <Text className="font-geist text-[10.5px] text-white/70">
+                  <TrendingUp size={12} color="#FFFFFF" />
+                  <Text className="font-geist-medium text-[11px] text-white">
                     Earnings
                   </Text>
                 </View>
-                <Text className="mt-1 text-[13px] font-geist-semibold text-white">
+                <Text className="mt-1 text-[13.5px] font-geist-bold text-white">
                   {money(wallet.earnings)}
                 </Text>
               </View>
 
-              <View className="flex-1 rounded-2xl bg-white/10 px-3 py-2.5">
+              <View className="flex-1 rounded-2xl bg-white/20 border border-white/30 px-3 py-2.5">
                 <View className="flex-row items-center gap-1.5" style={{ gap: 6 }}>
-                  <Percent size={12} color="rgba(255,255,255,0.7)" />
-                  <Text className="font-geist text-[10.5px] text-white/70">
+                  <Percent size={12} color="#FFFFFF" />
+                  <Text className="font-geist-medium text-[11px] text-white">
                     Commission
                   </Text>
                 </View>
-                <Text className="mt-1 text-[13px] font-geist-semibold text-white">
+                <Text className="mt-1 text-[13.5px] font-geist-bold text-white">
                   {money(wallet.commissions)}
                 </Text>
               </View>
@@ -102,19 +104,18 @@ export default function WalletScreen() {
 
             {/* Hero Card Actions */}
             <View className="mt-4 flex-row gap-2.5" style={{ gap: 10 }}>
-              <Button
-                size="md"
-                variant="outline"
-                className="flex-1 border border-white/30 bg-white/15"
-                icon={<Plus size={16} color="#FFFFFF" />}
+              <Pressable
                 onPress={() => router.push('/(screens)/wallet/topup')}
+                className="flex-1 flex-row items-center justify-center gap-1.5 rounded-2xl bg-white px-4 py-3 shadow-sm active:bg-white/90"
+                style={{ gap: 6 }}
               >
-                Top up
-              </Button>
-              <Button
-                size="md"
-                className="flex-1 bg-white"
-                icon={<ArrowUpRight size={16} color="#0C1417" />}
+                <Plus size={17} color="#0072C4" />
+                <Text className="font-geist-semibold text-[14px] text-brand-dark">
+                  Top up
+                </Text>
+              </Pressable>
+
+              <Pressable
                 onPress={() =>
                   toast({
                     title: 'Withdrawal requested',
@@ -122,9 +123,14 @@ export default function WalletScreen() {
                     variant: 'info',
                   })
                 }
+                className="flex-1 flex-row items-center justify-center gap-1.5 rounded-2xl border border-white/50 bg-white/20 px-4 py-3 active:bg-white/30"
+                style={{ gap: 6 }}
               >
-                Withdraw
-              </Button>
+                <ArrowUpRight size={17} color="#FFFFFF" />
+                <Text className="font-geist-semibold text-[14px] text-white">
+                  Withdraw
+                </Text>
+              </Pressable>
             </View>
           </View>
 

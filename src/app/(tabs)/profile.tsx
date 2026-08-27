@@ -34,6 +34,7 @@ import { StarRating } from '@/components/ui/Rating';
 import { TrustStats } from '@/components/task/TrustStats';
 import { ConfirmDialog } from '@/components/ui/Overlay';
 import { Toggle } from '@/components/ui/Input';
+import { CardBackgroundPattern } from '@/components/ui/CardBackgroundPattern';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -312,28 +313,29 @@ export default function ProfileScreen() {
               action="Open wallet"
               onAction={() => router.push('/(screens)/wallet')}
             />
-            <View className="overflow-hidden rounded-3xl bg-brand-deep p-5 text-white shadow-sm">
-              <Text className="text-[12px] font-geist-medium uppercase tracking-[0.09em] text-white/60">
+            <View className="relative overflow-hidden rounded-3xl bg-brand p-5 shadow-md border border-[#0074CB]/30">
+              <CardBackgroundPattern />
+              <Text className="text-[12px] font-geist-semibold uppercase tracking-[0.09em] text-white">
                 Available balance
               </Text>
-              <Text className="mt-1 text-[30px] font-geist-bold tracking-[-0.04em] text-white">
+              <Text className="mt-1 text-[32px] font-geist-bold tracking-[-0.04em] text-white">
                 {money(wallet.available)}
               </Text>
 
               <View className="mt-4 flex-row gap-2" style={{ gap: 8 }}>
-                <View className="flex-1 rounded-2xl bg-white/10 px-3.5 py-2.5">
-                  <Text className="text-[11px] font-geist text-white/60">
+                <View className="flex-1 rounded-2xl bg-white/20 border border-white/30 px-3.5 py-2.5">
+                  <Text className="text-[11px] font-geist-medium text-white">
                     Pending
                   </Text>
-                  <Text className="mt-0.5 text-[16px] font-geist-semibold tracking-[-0.02em] text-white">
+                  <Text className="mt-0.5 text-[16px] font-geist-bold tracking-[-0.02em] text-white">
                     {money(wallet.pending)}
                   </Text>
                 </View>
-                <View className="flex-1 rounded-2xl bg-white/10 px-3.5 py-2.5">
-                  <Text className="text-[11px] font-geist text-white/60">
+                <View className="flex-1 rounded-2xl bg-white/20 border border-white/30 px-3.5 py-2.5">
+                  <Text className="text-[11px] font-geist-medium text-white">
                     Total earned
                   </Text>
-                  <Text className="mt-0.5 text-[16px] font-geist-semibold tracking-[-0.02em] text-white">
+                  <Text className="mt-0.5 text-[16px] font-geist-bold tracking-[-0.02em] text-white">
                     {money(wallet.earnings)}
                   </Text>
                 </View>
@@ -341,21 +343,22 @@ export default function ProfileScreen() {
 
               <View className="mt-4 flex-row gap-2.5" style={{ gap: 10 }}>
                 <Pressable
-                  onPress={() => router.push('/(screens)/wallet')}
-                  className="flex-1 items-center justify-center rounded-xl bg-white/15 px-4 py-2.5 active:bg-white/20"
+                  onPress={() => router.push('/(screens)/wallet/topup')}
+                  className="flex-1 items-center justify-center rounded-2xl bg-white px-4 py-3 shadow-sm active:bg-white/90"
                 >
-                  <Text className="font-geist-medium text-[14px] text-white">
+                  <Text className="font-geist-semibold text-[14px] text-brand-dark">
                     Top up
                   </Text>
                 </Pressable>
                 <Pressable
                   onPress={() => router.push('/(screens)/wallet')}
-                  className="flex-1 flex-row items-center justify-center gap-1.5 rounded-xl bg-white px-4 py-2.5 active:bg-white/90"
+                  className="flex-1 flex-row items-center justify-center gap-1.5 rounded-2xl border border-white/50 bg-white/20 px-4 py-3 active:bg-white/30"
+                  style={{ gap: 6 }}
                 >
-                  <Text className="font-geist-medium text-[14px] text-ink">
+                  <Text className="font-geist-semibold text-[14px] text-white">
                     Transactions
                   </Text>
-                  <ArrowRight size={16} color="#0C1417" />
+                  <ArrowRight size={16} color="#FFFFFF" />
                 </Pressable>
               </View>
             </View>

@@ -9,7 +9,7 @@ import {
   ViewStyle,
 } from 'react-native';
 
-export type ButtonVariant = 'brand' | 'ink' | 'outline' | 'subtle' | 'ghost' | 'danger';
+export type ButtonVariant = 'brand' | 'ink' | 'outline' | 'subtle' | 'ghost' | 'danger' | 'glass';
 export type ButtonSize = 'lg' | 'md' | 'sm';
 
 const variantContainerClasses: Record<ButtonVariant, string> = {
@@ -19,6 +19,7 @@ const variantContainerClasses: Record<ButtonVariant, string> = {
   subtle: 'bg-ink-100 active:bg-ink-200',
   ghost: 'bg-transparent active:bg-ink-100',
   danger: 'bg-danger active:opacity-90',
+  glass: 'bg-white/15 border border-white/25 active:bg-white/25',
 };
 
 const variantTextClasses: Record<ButtonVariant, string> = {
@@ -28,6 +29,7 @@ const variantTextClasses: Record<ButtonVariant, string> = {
   subtle: 'text-ink',
   ghost: 'text-ink-700',
   danger: 'text-white',
+  glass: 'text-white',
 };
 
 const sizeContainerClasses: Record<ButtonSize, string> = {
@@ -80,7 +82,7 @@ export function Button({
   };
 
   const indicatorColor =
-    variant === 'brand' || variant === 'ink' || variant === 'danger' ? '#FFFFFF' : '#0C1417';
+    variant === 'brand' || variant === 'ink' || variant === 'danger' || variant === 'glass' ? '#FFFFFF' : '#0C1417';
 
   return (
     <Pressable
