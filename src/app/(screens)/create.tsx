@@ -15,6 +15,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import {
   Banknote,
+  CalendarClock,
+  CalendarDays,
   Camera,
   Check,
   ChevronLeft,
@@ -37,9 +39,10 @@ import { ConfirmDialog } from '@/components/ui/Overlay';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { PhotoPicker } from '@/components/create/PhotoPicker';
 import { LocationPicker } from '@/components/create/LocationPicker';
+import { DatePickerSheet } from '@/components/create/DatePickerSheet';
 import { PAYMENT_METHODS, walletCovers } from '@/utils/payment';
-import { money } from '@/utils/format';
-import type { PaymentMethod } from '@/types';
+import { money, scheduleDateLabel, startOfToday } from '@/utils/format';
+import type { PaymentMethod, ScheduleType } from '@/types';
 
 const steps = ['Basics', 'Photos', 'Location', 'Budget & payment', 'Schedule', 'Review'];
 
@@ -52,6 +55,38 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
 }
 
 const PRESET_AMOUNTS = [3000, 5000, 8000, 12000, 20000];
+
+/** The next four days, offered as quick picks beside the full calendar. */
+function quickDates(): string[] {
+  const start = startOfToday();
+  return Array.from({ length: 4 }).map((_, i) =>
+    scheduleDateLabel(new Date(start.getFullYear(), start.getMonth(), start.getDate() + i))
+  );
+}
+
+const TIME_OPTIONS = [
+  'Morning (8am – 12pm)',
+  'Afternoon (12pm – 5pm)',
+  'Evening (5pm – 8pm)',
+];
+
+const SCHEDULE_OPTIONS: { key: ScheduleType; title: string; body: string }[] = [
+  {
+    key: 'asap',
+    title: 'As soon as possible',
+    body: 'Urgent — today if someone is free',
+  },
+  {
+    key: 'date',
+    title: 'On a specific date',
+    body: 'Choose the day and part of day',
+  },
+  {
+    key: 'flexible',
+    title: 'I am flexible',
+    body: 'Let people suggest a time',
+  },
+];
 
 export default function CreateTaskScreen() {
   const router = useRouter();
@@ -69,9 +104,17 @@ export default function CreateTaskScreen() {
   const [budget, setBudget] = useState('');
   const [flexible, setFlexible] = useState(true);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | ''>('');
+
+  // Step 5: Schedule state
+  const quickPicks = useMemo(quickDates, []);
+  const [scheduleType, setScheduleType] = useState<ScheduleType>('date');
+  const [date, setDate] = useState(() => quickDates()[1]);
+  const [time, setTime] = useState('Morning (8am – 12pm)');
+
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [photoOpen, setPhotoOpen] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
 
   // Require account for posting
@@ -139,9 +182,12 @@ export default function CreateTaskScreen() {
       setStep(4);
     } else if (step === 4) {
       if (!validate(5)) return;
+      setStep(5);
+    } else if (step === 5) {
+      if (!validate(6)) return;
       toast({
-        title: 'Step 1–4 completed!',
-        description: 'Steps 5 & 6 will be implemented in the next phase.',
+        title: 'Step 1–5 completed!',
+        description: 'Step 6 (Review) will be implemented in the next phase.',
         variant: 'success',
       });
     }
@@ -674,6 +720,138 @@ export default function CreateTaskScreen() {
                 )}
               </View>
             )}
+
+            {/* STEP 5: SCHEDULE */}
+            {step === 5 && (
+              <View>
+                {/* 1. Intro Section */}
+                <StepIntro
+                  title="When should it happen?"
+                  body="Pick a time that works for you."
+                />
+
+                {/* 2. Schedule Type Options */}
+                <View className="mt-7 gap-2.5" style={{ marginTop: 24, gap: 10 }}>
+                  {SCHEDULE_OPTIONS.map((option) => {
+                    const active = scheduleType === option.key;
+                    return (
+                      <Pressable
+                        key={option.key}
+                        onPress={() => setScheduleType(option.key)}
+                        className={`flex-row items-center gap-3 rounded-2xl border p-4 active:bg-ink-100/60 ${
+                          active
+                            ? 'border-brand bg-brand-tint/50'
+                            : 'border-ink-200 bg-white'
+                        }`}
+                        style={{ gap: 12 }}
+                      >
+                        <View
+                          className="h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+                          style={{
+                            backgroundColor: active ? '#FFFFFF' : '#F0F3F4',
+                          }}
+                        >
+                          <CalendarClock
+                            size={18}
+                            color={active ? '#0094F7' : '#5B6A72'}
+                          />
+                        </View>
+
+                        <View className="flex-1 min-w-0">
+                          <Text className="text-[14.5px] font-geist-semibold text-ink">
+                            {option.title}
+                          </Text>
+                          <Text className="mt-0.5 text-[12.5px] font-geist text-ink-500">
+                            {option.body}
+                          </Text>
+                        </View>
+
+                        {active && (
+                          <Check size={18} color="#0094F7" strokeWidth={2.5} />
+                        )}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+
+                {/* 3. Specific Date Sub-section */}
+                {scheduleType === 'date' && (
+                  <View className="mt-4 rounded-2xl border border-ink-200 bg-white p-4">
+                    {/* Date picker sub-section */}
+                    <View>
+                      <Text className="mb-2 text-[13px] font-geist-medium text-ink-700">
+                        Date
+                      </Text>
+                      <View
+                        className="flex-row flex-wrap gap-2"
+                        style={{ gap: 8 }}
+                      >
+                        {quickPicks.map((option, index) => (
+                          <SelectChip
+                            key={option}
+                            selected={date === option}
+                            onPress={() => setDate(option)}
+                          >
+                            {index === 0 ? `Today · ${option}` : option}
+                          </SelectChip>
+                        ))}
+                        {!quickPicks.includes(date) && (
+                          <SelectChip
+                            selected
+                            onPress={() => setCalendarOpen(true)}
+                          >
+                            {date}
+                          </SelectChip>
+                        )}
+                      </View>
+
+                      {/* Pick another date button card */}
+                      <Pressable
+                        onPress={() => setCalendarOpen(true)}
+                        className="mt-3 flex-row items-center rounded-2xl border border-ink-200 bg-white p-3.5 active:bg-ink-100"
+                        style={{ gap: 12 }}
+                      >
+                        <View className="h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-tint">
+                          <CalendarDays size={18} color="#0072C4" />
+                        </View>
+                        <View className="flex-1 min-w-0">
+                          <Text className="text-[13.5px] font-geist-medium text-ink">
+                            Pick another date
+                          </Text>
+                          <Text className="mt-0.5 text-[12px] font-geist text-ink-500">
+                            Open the calendar to choose any day
+                          </Text>
+                        </View>
+                        <Text className="font-geist-medium text-[13px] text-brand">
+                          Calendar
+                        </Text>
+                      </Pressable>
+                    </View>
+
+                    {/* Time slot sub-section */}
+                    <View className="mt-5">
+                      <Text className="mb-2 text-[13px] font-geist-medium text-ink-700">
+                        Time
+                      </Text>
+                      <View
+                        className="flex-row flex-wrap gap-2"
+                        style={{ gap: 8 }}
+                      >
+                        {TIME_OPTIONS.map((option) => (
+                          <SelectChip
+                            key={option}
+                            selected={time === option}
+                            onPress={() => setTime(option)}
+                          >
+                            {option}
+                          </SelectChip>
+                        ))}
+                      </View>
+                    </View>
+                  </View>
+                )}
+              </View>
+            )}
           </View>
         </ScrollView>
 
@@ -744,6 +922,14 @@ export default function CreateTaskScreen() {
             setErrors((prev) => ({ ...prev, location: '' }));
           }
         }}
+      />
+
+      {/* Date Picker Calendar Modal */}
+      <DatePickerSheet
+        open={calendarOpen}
+        onClose={() => setCalendarOpen(false)}
+        value={date}
+        onSelect={(label) => setDate(label)}
       />
 
       {/* Discard Confirmation Modal */}
