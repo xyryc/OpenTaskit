@@ -161,14 +161,6 @@ export function TaskCard({
           <CategoryBadge categoryId={task.categoryId} size="lg" />
 
           <View className="flex-1 min-w-0">
-            {mine && (
-              <View className="mb-1.5 self-start rounded-full bg-brand px-2 py-0.5">
-                <Text className="text-[10px] font-geist-bold font-bold uppercase tracking-wider text-white">
-                  Your task
-                </Text>
-              </View>
-            )}
-
             <View className="flex-row items-start justify-between gap-2">
               <Text
                 numberOfLines={2}

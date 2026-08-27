@@ -7,7 +7,6 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Image } from 'expo-image';
 import {
   ArrowRight,
   BadgeCheck,
@@ -21,7 +20,6 @@ import {
   Settings,
   ShieldCheck,
   Sparkles,
-  Star,
   UserRound,
   Wallet2,
 } from 'lucide-react-native';
@@ -32,13 +30,10 @@ import { money } from '@/utils/format';
 import { Screen, SectionHeader } from '@/components/layout/Screen';
 import { Avatar, VerifiedPill } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
-import { Chip } from '@/components/ui/Chip';
 import { StarRating } from '@/components/ui/Rating';
 import { TrustStats } from '@/components/task/TrustStats';
 import { ConfirmDialog } from '@/components/ui/Overlay';
-import { ReviewItem } from '@/components/reviews/ReviewItem';
 import { Toggle } from '@/components/ui/Input';
-import { resolveImageSource } from '@/utils/images';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -46,8 +41,6 @@ export default function ProfileScreen() {
     me,
     guest,
     kyc,
-    tasks,
-    reviewsFor,
     wallet,
     savedTaskIds,
     unreadNotifications,
@@ -59,13 +52,6 @@ export default function ProfileScreen() {
   } = useApp();
 
   const [logoutOpen, setLogoutOpen] = useState(false);
-
-  const reviews = reviewsFor(ME);
-  const completed = tasks.filter(
-    (task) =>
-      (task.assignedProviderId === ME || task.requesterId === ME) &&
-      task.status === 'completed'
-  ).length;
 
   // Guest view
   if (guest) {
@@ -375,114 +361,8 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          {/* About Section */}
-          <View>
-            <SectionHeader
-              title="About"
-              action="Edit"
-              onAction={() => router.push('/(screens)/edit-profile')}
-            />
-            <View className="rounded-3xl border border-ink-200 bg-white p-4">
-              <Text className="font-geist text-[13.5px] leading-relaxed text-ink-700">
-                {me.about}
-              </Text>
-            </View>
-          </View>
-
-          {/* Skills Section */}
-          <View>
-            <SectionHeader title="Skills" />
-            <View className="flex-row flex-wrap gap-2" style={{ gap: 8 }}>
-              {me.skills.map((skill) => (
-                <Chip key={skill} tone="outline">
-                  {skill}
-                </Chip>
-              ))}
-            </View>
-          </View>
-
-          {/* Services & Rates Section */}
-          <View>
-            <SectionHeader title="Services & rates" />
-            <View className="divide-y divide-ink-100 rounded-3xl border border-ink-200 bg-white px-4">
-              {me.services.map((service) => (
-                <View
-                  key={service.name}
-                  className="flex-row items-center justify-between py-3.5"
-                >
-                  <Text className="font-geist text-[14px] text-ink">
-                    {service.name}
-                  </Text>
-                  <Text className="font-geist-semibold text-[13.5px] text-ink-700">
-                    from {money(service.from)}
-                  </Text>
-                </View>
-              ))}
-            </View>
-            <Text className="mt-2 px-1 font-geist text-[12px] leading-relaxed text-ink-400">
-              Only you see these rates — your public profile shows the services without prices.
-            </Text>
-          </View>
-
-          {/* Portfolio Section */}
-          <View>
-            <SectionHeader
-              title="Portfolio"
-              action="Manage"
-              onAction={() => router.push('/(screens)/edit-profile')}
-            />
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              className="-mx-5 px-5"
-            >
-              <View className="flex-row gap-2.5" style={{ gap: 10 }}>
-                {me.portfolio.map((item) => (
-                  <View key={item.id} className="w-[150px]">
-                    <Image
-                      source={resolveImageSource(item.image)}
-                      style={{ width: 150, height: 96, borderRadius: 16 }}
-                      contentFit="cover"
-                    />
-                    <Text
-                      numberOfLines={1}
-                      className="mt-1.5 font-geist text-[12px] text-ink-500"
-                    >
-                      {item.title}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            </ScrollView>
-          </View>
-
-          {/* Reviews Section */}
-          <View>
-            <SectionHeader
-              title={`Reviews (${reviews.length})`}
-            />
-            {reviews.length > 0 ? (
-              <View className="gap-3" style={{ gap: 12 }}>
-                {reviews.slice(0, 2).map((review) => (
-                  <ReviewItem key={review.id} review={review} />
-                ))}
-              </View>
-            ) : (
-              <View className="flex-row items-center gap-2 rounded-3xl border border-ink-200 bg-white p-4">
-                <Star size={16} color="#8A959B" />
-                <Text className="flex-1 font-geist text-[13.5px] text-ink-500">
-                  No reviews yet — complete a task to get your first one.
-                </Text>
-              </View>
-            )}
-          </View>
-
           {/* Account Settings & Log Out Actions */}
           <View className="gap-2.5 pt-2" style={{ gap: 10 }}>
-            <Text className="px-1 font-geist text-[12.5px] text-ink-400">
-              {completed} completed tasks on this account
-            </Text>
-
             <Button
               full
               size="lg"
