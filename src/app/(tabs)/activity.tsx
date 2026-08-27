@@ -289,7 +289,7 @@ export default function ActivityScreen() {
               {filtered(myJobs).map((task) => (
                 <Pressable
                   key={task.id}
-                  onPress={() => router.push(`/task/${task.id}` as any)}
+                  onPress={() => router.push(`/job/${task.id}` as any)}
                   className="w-full rounded-3xl border border-ink-200 bg-white p-4"
                   style={{
                     elevation: 1,

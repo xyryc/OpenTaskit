@@ -825,6 +825,23 @@ export default function TaskDetailScreen() {
                   </View>
                 );
               })}
+              {offers.length > 0 && (
+                <View className="mt-2">
+                  <Button
+                    variant="outline"
+                    size="md"
+                    onPress={() => {
+                      setOffersSheetOpen(false);
+                      router.push({
+                        pathname: '/(screens)/task/[id]/offers',
+                        params: { id: task.id },
+                      } as any);
+                    }}
+                  >
+                    View all offers & compare
+                  </Button>
+                </View>
+              )}
             </View>
           )}
         </View>
