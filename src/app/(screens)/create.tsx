@@ -24,12 +24,13 @@ import {
   Lock,
   MapPin,
   Plus,
+  Sparkles,
   Wallet2,
   X,
 } from 'lucide-react-native';
 
 import { useApp } from '@/contexts/AppContext';
-import { categories } from '@/data/categories';
+import { categories, categoryById } from '@/data/categories';
 import { Screen } from '@/components/layout/Screen';
 import { Button } from '@/components/ui/Button';
 import { TextField, TextArea, Toggle } from '@/components/ui/Input';
@@ -40,7 +41,7 @@ import { CategoryIcon } from '@/components/CategoryIcon';
 import { PhotoPicker } from '@/components/create/PhotoPicker';
 import { LocationPicker } from '@/components/create/LocationPicker';
 import { DatePickerSheet } from '@/components/create/DatePickerSheet';
-import { PAYMENT_METHODS, walletCovers } from '@/utils/payment';
+import { PAYMENT_METHODS, paymentMethodMeta, walletCovers } from '@/utils/payment';
 import { money, scheduleDateLabel, startOfToday } from '@/utils/format';
 import type { PaymentMethod, ScheduleType } from '@/types';
 
@@ -91,7 +92,7 @@ const SCHEDULE_OPTIONS: { key: ScheduleType; title: string; body: string }[] = [
 export default function CreateTaskScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { requireAccount, currentLocation, wallet, toast } = useApp();
+  const { requireAccount, currentLocation, wallet, createTask, toast } = useApp();
 
   const [step, setStep] = useState(1);
   const [title, setTitle] = useState('');
@@ -111,6 +112,7 @@ export default function CreateTaskScreen() {
   const [date, setDate] = useState(() => quickDates()[1]);
   const [time, setTime] = useState('Morning (8am – 12pm)');
 
+  const [posting, setPosting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [photoOpen, setPhotoOpen] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
@@ -185,12 +187,41 @@ export default function CreateTaskScreen() {
       setStep(5);
     } else if (step === 5) {
       if (!validate(6)) return;
-      toast({
-        title: 'Step 1–5 completed!',
-        description: 'Step 6 (Review) will be implemented in the next phase.',
-        variant: 'success',
-      });
+      setStep(6);
     }
+  };
+
+  const handlePost = () => {
+    if (!validate(6)) return;
+    if (!paymentMethod) {
+      setStep(4);
+      return;
+    }
+
+    setPosting(true);
+    setTimeout(() => {
+      const id = createTask({
+        title: title.trim(),
+        categoryId,
+        description: description.trim(),
+        images,
+        location,
+        budget: Number(budget),
+        flexibleBudget: flexible,
+        paymentMethod,
+        schedule:
+          scheduleType === 'date'
+            ? { type: 'date', date, time }
+            : scheduleType === 'asap'
+            ? { type: 'asap' }
+            : { type: 'flexible' },
+      });
+      setPosting(false);
+      router.replace({
+        pathname: '/(screens)/posted',
+        params: { taskId: id },
+      } as any);
+    }, 1100);
   };
 
   const handleSkipPhotos = () => {
@@ -852,6 +883,89 @@ export default function CreateTaskScreen() {
                 )}
               </View>
             )}
+
+            {/* STEP 6: REVIEW */}
+            {step === 6 && (
+              <View>
+                {/* 1. Intro Section */}
+                <StepIntro
+                  title="Review your task"
+                  body="This is what people will see before they send an offer."
+                />
+
+                {/* 2. Review Card Preview */}
+                <View className="mt-7 overflow-hidden rounded-3xl border border-ink-200 bg-white shadow-sm" style={{ marginTop: 24 }}>
+                  {images.length > 0 && (
+                    <Image
+                      source={{ uri: images[0] }}
+                      style={styles.reviewImage}
+                      contentFit="cover"
+                    />
+                  )}
+
+                  <View className="p-4">
+                    <View className="self-start rounded-full bg-brand-tint px-2.5 py-1">
+                      <Text className="font-geist-medium text-[11.5px] text-brand-dark">
+                        {categoryId ? categoryById(categoryId).name : 'Category'}
+                      </Text>
+                    </View>
+
+                    <Text className="mt-2.5 text-[18px] font-geist-semibold leading-snug tracking-[-0.02em] text-ink">
+                      {title}
+                    </Text>
+
+                    <Text className="mt-2 font-geist text-[13.5px] leading-relaxed text-ink-700">
+                      {description}
+                    </Text>
+
+                    {/* Details breakdown */}
+                    <View className="mt-4 border-t border-ink-100 pt-3.5 gap-2.5" style={{ gap: 10 }}>
+                      <ReviewRow
+                        icon={<Wallet2 size={16} color="#5B6A72" />}
+                        label="Budget"
+                        value={`${money(Number(budget) || 0)}${flexible ? ' · flexible' : ''}`}
+                      />
+                      <ReviewRow
+                        icon={<MapPin size={16} color="#5B6A72" />}
+                        label="Location"
+                        value={location || 'Not set'}
+                      />
+                      <ReviewRow
+                        icon={<CalendarClock size={16} color="#5B6A72" />}
+                        label="When"
+                        value={
+                          scheduleType === 'asap'
+                            ? 'As soon as possible'
+                            : scheduleType === 'flexible'
+                            ? 'Flexible'
+                            : `${date} · ${time}`
+                        }
+                      />
+                      <ReviewRow
+                        icon={<CreditCard size={16} color="#5B6A72" />}
+                        label="Payment"
+                        value={paymentMethod ? paymentMethodMeta(paymentMethod).label : 'Not chosen'}
+                      />
+                      <ReviewRow
+                        icon={<Camera size={16} color="#5B6A72" />}
+                        label="Photos"
+                        value={`${images.length} attached`}
+                      />
+                    </View>
+                  </View>
+                </View>
+
+                {/* 3. Edit Details Shortcut Button */}
+                <Pressable
+                  onPress={() => setStep(1)}
+                  className="mt-4 w-full items-center rounded-2xl border border-ink-200 bg-white py-3.5 active:bg-ink-100"
+                >
+                  <Text className="font-geist-medium text-[13.5px] text-ink-700">
+                    Edit details
+                  </Text>
+                </Pressable>
+              </View>
+            )}
           </View>
         </ScrollView>
 
@@ -883,6 +997,17 @@ export default function CreateTaskScreen() {
                 </Button>
               </View>
             </View>
+          ) : step === 6 ? (
+            <Button
+              full
+              size="lg"
+              variant="brand"
+              loading={posting}
+              icon={<Sparkles size={18} color="#FFFFFF" />}
+              onPress={handlePost}
+            >
+              Post task
+            </Button>
           ) : (
             <Button full size="lg" variant="brand" onPress={goNext}>
               Continue
@@ -965,9 +1090,38 @@ function StepIntro({ title, body }: { title: string; body: string }) {
   );
 }
 
+function ReviewRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <View className="flex-row items-center justify-between gap-3">
+      <View className="flex-row items-center gap-2">
+        {icon}
+        <Text className="font-geist text-[13.5px] text-ink-500">{label}</Text>
+      </View>
+      <Text
+        numberOfLines={1}
+        className="max-w-[55%] text-right font-geist-medium text-[13.5px] text-ink truncate"
+      >
+        {value}
+      </Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   cardImage: {
     width: '100%',
     height: '100%',
+  },
+  reviewImage: {
+    width: '100%',
+    height: 160,
   },
 });
