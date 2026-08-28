@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, Pressable } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, Pressable, Animated } from 'react-native';
 import { Tabs, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -11,23 +11,56 @@ import {
 } from 'lucide-react-native';
 import { useApp } from '@/contexts/AppContext';
 
+const TAB_KEYS = ['home', 'discover', 'activity', 'profile'];
+
 function CustomTabBar({ state, navigation }: any) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { t, unreadNotifications, pendingOfferCount, unreadMessages, requireAccount } = useApp();
 
-  const currentRouteName = state.routes[state.index]?.name;
+  const currentRouteName = state.routes[state.index]?.name || 'home';
+  const activeIndex = Math.max(0, TAB_KEYS.indexOf(currentRouteName));
+
+  const [tabCenters, setTabCenters] = useState<{ [key: number]: number }>({});
+  const translateX = useRef(new Animated.Value(0)).current;
+  const dotOpacity = useRef(new Animated.Value(0)).current;
+
+  const handleTabLayout = (index: number, e: any) => {
+    const { x, width } = e.nativeEvent.layout;
+    const centerX = x + width / 2;
+    setTabCenters((prev) => ({ ...prev, [index]: centerX }));
+  };
+
+  useEffect(() => {
+    const targetX = tabCenters[activeIndex];
+    if (targetX !== undefined) {
+      Animated.parallel([
+        Animated.spring(translateX, {
+          toValue: targetX - 2.5, // Center the 5px dot
+          useNativeDriver: true,
+          tension: 70,
+          friction: 10,
+        }),
+        Animated.timing(dotOpacity, {
+          toValue: 1,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [activeIndex, tabCenters]);
 
   return (
     <View
-      className="border-t border-ink-200/70 bg-white px-2 pt-2"
-      style={{ paddingBottom: Math.max(insets.bottom, 12) }}
+      className="border-t border-ink-200/70 bg-white px-2 pt-1.5"
+      style={{ paddingBottom: Math.max(insets.bottom, 8) + 4 }}
     >
-      <View className="flex-row items-end justify-between">
+      <View className="relative flex-row items-center justify-between">
         {/* Tab 1: Home */}
         <Pressable
+          onLayout={(e) => handleTabLayout(0, e)}
           onPress={() => navigation.navigate('home')}
-          className="w-[72px] items-center gap-1 py-1.5"
+          className="h-[58px] w-[70px] items-center justify-center gap-1"
         >
           <HomeIcon
             size={22}
@@ -40,15 +73,13 @@ function CustomTabBar({ state, navigation }: any) {
           >
             {t('nav.home') || 'Home'}
           </Text>
-          {currentRouteName === 'home' && (
-            <View className="h-1 w-1 rounded-full bg-brand" />
-          )}
         </Pressable>
 
         {/* Tab 2: Discover */}
         <Pressable
+          onLayout={(e) => handleTabLayout(1, e)}
           onPress={() => navigation.navigate('discover')}
-          className="w-[72px] items-center gap-1 py-1.5"
+          className="h-[58px] w-[70px] items-center justify-center gap-1"
         >
           <Compass
             size={22}
@@ -61,19 +92,23 @@ function CustomTabBar({ state, navigation }: any) {
           >
             {t('nav.discover') || 'Discover'}
           </Text>
-          {currentRouteName === 'discover' && (
-            <View className="h-1 w-1 rounded-full bg-brand" />
-          )}
         </Pressable>
 
-        {/* Center Floating Plus Button */}
-        <View className="relative -mt-7 w-[68px] items-center justify-center">
+        {/* Center Plus Button (Exact 56x56px rounded-22px from Web App, Contained in Tab Bar) */}
+        <View className="h-[58px] w-[74px] items-center justify-center">
           <Pressable
             onPress={() => {
               if (!requireAccount('post')) return;
               router.push('/create' as any);
             }}
-            className="h-[54px] w-[54px] items-center justify-center rounded-[22px] bg-brand shadow-lg active:scale-95"
+            className="h-[56px] w-[56px] items-center justify-center rounded-[22px] bg-brand active:scale-95"
+            style={{
+              elevation: 4,
+              shadowColor: '#0094F7',
+              shadowOffset: { width: 0, height: 3 },
+              shadowOpacity: 0.28,
+              shadowRadius: 6,
+            }}
           >
             <Plus size={26} color="#FFFFFF" strokeWidth={2.5} />
           </Pressable>
@@ -81,8 +116,9 @@ function CustomTabBar({ state, navigation }: any) {
 
         {/* Tab 3: Activity */}
         <Pressable
+          onLayout={(e) => handleTabLayout(2, e)}
           onPress={() => navigation.navigate('activity')}
-          className="w-[72px] items-center gap-1 py-1.5"
+          className="h-[58px] w-[70px] items-center justify-center gap-1"
         >
           <View className="relative">
             <Receipt
@@ -104,15 +140,13 @@ function CustomTabBar({ state, navigation }: any) {
           >
             {t('nav.activity') || 'Activity'}
           </Text>
-          {currentRouteName === 'activity' && (
-            <View className="h-1 w-1 rounded-full bg-brand" />
-          )}
         </Pressable>
 
         {/* Tab 4: Profile */}
         <Pressable
+          onLayout={(e) => handleTabLayout(3, e)}
           onPress={() => navigation.navigate('profile')}
-          className="w-[72px] items-center gap-1 py-1.5"
+          className="h-[58px] w-[70px] items-center justify-center gap-1"
         >
           <View className="relative">
             <UserIcon
@@ -130,10 +164,23 @@ function CustomTabBar({ state, navigation }: any) {
           >
             {t('nav.profile') || 'Profile'}
           </Text>
-          {currentRouteName === 'profile' && (
-            <View className="h-1 w-1 rounded-full bg-brand" />
-          )}
         </Pressable>
+
+        {/* Smooth Sliding Animated Indicator Dot */}
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            width: 5,
+            height: 5,
+            borderRadius: 2.5,
+            backgroundColor: '#0094F7',
+            opacity: dotOpacity,
+            transform: [{ translateX }],
+          }}
+        />
       </View>
     </View>
   );
