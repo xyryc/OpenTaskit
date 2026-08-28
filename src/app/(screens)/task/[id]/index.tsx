@@ -26,8 +26,10 @@ import {
   CreditCard,
   Image as ImageIcon,
   MapPin,
+  MessageCircle,
   MessageSquare,
   MoreHorizontal,
+  Pencil,
   Share2,
   ShieldCheck,
   Users,
@@ -177,6 +179,20 @@ export default function TaskDetailScreen() {
     setMakeOfferOpen(true);
   };
 
+  const handleOpenEditOffer = () => {
+    if (!requireAccount('offer')) return;
+    if (existingOffer) {
+      setOfferPrice(String(existingOffer.price));
+      setOfferMessage(existingOffer.message || '');
+      setOfferEta(existingOffer.eta || 'Tomorrow afternoon');
+    } else {
+      setOfferPrice(String(task.budget));
+      setOfferMessage('I saw your task and I am available to help. I bring my own tools and can get it done cleanly.');
+    }
+    setOfferError('');
+    setMakeOfferOpen(true);
+  };
+
   const handleSubmitOffer = () => {
     const num = Number(offerPrice);
     if (!num || num < 500) {
@@ -310,18 +326,37 @@ export default function TaskDetailScreen() {
 
         {/* TASK DETAILS BODY */}
         <View className="px-5 pt-5 pb-8">
-          {/* Provider's own offer banner (if already bid) */}
+          {/* Provider's Submitted Offer Card (Top) */}
           {!mine && existingOffer && (
-            <View className="mb-4 flex-row items-center justify-between rounded-3xl border border-brand/40 bg-brand-tint/60 px-4 py-3.5">
-              <View className="flex-1 min-w-0">
-                <Text className="text-[11.5px] font-geist-semibold uppercase tracking-[0.07em] text-brand-dark">
-                  Your offer
+            <View className="mb-4 rounded-3xl border border-brand/40 bg-brand-tint/60 p-4">
+              <View className="flex-row items-center justify-between">
+                <Text className="text-[12.5px] font-geist-semibold uppercase tracking-[0.07em] text-brand-dark">
+                  Your submitted offer
                 </Text>
-                <Text className="mt-0.5 text-[24px] font-geist-bold leading-none tracking-[-0.03em] text-ink">
-                  {money(existingOffer.price)}
-                </Text>
+                <Chip tone="brand">{existingOffer.status}</Chip>
               </View>
-              <Chip tone="brand">{existingOffer.status}</Chip>
+              <Text className="mt-2 text-[22px] font-geist-bold tracking-[-0.03em] text-ink">
+                {money(existingOffer.price)}
+              </Text>
+              {existingOffer.eta ? (
+                <Text className="mt-0.5 font-geist-medium text-[13px] text-ink-700">
+                  {existingOffer.eta}
+                </Text>
+              ) : null}
+              {existingOffer.message ? (
+                <Text className="mt-2 font-geist text-[13px] leading-relaxed text-ink-600">
+                  {existingOffer.message}
+                </Text>
+              ) : null}
+              <View className="mt-3 w-36">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onPress={() => setConfirmWithdraw(true)}
+                >
+                  Withdraw offer
+                </Button>
+              </View>
             </View>
           )}
 
@@ -466,38 +501,6 @@ export default function TaskDetailScreen() {
             </Pressable>
           </View>
 
-          {/* Provider's Existing Offer Detailed Card */}
-          {!mine && existingOffer && (
-            <View className="mt-5 rounded-3xl border border-brand/40 bg-brand-tint/50 p-4">
-              <View className="flex-row items-center justify-between">
-                <Text className="text-[13px] font-geist-semibold uppercase tracking-[0.07em] text-brand-dark">
-                  Your submitted offer
-                </Text>
-                <Chip tone="brand">{existingOffer.status}</Chip>
-              </View>
-              <Text className="mt-2 text-[20px] font-geist-bold tracking-[-0.02em] text-ink">
-                {money(existingOffer.price)}
-              </Text>
-              <Text className="mt-0.5 font-geist-medium text-[13px] text-ink-700">
-                {existingOffer.eta}
-              </Text>
-              {existingOffer.message && (
-                <Text className="mt-2 font-geist text-[12.5px] leading-relaxed text-ink-500">
-                  {existingOffer.message}
-                </Text>
-              )}
-              <View className="mt-3 w-36">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onPress={() => setConfirmWithdraw(true)}
-                >
-                  Withdraw offer
-                </Button>
-              </View>
-            </View>
-          )}
-
           {/* Trust & Dispute Protection Box */}
           <View
             className="mt-5 flex-row items-start rounded-3xl bg-ink-100/80 p-4"
@@ -555,18 +558,35 @@ export default function TaskDetailScreen() {
             </Button>
           </View>
         ) : existingOffer ? (
-          /* Provider has already submitted offer */
-          <View className="flex-row items-center gap-3">
-            <Text className="flex-1 font-geist text-[13px] text-ink-500">
-              Your offer of {money(existingOffer.price)} is with the poster.
-            </Text>
-            <Button
-              size="md"
-              variant="outline"
-              onPress={() => setConfirmWithdraw(true)}
-            >
-              Withdraw
-            </Button>
+          /* Provider has already submitted offer: 2 Actions (Message & Edit your offer) */
+          <View className="flex-row gap-2.5" style={{ gap: 10 }}>
+            <View className="flex-1">
+              <Button
+                full
+                size="lg"
+                variant="outline"
+                icon={<MessageCircle size={18} color="#0C1417" />}
+                onPress={() => {
+                  router.push({
+                    pathname: '/(screens)/chat/[taskId]',
+                    params: { taskId: task.id },
+                  } as any);
+                }}
+              >
+                Message
+              </Button>
+            </View>
+            <View className="flex-[1.4]">
+              <Button
+                full
+                size="lg"
+                variant="brand"
+                icon={<Pencil size={16} color="#FFFFFF" />}
+                onPress={handleOpenEditOffer}
+              >
+                Edit your offer
+              </Button>
+            </View>
           </View>
         ) : (
           /* Provider: Make an offer & bookmark */
