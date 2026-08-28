@@ -39,6 +39,7 @@ export default function ScreensLayout() {
       <Stack.Screen name="dispute/new/[taskId]" />
       <Stack.Screen name="dispute/[taskId]" />
       <Stack.Screen name="review/[taskId]" />
+      <Stack.Screen name="payment-methods" />
       <Stack.Screen name="wallet/index" />
       <Stack.Screen name="wallet/topup" />
       <Stack.Screen name="wallet/transaction/[transactionId]" />

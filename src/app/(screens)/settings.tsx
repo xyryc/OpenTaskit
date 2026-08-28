@@ -135,13 +135,7 @@ export default function SettingsScreen() {
               icon={<CreditCard size={18} color="#2B3A41" />}
               label="Payment methods"
               value="Cash · Card · Wallet"
-              onPress={() =>
-                toast({
-                  title: 'Payment methods',
-                  description: 'Cash, cards, and OpenTaskit Wallet are supported.',
-                  variant: 'info',
-                })
-              }
+              onPress={() => router.push('/(screens)/payment-methods')}
             />
             <SettingsItem
               icon={<FileText size={18} color="#2B3A41" />}
