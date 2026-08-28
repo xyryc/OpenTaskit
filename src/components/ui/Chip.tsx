@@ -37,12 +37,12 @@ export function Chip({ children, tone = 'neutral', icon, className = '' }: ChipP
       className={`flex-row items-center gap-1.5 rounded-full px-2.5 py-1 ${toneBoxClasses[tone]} ${className}`}
     >
       {icon}
-      {typeof children === 'string' ? (
+      {React.isValidElement(children) ? (
+        children
+      ) : (
         <Text className={`text-[11.5px] font-geist-medium font-medium leading-none ${toneTextClasses[tone]}`}>
           {children}
         </Text>
-      ) : (
-        children
       )}
     </View>
   );
@@ -103,11 +103,12 @@ const toneDotClasses: Record<ChipTone, string> = {
 export function StatusChip({ status, className = '' }: { status: TaskStatus; className?: string }) {
   const meta = statusMeta[status] ?? statusMeta.posted;
   return (
-    <Chip tone={meta.tone} className={className}>
-      <View className={`h-1.5 w-1.5 rounded-full ${toneDotClasses[meta.tone]}`} />
-      <Text className={`text-[11.5px] font-geist-medium font-medium ${toneTextClasses[meta.tone]}`}>
-        {meta.label}
-      </Text>
+    <Chip
+      tone={meta.tone}
+      className={className}
+      icon={<View className={`h-1.5 w-1.5 rounded-full ${toneDotClasses[meta.tone]}`} />}
+    >
+      {meta.label}
     </Chip>
   );
 }

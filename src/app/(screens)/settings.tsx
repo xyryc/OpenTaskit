@@ -12,6 +12,7 @@ import {
   ChevronRight,
   CreditCard,
   FileText,
+  Flag,
   Globe,
   HelpCircle,
   LifeBuoy,
@@ -201,9 +202,9 @@ export default function SettingsScreen() {
               onPress={() => router.push('/(screens)/help-center')}
             />
             <SettingsItem
-              icon={<MapPin size={18} color="#2B3A41" />}
+              icon={<Flag size={18} color="#2B3A41" />}
               label="Report a problem"
-              onPress={() => router.push('/(screens)/help-center')}
+              onPress={() => router.push('/(screens)/report-problem')}
             />
           </SettingsGroup>
 

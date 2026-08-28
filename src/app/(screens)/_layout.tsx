@@ -26,6 +26,7 @@ export default function ScreensLayout() {
       <Stack.Screen name="security-settings" />
       <Stack.Screen name="legal/[doc]" />
       <Stack.Screen name="help-center" />
+      <Stack.Screen name="report-problem" />
       <Stack.Screen name="kyc" />
       <Stack.Screen name="notifications" />
       <Stack.Screen name="category/[categoryId]/index" />

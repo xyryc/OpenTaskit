@@ -10,7 +10,6 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import {
   ChevronDown,
-  Flag,
   MessageCircle,
   Phone,
   Search,
@@ -19,9 +18,6 @@ import {
 
 import { useApp } from '@/contexts/AppContext';
 import { Screen, ScreenHeader } from '@/components/layout/Screen';
-import { Button } from '@/components/ui/Button';
-import { TextArea } from '@/components/ui/Input';
-import { BottomSheet } from '@/components/ui/Overlay';
 
 const FAQS = [
   {
@@ -50,8 +46,6 @@ export default function HelpCenterScreen() {
   const { toast } = useApp();
   const [query, setQuery] = useState('');
   const [openIndex, setOpenIndex] = useState<number | null>(0);
-  const [reportOpen, setReportOpen] = useState(false);
-  const [report, setReport] = useState('');
 
   const filtered = FAQS.filter((faq) =>
     `${faq.q} ${faq.a}`.toLowerCase().includes(query.toLowerCase())
@@ -62,10 +56,10 @@ export default function HelpCenterScreen() {
       <StatusBar style="dark" />
 
       {/* Screen Header */}
-      <ScreenHeader title="Help & support" />
+      <ScreenHeader title="Help centre" />
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        <View className="gap-5 px-5 pb-10 pt-4" style={{ gap: 20 }}>
+        <View className="gap-5 px-5 pb-12 pt-4" style={{ gap: 20 }}>
           {/* Search Input */}
           <View className="flex-row items-center rounded-2xl border border-ink-200 bg-white px-3.5 h-12">
             <Search size={18} color="#8A959B" />
@@ -169,55 +163,8 @@ export default function HelpCenterScreen() {
               )}
             </View>
           </View>
-
-          {/* Report Problem Button */}
-          <Button
-            full
-            size="lg"
-            variant="outline"
-            icon={<Flag size={16} color="#0C1417" />}
-            onPress={() => setReportOpen(true)}
-          >
-            Report a problem
-          </Button>
         </View>
       </ScrollView>
-
-      {/* Report Problem Bottom Sheet */}
-      <BottomSheet
-        open={reportOpen}
-        onClose={() => setReportOpen(false)}
-        title="Report a problem"
-        description="Tell us what happened and we will follow up by email."
-        footer={
-          <Button
-            full
-            size="lg"
-            variant="brand"
-            disabled={report.trim().length < 10}
-            onPress={() => {
-              setReportOpen(false);
-              setReport('');
-              toast({
-                title: 'Report sent',
-                description: 'Our team will reply within 24 hours.',
-                variant: 'success',
-              });
-            }}
-          >
-            Send report
-          </Button>
-        }
-      >
-        <View className="pb-2">
-          <TextArea
-            label="What went wrong?"
-            value={report}
-            onChangeText={setReport}
-            placeholder="Describe the issue, including the task or person involved."
-          />
-        </View>
-      </BottomSheet>
     </Screen>
   );
 }
