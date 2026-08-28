@@ -22,6 +22,7 @@ import { TrustStats } from '@/components/task/TrustStats';
 import { EmptyState } from '@/components/ui/Feedback';
 import { CategoryBadge } from '@/components/CategoryIcon';
 import { CardBackgroundPattern } from '@/components/ui/CardBackgroundPattern';
+import { ProviderAvailabilityCard } from '@/components/provider/ProviderAvailabilityCard';
 
 export default function ProviderDashboardScreen() {
   const router = useRouter();
@@ -84,19 +85,8 @@ export default function ProviderDashboardScreen() {
             </View>
           </View>
 
-          <View className="mt-4 rounded-2xl bg-white/20 border border-white/30 p-3.5">
-            <Toggle
-              tone="dark"
-              checked={available}
-              onChange={toggleAvailable}
-              label={available ? 'Available for work' : 'Paused'}
-              description={
-                available
-                  ? 'You can send offers and appear in nearby searches.'
-                  : 'No new opportunities until you switch back on.'
-              }
-            />
-          </View>
+          {/* Embedded Provider Availability Card (without redundant dashboard button) */}
+          <ProviderAvailabilityCard className="mt-4" showDashboardButton={false} />
         </View>
 
         {/* 4 Action Cards */}

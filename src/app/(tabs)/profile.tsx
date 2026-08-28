@@ -35,6 +35,7 @@ import { TrustStats } from '@/components/task/TrustStats';
 import { ConfirmDialog } from '@/components/ui/Overlay';
 import { Toggle } from '@/components/ui/Input';
 import { CardBackgroundPattern } from '@/components/ui/CardBackgroundPattern';
+import { ProviderAvailabilityCard } from '@/components/provider/ProviderAvailabilityCard';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -275,23 +276,7 @@ export default function ProfileScreen() {
           </View>
 
           {/* Availability & Provider Dashboard Card */}
-          <View className="rounded-3xl border border-ink-200 bg-white p-4 gap-3" style={{ gap: 12 }}>
-            <Toggle
-              checked={available}
-              onChange={toggleAvailable}
-              label={available ? 'Available for work' : 'Not accepting work'}
-              description="Turn this off to pause new opportunities without losing your profile."
-            />
-            <Button
-              full
-              size="md"
-              variant="outline"
-              icon={<LayoutDashboard size={16} color="#0C1417" />}
-              onPress={() => router.push('/(screens)/provider-dashboard')}
-            >
-              Provider dashboard
-            </Button>
-          </View>
+          <ProviderAvailabilityCard />
 
           {/* Trust & Performance */}
           <View>

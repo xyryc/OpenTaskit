@@ -1,13 +1,19 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
+import Svg, {
+  Defs,
+  RadialGradient,
+  Stop,
+  Rect,
+  Circle,
+} from 'react-native-svg';
 
 export interface CardBackgroundPatternProps {
-  variant?: 'bubbles' | 'neomorphic' | 'combined';
+  variant?: 'halo' | 'aurora' | 'default';
 }
 
 export function CardBackgroundPattern({
-  variant = 'combined',
+  variant = 'halo',
 }: CardBackgroundPatternProps) {
   return (
     <View
@@ -15,7 +21,6 @@ export function CardBackgroundPattern({
       style={StyleSheet.absoluteFill}
       className="overflow-hidden"
     >
-      {/* SVG Soft Glowing Radial Bubbles */}
       <Svg
         width="100%"
         height="100%"
@@ -23,114 +28,77 @@ export function CardBackgroundPattern({
         pointerEvents="none"
       >
         <Defs>
-          {/* Top-Right Soft Glow Orb */}
+          {/* Top-Right Luminous Shimmer Bloom */}
           <RadialGradient
-            id="bubbleTopRight"
-            cx="85%"
-            cy="15%"
-            r="60%"
-            fx="85%"
-            fy="15%"
+            id="auroraTopRight"
+            cx="88%"
+            cy="12%"
+            r="65%"
+            fx="88%"
+            fy="12%"
           >
-            <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.28" />
-            <Stop offset="45%" stopColor="#FFFFFF" stopOpacity="0.10" />
-            <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
+            <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.32" />
+            <Stop offset="35%" stopColor="#CCE8FD" stopOpacity="0.14" />
+            <Stop offset="70%" stopColor="#0094F7" stopOpacity="0.04" />
+            <Stop offset="100%" stopColor="#0094F7" stopOpacity="0" />
           </RadialGradient>
 
-          {/* Bottom-Left Ambient Glow Orb */}
+          {/* Bottom-Left Ambient Glow Bloom */}
           <RadialGradient
-            id="bubbleBottomLeft"
-            cx="15%"
-            cy="85%"
-            r="55%"
-            fx="15%"
-            fy="85%"
+            id="auroraBottomLeft"
+            cx="12%"
+            cy="88%"
+            r="60%"
+            fx="12%"
+            fy="88%"
           >
-            <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.20" />
-            <Stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.06" />
-            <Stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
+            <Stop offset="0%" stopColor="#00E5FF" stopOpacity="0.22" />
+            <Stop offset="40%" stopColor="#0094F7" stopOpacity="0.10" />
+            <Stop offset="80%" stopColor="#0072C4" stopOpacity="0.02" />
+            <Stop offset="100%" stopColor="#0072C4" stopOpacity="0" />
+          </RadialGradient>
+
+          {/* Center-Right Subtle Depth Bloom */}
+          <RadialGradient
+            id="auroraCenterAccent"
+            cx="75%"
+            cy="60%"
+            r="45%"
+            fx="75%"
+            fy="60%"
+          >
+            <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.15" />
+            <Stop offset="50%" stopColor="#CCE8FD" stopOpacity="0.05" />
+            <Stop offset="100%" stopColor="#0094F7" stopOpacity="0" />
           </RadialGradient>
         </Defs>
 
-        {/* Glowing Orbs */}
-        <Circle cx="85%" cy="15%" r="130" fill="url(#bubbleTopRight)" />
-        <Circle cx="12%" cy="85%" r="110" fill="url(#bubbleBottomLeft)" />
+        {/* Seamless Soft Light Blooms */}
+        <Rect width="100%" height="100%" fill="url(#auroraTopRight)" />
+        <Rect width="100%" height="100%" fill="url(#auroraBottomLeft)" />
+        <Rect width="100%" height="100%" fill="url(#auroraCenterAccent)" />
 
-        {/* Floating Glass Bubbles with Subtle Strokes */}
+        {/* Option E: Faint Corner Halo Rings (Nested in top-right aurora) */}
         <Circle
-          cx="78%"
-          cy="48%"
-          r="26"
-          fill="rgba(255, 255, 255, 0.08)"
-          stroke="rgba(255, 255, 255, 0.28)"
-          strokeWidth="1.5"
-        />
-        <Circle
-          cx="62%"
-          cy="18%"
-          r="14"
-          fill="rgba(255, 255, 255, 0.12)"
-          stroke="rgba(255, 255, 255, 0.22)"
-          strokeWidth="1"
-        />
-        <Circle
-          cx="28%"
-          cy="32%"
-          r="8"
-          fill="rgba(255, 255, 255, 0.25)"
-        />
-        <Circle
-          cx="92%"
-          cy="78%"
-          r="18"
-          fill="rgba(255, 255, 255, 0.06)"
+          cx="88%"
+          cy="12%"
+          r="64"
+          fill="none"
           stroke="rgba(255, 255, 255, 0.18)"
+          strokeWidth="1.2"
+        />
+        <Circle
+          cx="88%"
+          cy="12%"
+          r="108"
+          fill="none"
+          stroke="rgba(255, 255, 255, 0.09)"
           strokeWidth="1"
+          strokeDasharray="4,6"
         />
       </Svg>
 
-      {/* Layered Concentric Ripple Rings (Neomorphic Depth) */}
-      <View
-        style={{
-          position: 'absolute',
-          top: -45,
-          right: -45,
-          width: 190,
-          height: 190,
-          borderRadius: 95,
-          borderWidth: 1.5,
-          borderColor: 'rgba(255, 255, 255, 0.18)',
-        }}
-      />
-      <View
-        style={{
-          position: 'absolute',
-          top: -15,
-          right: -15,
-          width: 130,
-          height: 130,
-          borderRadius: 65,
-          borderWidth: 1,
-          borderColor: 'rgba(255, 255, 255, 0.22)',
-          backgroundColor: 'rgba(255, 255, 255, 0.04)',
-        }}
-      />
-
-      {/* Bottom-left Ambient Ring */}
-      <View
-        style={{
-          position: 'absolute',
-          bottom: -50,
-          left: -40,
-          width: 160,
-          height: 160,
-          borderRadius: 80,
-          borderWidth: 1,
-          borderColor: 'rgba(255, 255, 255, 0.14)',
-        }}
-      />
-
-      {/* Neomorphic Top Edge Glare (Simulating Top Light Source) */}
+      {/* Tactile Top Edge Glare Line */}
       <View
         style={{
           position: 'absolute',
