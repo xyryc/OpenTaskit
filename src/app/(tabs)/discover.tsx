@@ -33,6 +33,7 @@ import { TaskCard } from '@/components/task/TaskCard';
 import { DiscoverMap } from '@/components/task/DiscoverMap';
 import { FilterSheet } from '@/components/task/FilterSheet';
 import { CategoryBadge } from '@/components/CategoryIcon';
+import { shadows } from '@/utils/shadows';
 
 export default function DiscoverScreen() {
   const router = useRouter();
@@ -199,8 +200,8 @@ export default function DiscoverScreen() {
           {/* Floating Task Preview Card at the bottom of the map */}
           {selected ? (
             <View
-              className="absolute inset-x-4 rounded-3xl border border-white/70 bg-white/95 p-4 shadow-lg backdrop-blur-md"
-              style={{ bottom: Math.max(insets.bottom, 16) + 12 }}
+              className="absolute inset-x-4 rounded-3xl border border-white/70 bg-white/95 p-4 backdrop-blur-md"
+              style={[shadows.raised, { bottom: Math.max(insets.bottom, 16) + 12 }]}
             >
               <View className="flex-row items-start gap-3" style={{ gap: 12 }}>
                 <CategoryBadge categoryId={selected.categoryId} size="lg" />
@@ -238,8 +239,8 @@ export default function DiscoverScreen() {
             </View>
           ) : (
             <View
-              className="absolute inset-x-8 rounded-full border border-white/70 bg-white/90 px-4 py-2.5 shadow-md backdrop-blur-md"
-              style={{ bottom: Math.max(insets.bottom, 16) + 16 }}
+              className="absolute inset-x-8 rounded-full border border-white/70 bg-white/90 px-4 py-2.5 backdrop-blur-md"
+              style={[shadows.subtle, { bottom: Math.max(insets.bottom, 16) + 16 }]}
             >
               <Text className="text-center font-geist-medium text-[12.5px] text-ink">
                 Tap a price pin to preview the task

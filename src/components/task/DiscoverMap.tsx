@@ -4,6 +4,8 @@ import { WebView } from 'react-native-webview';
 import { Crosshair, Plus, Minus } from 'lucide-react-native';
 
 import type { Task } from '@/types';
+import { money } from '@/utils/format';
+import { shadows } from '@/utils/shadows';
 
 interface DiscoverMapProps {
   tasks: Task[];
@@ -65,7 +67,7 @@ export function DiscoverMap({
       font-weight: 700;
       font-size: 12px;
       letter-spacing: -0.2px;
-      box-shadow: 0 4px 12px rgba(12, 20, 23, 0.16);
+      box-shadow: 0 2px 8px rgba(12, 20, 23, 0.08), 0 1px 2px rgba(12, 20, 23, 0.04);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -80,7 +82,7 @@ export function DiscoverMap({
       color: #FFFFFF;
       border-color: #0072C4;
       transform: scale(1.12);
-      box-shadow: 0 6px 16px rgba(0, 148, 247, 0.35);
+      box-shadow: 0 4px 14px rgba(0, 148, 247, 0.28);
       z-index: 1000 !important;
     }
     .user-pulse {
@@ -89,7 +91,7 @@ export function DiscoverMap({
       border-radius: 50%;
       background: #0094F7;
       border: 3px solid #FFFFFF;
-      box-shadow: 0 0 0 6px rgba(0, 148, 247, 0.25);
+      box-shadow: 0 0 0 5px rgba(0, 148, 247, 0.20);
     }
   </style>
 </head>
@@ -220,7 +222,10 @@ export function DiscoverMap({
         style={{ gap: 8 }}
       >
         {/* Zoom Controls */}
-        <View className="overflow-hidden rounded-2xl border border-ink-200 bg-white/95 shadow-sm backdrop-blur">
+        <View
+          className="overflow-hidden rounded-2xl border border-ink-200 bg-white/95 backdrop-blur"
+          style={shadows.subtle}
+        >
           <Pressable
             onPress={handleZoomIn}
             className="h-10 w-10 items-center justify-center active:bg-ink-100"
@@ -239,7 +244,8 @@ export function DiscoverMap({
         {/* Recenter Button */}
         <Pressable
           onPress={handleRecenter}
-          className="h-10 w-10 items-center justify-center rounded-2xl border border-ink-200 bg-white/95 shadow-sm active:bg-ink-100"
+          className="h-10 w-10 items-center justify-center rounded-2xl border border-ink-200 bg-white/95 active:bg-ink-100"
+          style={shadows.subtle}
         >
           <Crosshair size={18} color="#2B3A41" />
         </Pressable>

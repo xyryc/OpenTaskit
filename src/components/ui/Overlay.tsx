@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Modal, Pressable, ScrollView } from 'react-native';
 import { X } from 'lucide-react-native';
 import { Button } from './Button';
+import { shadows } from '@/utils/shadows';
 
 export interface BottomSheetProps {
   open: boolean;
@@ -32,7 +33,10 @@ export function BottomSheet({
         <Pressable className="flex-1" onPress={onClose} />
 
         {/* Sheet Content */}
-        <View className="w-full max-h-[85%] rounded-t-4xl bg-white pb-6 pt-3 px-6 shadow-2xl">
+        <View
+          className="w-full max-h-[85%] rounded-t-4xl bg-white pb-6 pt-3 px-6"
+          style={shadows.sheet}
+        >
           {/* Top Grab Handle */}
           <View className="h-1.5 w-12 rounded-full bg-ink-200 self-center mb-4" />
 
@@ -110,13 +114,7 @@ export function ConfirmDialog({
 
         <View
           className="relative w-full max-w-[320px] rounded-3xl bg-white p-6 items-center"
-          style={{
-            elevation: 8,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.15,
-            shadowRadius: 8,
-          }}
+          style={shadows.raised}
         >
           {icon && (
             <View

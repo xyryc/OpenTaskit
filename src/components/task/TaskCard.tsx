@@ -11,6 +11,7 @@ import { CategoryBadge } from '@/components/CategoryIcon';
 import { Avatar } from '@/components/ui/Avatar';
 import { StarRating } from '@/components/ui/Rating';
 import { StatusChip } from '@/components/ui/Chip';
+import { shadows } from '@/utils/shadows';
 
 export interface TaskCardProps {
   task: Task;
@@ -69,13 +70,7 @@ export function TaskCard({
         <Pressable
           onPress={handleOpen}
           className="h-full w-full overflow-hidden rounded-3xl border border-ink-200 bg-white"
-          style={{
-            elevation: 1,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.05,
-            shadowRadius: 2,
-          }}
+          style={shadows.card}
         >
           {/* Card Header Tone */}
           <View className="flex-row items-center justify-between gap-2 bg-brand-tint px-3.5 py-2.5">
@@ -146,15 +141,13 @@ export function TaskCard({
   return (
     <View
       className="overflow-hidden rounded-3xl border"
-      style={{
-        borderColor: mine ? '#CCE8FD' : '#E2E7E9',
-        backgroundColor: mine ? '#F5FAFF' : '#FFFFFF',
-        elevation: 1,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-      }}
+      style={[
+        shadows.card,
+        {
+          borderColor: mine ? '#CCE8FD' : '#E2E7E9',
+          backgroundColor: mine ? '#F5FAFF' : '#FFFFFF',
+        },
+      ]}
     >
       <Pressable onPress={handleOpen} className="w-full p-4">
         <View className="flex-row items-start gap-3">
