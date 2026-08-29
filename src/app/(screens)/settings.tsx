@@ -118,8 +118,12 @@ export default function SettingsScreen() {
               <Toggle
                 checked={available}
                 onChange={toggleAvailable}
-                label="Available for work"
-                description="Pause to stop receiving new opportunities as a provider."
+                label={available ? 'Available for work' : 'Not accepting work'}
+                description={
+                  available
+                    ? 'You appear in nearby searches and can send offers.'
+                    : 'You will not receive new opportunities until you switch back on.'
+                }
               />
             </View>
           </SettingsGroup>
