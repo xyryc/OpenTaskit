@@ -4,18 +4,16 @@
     "slug": "opentaskit",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/brand/icon-brand.png",
     "scheme": "opentaskit",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/brand/icon-brand.png"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#0094F7",
+        "foregroundImage": "./assets/brand/icon-brand.png"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.anonymous.opentaskit"
@@ -31,9 +29,9 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "backgroundColor": "#0094F7",
+          "image": "./assets/images/android-icon-foreground.png",
+          "imageWidth": 120
         }
       ],
       [

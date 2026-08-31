@@ -35,7 +35,7 @@ export default function WelcomeScreen() {
       >
         {/* Brand Header */}
         <View className="pt-2">
-          <BrandLockup size={36} />
+          <BrandLockup size={40} />
         </View>
 
         {/* Hero Section */}

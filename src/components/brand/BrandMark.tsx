@@ -1,31 +1,37 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { Image } from 'expo-image';
+import React from "react";
+import { View, Text } from "react-native";
+import { Image } from "expo-image";
 
 const BRAND_ICONS = {
-  white: require('../../../assets/brand/icon-white.png'),
-  brand: require('../../../assets/brand/icon-brand.png'),
-  ink: require('../../../assets/brand/icon-ink.png'),
+  white: require("../../../assets/brand/icon-white.png"),
+  brand: require("../../../assets/brand/icon-brand.png"),
+  ink: require("../../../assets/brand/icon-ink.png"),
 } as const;
 
 export interface BrandMarkProps {
   size?: number;
-  tone?: 'brand' | 'white' | 'ink';
+  tone?: "brand" | "white" | "ink";
 }
 
-export function BrandMark({ size = 44, tone = 'brand' }: BrandMarkProps) {
+export function BrandMark({ size = 44, tone = "brand" }: BrandMarkProps) {
   const source = BRAND_ICONS[tone] ?? BRAND_ICONS.brand;
   const borderRadius = Math.round(size * 0.22);
 
   return (
     <View
-      className="items-center justify-center overflow-hidden"
-      style={{ width: size, height: size, borderRadius }}
+      style={{
+        width: size,
+        height: size,
+        borderRadius,
+        overflow: "hidden",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
     >
       <Image
         source={source}
-        style={[styles.brandImage, { width: size, height: size, borderRadius }]}
-        contentFit="contain"
+        style={{ width: size, height: size, borderRadius }}
+        contentFit="cover"
         priority="high"
         cachePolicy="memory-disk"
       />
@@ -34,19 +40,20 @@ export function BrandMark({ size = 44, tone = 'brand' }: BrandMarkProps) {
 }
 
 export interface BrandLockupProps {
-  tone?: 'ink' | 'white' | 'brand';
+  tone?: "ink" | "white" | "brand";
   size?: number;
 }
 
-export function BrandLockup({ tone = 'brand', size = 40 }: BrandLockupProps) {
-  const markTone = tone === 'white' ? 'white' : tone === 'ink' ? 'ink' : 'brand';
+export function BrandLockup({ tone = "brand", size = 40 }: BrandLockupProps) {
+  const markTone =
+    tone === "white" ? "white" : tone === "ink" ? "ink" : "brand";
 
   return (
     <View className="flex-row items-center gap-2.5">
       <BrandMark size={size} tone={markTone} />
       <Text
         className={`text-[22px] font-geist-semibold font-semibold tracking-[-0.03em] ${
-          tone === 'white' ? 'text-white' : 'text-ink'
+          tone === "white" ? "text-white" : "text-ink"
         }`}
       >
         OpenTaskit
@@ -54,9 +61,3 @@ export function BrandLockup({ tone = 'brand', size = 40 }: BrandLockupProps) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  brandImage: {
-    // Kept strictly for the Image component as requested
-  },
-});
