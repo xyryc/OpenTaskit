@@ -71,6 +71,39 @@ export interface TaskRecord {
   createdAt: string;
 }
 
+export interface DisputeRecord {
+  id: string;
+  taskId: string;
+  taskTitle: string;
+  escrowAmount: number;
+  initiatorRole: "POSTER" | "PROVIDER";
+  initiatorName: string;
+  initiatorEmail: string;
+  respondentName: string;
+  respondentEmail: string;
+  reason: string;
+  description: string;
+  evidenceImages: string[];
+  status: "OPEN" | "REFUNDED_TO_POSTER" | "RELEASED_TO_PROVIDER";
+  resolutionNote?: string;
+  createdAt: string;
+  resolvedAt?: string;
+}
+
+export interface TransactionRecord {
+  id: string;
+  taskId?: string;
+  taskTitle?: string;
+  type: "ESCROW_LOCK" | "ESCROW_RELEASE" | "ESCROW_REFUND" | "CARD_PAYMENT" | "PLATFORM_FEE";
+  amount: number;
+  fee: number;
+  gateway: "STRIPE" | "PAYHERE" | "CARD_ONLINE";
+  status: "SUCCESS" | "PENDING" | "REFUNDED" | "FAILED";
+  userName: string;
+  userEmail: string;
+  createdAt: string;
+}
+
 export const MOCK_USERS: UserRecord[] = [
   {
     id: "USR-001",
@@ -442,5 +475,129 @@ export const MOCK_TASKS: TaskRecord[] = [
     posterPhone: "+94 77 823 4512",
     offersCount: 0,
     createdAt: "2026-08-28T16:20:00Z",
+  },
+];
+
+export const MOCK_DISPUTES: DisputeRecord[] = [
+  {
+    id: "DSP-104",
+    taskId: "TSK-892",
+    taskTitle: "Deep Clean 3 Bedroom Apartment Before Moving In",
+    escrowAmount: 14000,
+    initiatorRole: "POSTER",
+    initiatorName: "Sanduni Wickramasinghe",
+    initiatorEmail: "sanduni.w@gmail.com",
+    respondentName: "Kasun Perera",
+    respondentEmail: "kasun.p@gmail.com",
+    reason: "Service not completed",
+    description: "Provider arrived 3 hours late and left without cleaning the 2 bathrooms and kitchen cabinets as agreed in the task requirements. Floors were left wet and unpolished.",
+    evidenceImages: [
+      "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=800&auto=format&fit=crop&q=80",
+    ],
+    status: "OPEN",
+    createdAt: "2026-09-01T09:45:00Z",
+  },
+  {
+    id: "DSP-103",
+    taskId: "TSK-891",
+    taskTitle: 'Mount 65" TV on Concrete Wall with Cable Concealment',
+    escrowAmount: 6500,
+    initiatorRole: "PROVIDER",
+    initiatorName: "Dilshan Alwis",
+    initiatorEmail: "dilshan.alwis@outlook.com",
+    respondentName: "Ruwan Nandana",
+    respondentEmail: "ruwan.nandana@gmail.com",
+    reason: "Requester unavailable",
+    description: "I arrived at the location at the scheduled time. Contacted requester multiple times by phone and chat, but no one opened the gate or answered. Waited 45 minutes.",
+    evidenceImages: [],
+    status: "OPEN",
+    createdAt: "2026-09-01T08:15:00Z",
+  },
+  {
+    id: "DSP-102",
+    taskId: "TSK-880",
+    taskTitle: "Plumbing Pipe Leak Repair Under Kitchen Sink",
+    escrowAmount: 4500,
+    initiatorRole: "POSTER",
+    initiatorName: "Amila Kaluarachchi",
+    initiatorEmail: "amila.k@gmail.com",
+    respondentName: "Chathura Senanayake",
+    respondentEmail: "chathura.s@gmail.com",
+    reason: "Poor quality",
+    description: "Pipe continued to leak heavily 1 hour after provider claimed it was fixed.",
+    evidenceImages: [
+      "https://images.unsplash.com/photo-1585704032915-c3400ca199e7?w=800&auto=format&fit=crop&q=80",
+    ],
+    status: "REFUNDED_TO_POSTER",
+    resolutionNote: "Full refund issued to poster after verifying plumbing leak evidence photos.",
+    createdAt: "2026-08-27T11:20:00Z",
+    resolvedAt: "2026-08-28T14:00:00Z",
+  },
+];
+
+export const MOCK_TRANSACTIONS: TransactionRecord[] = [
+  {
+    id: "TXN-901",
+    taskId: "TSK-891",
+    taskTitle: 'Mount 65" TV on Concrete Wall',
+    type: "ESCROW_LOCK",
+    amount: 6500,
+    fee: 650,
+    gateway: "CARD_ONLINE",
+    status: "SUCCESS",
+    userName: "Ruwan Nandana",
+    userEmail: "ruwan.nandana@gmail.com",
+    createdAt: "2026-09-01T09:30:00Z",
+  },
+  {
+    id: "TXN-902",
+    taskId: "TSK-892",
+    taskTitle: "Deep Clean 3 Bedroom Apartment",
+    type: "ESCROW_LOCK",
+    amount: 14000,
+    fee: 1400,
+    gateway: "STRIPE",
+    status: "SUCCESS",
+    userName: "Sanduni Wickramasinghe",
+    userEmail: "sanduni.w@gmail.com",
+    createdAt: "2026-08-31T14:10:00Z",
+  },
+  {
+    id: "TXN-903",
+    taskId: "TSK-893",
+    taskTitle: "Urgent Document Parcel Delivery",
+    type: "ESCROW_RELEASE",
+    amount: 8000,
+    fee: 800,
+    gateway: "PAYHERE",
+    status: "SUCCESS",
+    userName: "Dilshan Alwis",
+    userEmail: "dilshan.alwis@outlook.com",
+    createdAt: "2026-08-30T17:45:00Z",
+  },
+  {
+    id: "TXN-904",
+    taskId: "TSK-880",
+    taskTitle: "Plumbing Pipe Leak Repair",
+    type: "ESCROW_REFUND",
+    amount: 4500,
+    fee: 0,
+    gateway: "STRIPE",
+    status: "REFUNDED",
+    userName: "Amila Kaluarachchi",
+    userEmail: "amila.k@gmail.com",
+    createdAt: "2026-08-28T14:00:00Z",
+  },
+  {
+    id: "TXN-905",
+    type: "CARD_PAYMENT",
+    amount: 25000,
+    fee: 500,
+    gateway: "PAYHERE",
+    status: "SUCCESS",
+    userName: "Kasun Perera",
+    userEmail: "kasun.p@gmail.com",
+    createdAt: "2026-08-29T10:15:00Z",
   },
 ];

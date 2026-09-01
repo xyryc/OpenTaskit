@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Search,
@@ -83,7 +84,7 @@ export function AppHeader() {
               </Badge>
             </div>
             <div className="divide-y text-xs">
-              <div className="flex gap-3 p-3 hover:bg-muted/40 transition-colors cursor-pointer">
+              <Link href="/kyc" className="flex gap-3 p-3 hover:bg-muted/40 transition-colors cursor-pointer">
                 <div className="mt-0.5 h-2 w-2 rounded-full bg-[#0094F7] shrink-0" />
                 <div className="flex flex-col gap-0.5">
                   <span className="font-semibold text-foreground">
@@ -96,8 +97,8 @@ export function AppHeader() {
                     5 minutes ago
                   </span>
                 </div>
-              </div>
-              <div className="flex gap-3 p-3 hover:bg-muted/40 transition-colors cursor-pointer">
+              </Link>
+              <Link href="/disputes" className="flex gap-3 p-3 hover:bg-muted/40 transition-colors cursor-pointer">
                 <div className="mt-0.5 h-2 w-2 rounded-full bg-destructive shrink-0" />
                 <div className="flex flex-col gap-0.5">
                   <span className="font-semibold text-foreground">
@@ -110,21 +111,21 @@ export function AppHeader() {
                     25 minutes ago
                   </span>
                 </div>
-              </div>
-              <div className="flex gap-3 p-3 hover:bg-muted/40 transition-colors cursor-pointer">
+              </Link>
+              <Link href="/finance/escrow" className="flex gap-3 p-3 hover:bg-muted/40 transition-colors cursor-pointer">
                 <div className="mt-0.5 h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
                 <div className="flex flex-col gap-0.5">
                   <span className="font-semibold text-foreground">
-                    Bank Top-up Uploaded
+                    Escrow Locked #TXN-902
                   </span>
                   <span className="text-muted-foreground">
-                    LKR 15,000 top-up slip waiting for verification.
+                    LKR 14,000 locked via Stripe gateway.
                   </span>
                   <span className="text-[10px] text-muted-foreground/75 mt-1">
                     1 hour ago
                   </span>
                 </div>
-              </div>
+              </Link>
             </div>
           </DropdownMenuContent>
         </DropdownMenu>

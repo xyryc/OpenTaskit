@@ -102,21 +102,9 @@ const navGroups = [
     label: "Financials & Escrow",
     items: [
       {
-        title: "Escrow Ledger",
+        title: "Escrow & Ledger",
         url: "/finance/escrow",
         icon: Wallet,
-      },
-      {
-        title: "Top-up Approvals",
-        url: "/finance/topups",
-        icon: ArrowDownToLine,
-        badge: "3 New",
-        badgeVariant: "default" as const,
-      },
-      {
-        title: "Payout Requests",
-        url: "/finance/payouts",
-        icon: ArrowUpRight,
       },
     ],
   },

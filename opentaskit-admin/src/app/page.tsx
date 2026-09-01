@@ -218,7 +218,7 @@ export default function DashboardPage() {
                 </Button>
               </div>
 
-              {/* Action Item 3: Bank Top-up */}
+              {/* Action Item 3: Escrow Payment Settlement */}
               <div className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors">
                 <div className="flex items-start gap-3.5">
                   <div className="h-9 w-9 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 shrink-0 mt-0.5">
@@ -227,22 +227,22 @@ export default function DashboardPage() {
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold text-foreground">
-                        Bank Transfer Top-up
+                        Gateway Escrow Payment
                       </span>
                       <Badge variant="secondary" className="text-[10px] font-semibold text-emerald-600">
                         + LKR 25,000
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Commercial Bank slip uploaded by Dilshan Alwis.
+                      Card payment settled via PayHere for Task #TSK-894.
                     </p>
                     <span className="text-[10px] text-muted-foreground/75 mt-1 inline-block">
-                      Uploaded 1 hour ago
+                      Settled 1 hour ago
                     </span>
                   </div>
                 </div>
                 <Button size="sm" variant="outline" className="h-8 text-xs shrink-0" asChild>
-                  <Link href="/finance/topups">Verify Slip</Link>
+                  <Link href="/finance/escrow">View Ledger</Link>
                 </Button>
               </div>
             </CardContent>
