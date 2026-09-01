@@ -1,0 +1,122 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                 String   @id @default(uuid())
+  fullName           String
+  email              String   @unique
+  phoneNumber        String
+  password           String
+  role               Role     @default(USER)
+  termsAcceptedAt    DateTime @default(now())
+  hashedRefreshToken String?
+
+  resetOtpHash      String?
+  resetOtpExpiresAt DateTime?
+
+  // relations
+  tasks      Task[]
+  savedTasks SavedTask[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Category {
+  id          String  @id @default(uuid())
+  name        String  @unique
+  slug        String  @unique
+  icon        String? // Icon name, SVG, or URL                        
+  description String?
+  isActive    Boolean @default(true)
+
+  tasks Task[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Task {
+  id      String   @id @default(uuid())
+  title   String
+  details String   @db.Text
+  images  String[]
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  locationType LocationType @default(IN_PERSON)
+  address      String?
+  latitude     Float?
+  longitude    Float?
+
+  budget           Float
+  isBudgetFlexible Boolean       @default(false)
+  paymentMethod    PaymentMethod @default(CASH)
+
+  timeType      TimeType  @default(ASAP)
+  scheduledDate DateTime?
+  scheduledTime String?
+
+  status TaskStatus @default(OPEN)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  savedBy SavedTask[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SavedTask {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, taskId])
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum TaskStatus {
+  OPEN
+  ASSIGNED
+  COMPLETED
+  CANCELLED
+}
+
+enum LocationType {
+  IN_PERSON
+  REMOTE
+}
+
+enum TimeType {
+  ASAP
+  SPECIFIC_DATE
+  FLEXIBLE
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  ONLINE
+}
