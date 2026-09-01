@@ -104,6 +104,22 @@ export interface TransactionRecord {
   createdAt: string;
 }
 
+export interface ReviewRecord {
+  id: string;
+  taskId: string;
+  taskTitle: string;
+  reviewerId: string;
+  reviewerName: string;
+  reviewerRole: "POSTER" | "PROVIDER";
+  revieweeId: string;
+  revieweeName: string;
+  rating: number;
+  comment: string;
+  status: "PUBLISHED" | "HIDDEN";
+  moderationReason?: string;
+  createdAt: string;
+}
+
 export const MOCK_USERS: UserRecord[] = [
   {
     id: "USR-001",
@@ -599,5 +615,79 @@ export const MOCK_TRANSACTIONS: TransactionRecord[] = [
     userName: "Kasun Perera",
     userEmail: "kasun.p@gmail.com",
     createdAt: "2026-08-29T10:15:00Z",
+  },
+];
+
+export const MOCK_REVIEWS: ReviewRecord[] = [
+  {
+    id: "REV-501",
+    taskId: "TSK-893",
+    taskTitle: "Urgent Document Parcel Delivery from Kandy to Colombo",
+    reviewerId: "USR-003",
+    reviewerName: "Ruwan Nandana",
+    reviewerRole: "POSTER",
+    revieweeId: "USR-002",
+    revieweeName: "Dilshan Alwis",
+    rating: 5,
+    comment: "Excellent service! Delivered the legal documents safely and ahead of the 4 PM deadline. Very polite and highly recommended.",
+    status: "PUBLISHED",
+    createdAt: "2026-08-30T18:00:00Z",
+  },
+  {
+    id: "REV-502",
+    taskId: "TSK-885",
+    taskTitle: "Living Room Wall Painting & Primer Coating",
+    reviewerId: "USR-007",
+    reviewerName: "Sanduni Wickramasinghe",
+    reviewerRole: "POSTER",
+    revieweeId: "USR-001",
+    revieweeName: "Kasun Perera",
+    rating: 5,
+    comment: "Kasun did a fantastic job with the painting. Neat edges and clean cleanup afterwards. Will hire again.",
+    status: "PUBLISHED",
+    createdAt: "2026-08-26T15:30:00Z",
+  },
+  {
+    id: "REV-503",
+    taskId: "TSK-880",
+    taskTitle: "Plumbing Pipe Leak Repair Under Kitchen Sink",
+    reviewerId: "USR-004",
+    reviewerName: "Amila Kaluarachchi",
+    reviewerRole: "POSTER",
+    revieweeId: "USR-006",
+    revieweeName: "Chathura Senanayake",
+    rating: 1,
+    comment: "This person is a total fraud and scammer! Do not hire him! He destroyed my pipe and stole my tools!",
+    status: "HIDDEN",
+    moderationReason: "Defamatory and abusive language violating platform review guidelines.",
+    createdAt: "2026-08-27T12:00:00Z",
+  },
+  {
+    id: "REV-504",
+    taskId: "TSK-872",
+    taskTitle: "AC Filter Cleaning and Gas Top-up",
+    reviewerId: "USR-002",
+    reviewerName: "Dilshan Alwis",
+    reviewerRole: "POSTER",
+    revieweeId: "USR-001",
+    revieweeName: "Kasun Perera",
+    rating: 4,
+    comment: "Good work on the AC unit. Arrived on time and AC cooling is back to normal.",
+    status: "PUBLISHED",
+    createdAt: "2026-08-22T11:15:00Z",
+  },
+  {
+    id: "REV-505",
+    taskId: "TSK-868",
+    taskTitle: "Heavy Sofa Move to Second Floor",
+    reviewerId: "USR-001",
+    reviewerName: "Kasun Perera",
+    reviewerRole: "PROVIDER",
+    revieweeId: "USR-007",
+    revieweeName: "Sanduni Wickramasinghe",
+    rating: 5,
+    comment: "Great customer to work for. Clear instructions and prompt payment upon task completion.",
+    status: "PUBLISHED",
+    createdAt: "2026-08-20T16:45:00Z",
   },
 ];
