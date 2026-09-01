@@ -20,13 +20,19 @@
 
 ---
 
-## Mobile App Preview
+## Platform Previews
 
+### Mobile App Experience
 <p align="center">
   <img src="./opentaskit-app/screenshots/1.png" width="23%" alt="Screenshot 1" />
   <img src="./opentaskit-app/screenshots/2.png" width="23%" alt="Screenshot 2" />
   <img src="./opentaskit-app/screenshots/3.png" width="23%" alt="Screenshot 3" />
   <img src="./opentaskit-app/screenshots/4.png" width="23%" alt="Screenshot 4" />
+</p>
+
+### Admin Management Dashboard
+<p align="center">
+  <img src="./opentaskit-admin/public/dashboard_screenshot.png" width="95%" alt="OpenTaskit Admin Dashboard" style="border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.12);" />
 </p>
 
 ---
@@ -37,7 +43,7 @@
 | :--- | :--- | :--- | :--- |
 | **Mobile App** | React Native 0.86, Expo SDK 57, NativeWind v4, Reanimated v4 | Cross-platform iOS and Android peer-to-peer marketplace app | [`opentaskit-app/`](./opentaskit-app) |
 | **Backend API** | NestJS 11, TypeScript, Prisma ORM, PostgreSQL, Passport JWT | Central REST API, authentication, task lifecycle, and database layer | [`opentaskit-backend/`](./opentaskit-backend) |
-| **Admin Dashboard** | Next.js 15 App Router, TypeScript, Tailwind CSS, shadcn/ui, Radix UI | Web administration portal for user management, moderation, and disputes | [`opentaskit-admin/`](./opentaskit-admin) |
+| **Admin Dashboard** | Next.js 16 App Router, TypeScript, Tailwind CSS v4, shadcn/ui, Recharts | Web administration portal for escrow oversight, KYC verification, and disputes | [`opentaskit-admin/`](./opentaskit-admin) |
 
 ---
 

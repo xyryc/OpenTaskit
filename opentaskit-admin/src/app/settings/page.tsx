@@ -230,27 +230,6 @@ export default function SettingsPage() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Bottom Save Bar */}
-      <div className="flex justify-end gap-2 pb-8">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="h-9 text-xs"
-          onClick={handleResetDefaults}
-        >
-          Reset Defaults
-        </Button>
-        <Button
-          type="submit"
-          size="sm"
-          className="h-9 px-6 bg-[#0094F7] hover:bg-[#007cd6] text-white font-semibold text-xs gap-1.5"
-        >
-          <Save className="h-3.5 w-3.5" />
-          <span>Save Changes</span>
-        </Button>
-      </div>
     </form>
   );
 }
