@@ -120,6 +120,35 @@ export interface ReviewRecord {
   createdAt: string;
 }
 
+export interface SupportTicketRecord {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  userPhone: string;
+  category: string;
+  taskRef?: string;
+  description: string;
+  images: string[];
+  status: "OPEN" | "IN_PROGRESS" | "RESOLVED";
+  adminResolutionNote?: string;
+  createdAt: string;
+  resolvedAt?: string;
+}
+
+export interface LegalDocSection {
+  id: string;
+  heading: string;
+  body: string;
+}
+
+export interface LegalDocRecord {
+  slug: "terms" | "privacy";
+  title: string;
+  updatedAt: string;
+  sections: LegalDocSection[];
+}
+
 export const MOCK_USERS: UserRecord[] = [
   {
     id: "USR-001",
@@ -691,3 +720,128 @@ export const MOCK_REVIEWS: ReviewRecord[] = [
     createdAt: "2026-08-20T16:45:00Z",
   },
 ];
+
+export const MOCK_TICKETS: SupportTicketRecord[] = [
+  {
+    id: "TCK-301",
+    userId: "USR-002",
+    userName: "Dilshan Alwis",
+    userEmail: "dilshan.alwis@outlook.com",
+    userPhone: "+94 71 889 2314",
+    category: "Payment or wallet",
+    taskRef: "TSK-894",
+    description: "Card payment of LKR 3,000 was debited twice by bank during task creation. Need duplicate charge reversed.",
+    images: [
+      "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=800&auto=format&fit=crop&q=80",
+    ],
+    status: "OPEN",
+    createdAt: "2026-09-01T11:20:00Z",
+  },
+  {
+    id: "TCK-302",
+    userId: "USR-004",
+    userName: "Amila Kaluarachchi",
+    userEmail: "amila.k@gmail.com",
+    userPhone: "+94 70 456 1278",
+    category: "Account & login",
+    description: "Cannot update my registered phone number after changing my mobile SIM card. Getting verification timeout error.",
+    images: [],
+    status: "IN_PROGRESS",
+    createdAt: "2026-09-01T08:00:00Z",
+  },
+  {
+    id: "TCK-303",
+    userId: "USR-001",
+    userName: "Kasun Perera",
+    userEmail: "kasun.p@gmail.com",
+    userPhone: "+94 77 123 4567",
+    category: "App bug / technical",
+    description: "Location map pin in task creation screen was flickering on Android 14. Screenshot attached.",
+    images: [
+      "https://images.unsplash.com/photo-1526470608268-f674ce90ebd4?w=800&auto=format&fit=crop&q=80",
+    ],
+    status: "RESOLVED",
+    adminResolutionNote: "Resolved in mobile app build v1.0.4. User notified via email.",
+    createdAt: "2026-08-28T14:30:00Z",
+    resolvedAt: "2026-08-29T10:00:00Z",
+  },
+  {
+    id: "TCK-304",
+    userId: "USR-007",
+    userName: "Sanduni Wickramasinghe",
+    userEmail: "sanduni.w@gmail.com",
+    userPhone: "+94 77 823 4512",
+    category: "Safety & trust",
+    description: "Received suspicious WhatsApp message claiming to be platform support asking for my OTP code.",
+    images: [],
+    status: "OPEN",
+    createdAt: "2026-09-01T07:15:00Z",
+  },
+];
+
+export const MOCK_LEGAL_DOCS: Record<"terms" | "privacy", LegalDocRecord> = {
+  terms: {
+    slug: "terms",
+    title: "Terms of Service",
+    updatedAt: "2026-08-01T00:00:00Z",
+    sections: [
+      {
+        id: "sec-t1",
+        heading: "1. Who we are",
+        body: "OpenTaskit is a marketplace that connects people who need a service with people who can provide it. We are not the provider of the services listed and do not employ the people offering them.",
+      },
+      {
+        id: "sec-t2",
+        heading: "2. One account, two roles",
+        body: "A single OpenTaskit account can request services and provide services. You are responsible for everything done under your account in either role.",
+      },
+      {
+        id: "sec-t3",
+        heading: "3. Offers and agreements",
+        body: "When you accept an offer you enter into a direct agreement with that member for the price and scope shown. Changes should be agreed in the task chat so both sides have a record.",
+      },
+      {
+        id: "sec-t4",
+        heading: "4. Payments and commission",
+        body: "For cash jobs the requester pays the provider directly. OpenTaskit charges the provider a 10% commission, deducted from their wallet when the job is settled.",
+      },
+      {
+        id: "sec-t5",
+        heading: "5. Disputes",
+        body: "If something goes wrong either side can open a dispute. Payment is placed on hold while our team reviews the chat history and evidence, and we may decide full payment, partial payment, refund or no refund.",
+      },
+      {
+        id: "sec-t6",
+        heading: "6. Prohibited conduct",
+        body: "No harassment, discrimination, off-platform payment requests, fake reviews or unsafe work. Accounts that break these rules can be suspended.",
+      },
+    ],
+  },
+  privacy: {
+    slug: "privacy",
+    title: "Privacy Policy",
+    updatedAt: "2026-08-01T00:00:00Z",
+    sections: [
+      {
+        id: "sec-p1",
+        heading: "1. What we collect",
+        body: "Account details, task content, approximate location, device information and — if you verify your identity — your document and selfie images.",
+      },
+      {
+        id: "sec-p2",
+        heading: "2. How location is used",
+        body: "We show the area of a task publicly, never the exact address. Distances are calculated on the fly and your precise location is never shared with other members.",
+      },
+      {
+        id: "sec-p3",
+        heading: "3. Identity verification data",
+        body: "National ID and selfie photos are used exclusively for verification and fraud prevention. They are reviewed by authorized staff and never displayed publicly.",
+      },
+      {
+        id: "sec-p4",
+        heading: "4. Data sharing",
+        body: "We do not sell personal data. Information is shared only with other members as needed to arrange and deliver services.",
+      },
+    ],
+  },
+};

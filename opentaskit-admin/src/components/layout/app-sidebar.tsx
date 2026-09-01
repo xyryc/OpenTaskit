@@ -17,6 +17,7 @@ import {
   ArrowUpRight,
   LifeBuoy,
   HelpCircle,
+  FileText,
   Settings,
   History,
   TrendingUp,
@@ -38,7 +39,20 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-const navGroups = [
+interface NavItem {
+  title: string;
+  url: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: string;
+  badgeVariant?: "default" | "secondary" | "destructive" | "outline";
+}
+
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
+const navGroups: NavGroup[] = [
   {
     label: "Overview",
     items: [
@@ -117,19 +131,14 @@ const navGroups = [
         icon: LifeBuoy,
       },
       {
-        title: "Help Center CMS",
-        url: "/help-center",
-        icon: HelpCircle,
+        title: "Legal & Policies",
+        url: "/legal",
+        icon: FileText,
       },
       {
-        title: "Settings",
+        title: "Platform Settings",
         url: "/settings",
         icon: Settings,
-      },
-      {
-        title: "Audit Logs",
-        url: "/audit-logs",
-        icon: History,
       },
     ],
   },
