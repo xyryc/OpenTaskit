@@ -1,98 +1,183 @@
+# OpenTaskit Backend API
+
 <p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
+  <strong>High-performance REST API and database service for OpenTaskit.</strong><br>
+  Built with NestJS, TypeScript, Prisma ORM, and PostgreSQL.
 </p>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
-
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
+<p align="center">
+  <img src="https://img.shields.io/badge/NestJS-11.x-E0234E?style=flat-square&logo=nestjs&logoColor=white" alt="NestJS" />
+  <img src="https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Prisma-7.x-2D3748?style=flat-square&logo=prisma&logoColor=white" alt="Prisma" />
+  <img src="https://img.shields.io/badge/PostgreSQL-16-336791?style=flat-square&logo=postgresql&logoColor=white" alt="PostgreSQL" />
+  <img src="https://img.shields.io/badge/Passport_JWT-Supported-brightgreen?style=flat-square" alt="JWT Auth" />
+  <img src="https://img.shields.io/badge/License-Proprietary-red?style=flat-square" alt="Proprietary License" />
 </p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 
-## Description
+---
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Overview
 
-## Project setup
+The OpenTaskit Backend provides the central RESTful API, authentication layer, business logic, and database operations powering both the **OpenTaskit Mobile App** and the **Admin Dashboard**.
 
-```bash
-$ npm install
+---
+
+## Core Features
+
+- **Authentication & Security**:
+  - JWT authentication with dual access and refresh token rotation.
+  - Password hashing using bcrypt.
+  - Secure password reset flow using time-limited OTP tokens delivered via SMTP email.
+  - Role-Based Access Control (`USER`, `ADMIN`, `PROVIDER`).
+- **Task Management**:
+  - Full task lifecycle (`OPEN`, `ASSIGNED`, `COMPLETED`, `CANCELLED`).
+  - Budget types (`TOTAL` fixed price or `HOURLY` rates).
+  - Location modes (`IN_PERSON` with coordinates & address, or `ONLINE` remote).
+  - Multi-image attachments and category association.
+- **Category System**:
+  - Hierarchical categories with unique slugs, icons, and active status toggles.
+- **Database & Migrations**:
+  - Fully typed schema with Prisma ORM and PostgreSQL.
+  - Automated seeding for default admin credentials and marketplace categories.
+
+---
+
+## Project Structure
+
+```text
+opentaskit-backend/
+├── prisma/
+│   ├── schema.prisma        # Database schema definitions and relations
+│   ├── seed.ts              # Database seeder (Admin account, categories)
+│   └── migrations/          # SQL migration history
+├── src/
+│   ├── auth/                # Auth controller, service, JWT & refresh strategies, guards
+│   ├── categories/          # Category CRUD endpoints and management
+│   ├── mail/                # Nodemailer service for transactional emails and OTPs
+│   ├── prisma/              # PrismaService and PrismaModule database injection
+│   ├── common/              # Decorators, filters, interceptors, and DTOs
+│   ├── app.module.ts        # Root module importing feature modules
+│   └── main.ts              # Application bootstrap, validation pipes, CORS
+├── test/                    # Unit and End-to-End (E2E) test suites
+├── .env.example             # Environment variable template
+├── package.json             # Dependencies and scripts
+└── tsconfig.json            # TypeScript configuration
 ```
 
-## Compile and run the project
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js (v18.x or higher)
+- PostgreSQL database instance (local or hosted)
+- npm or yarn
+
+### 1. Installation
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+cd opentaskit-backend
+npm install
 ```
 
-## Run tests
+### 2. Environment Configuration
+
+Copy the example environment template and configure your database and secrets:
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+cp .env.example .env
 ```
 
-## Deployment
+Key environment variables:
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+| Variable | Description | Example |
+| :--- | :--- | :--- |
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:pass@localhost:5432/opentaskit?schema=public` |
+| `JWT_ACCESS_SECRET` | Secret key for signing short-lived access tokens | `your-access-secret-key` |
+| `JWT_ACCESS_EXPIRES_IN` | Access token lifespan | `15m` |
+| `JWT_REFRESH_SECRET` | Secret key for refresh tokens | `your-refresh-secret-key` |
+| `SMTP_HOST` | Transactional email SMTP host | `smtp.mailtrap.io` |
+| `SMTP_PORT` | SMTP port | `2525` |
+| `SMTP_USER` | SMTP username | `your-smtp-user` |
+| `SMTP_PASS` | SMTP password | `your-smtp-password` |
+| `ADMIN_EMAIL` | Default admin email created on seed | `admin@opentaskit.com` |
+| `ADMIN_PASSWORD` | Default admin password created on seed | `AdminPassword123!` |
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+---
+
+### 3. Database Migration & Seeding
+
+Run Prisma migrations to initialize the database schema, then seed default data:
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+# Apply migrations to database
+npx prisma migrate dev --name init
+
+# Seed default admin and categories
+npx prisma db seed
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+To visually explore and manage database records:
 
-## Resources
+```bash
+npx prisma studio
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+---
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+### 4. Running the Application
 
-## Support
+```bash
+# Development mode with hot-reload
+npm run start:dev
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+# Debug mode
+npm run start:debug
 
-## Stay in touch
+# Production build and run
+npm run build
+npm run start:prod
+```
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+The API server will listen on `http://localhost:3000`.
+
+---
+
+## API Endpoints Overview
+
+### Authentication (`/auth`)
+- `POST /auth/register` - Create a new user account
+- `POST /auth/login` - Authenticate and receive access + refresh tokens
+- `POST /auth/refresh` - Rotate access token using valid refresh token
+- `POST /auth/logout` - Invalidate current session and clear refresh token
+- `POST /auth/forgot-password` - Send password reset OTP to email
+- `POST /auth/reset-password` - Verify OTP and update password
+
+### Categories (`/categories`)
+- `GET /categories` - List all active categories
+- `GET /categories/:id` - Get single category details
+- `POST /categories` - Create category (Admin only)
+- `PATCH /categories/:id` - Update category (Admin only)
+- `DELETE /categories/:id` - Delete category (Admin only)
+
+---
+
+## Testing
+
+```bash
+# Unit tests
+npm run test
+
+# End-to-end (E2E) tests
+npm run test:e2e
+
+# Test coverage
+npm run test:cov
+```
+
+---
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+This software and associated documentation files are proprietary and confidential. All rights reserved.
