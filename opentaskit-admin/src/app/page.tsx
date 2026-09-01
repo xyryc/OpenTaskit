@@ -16,9 +16,6 @@ import {
   ChevronRight,
   Plus,
   RefreshCw,
-  Server,
-  Database,
-  Mail,
 } from "lucide-react";
 
 import {
@@ -353,46 +350,8 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Right Column (1/3): System Health & Quick Stats */}
+        {/* Right Column (1/3): Quick Shortcuts & Platform Rates */}
         <div className="flex flex-col gap-6">
-          {/* Service Status */}
-          <Card className="border-border/60 shadow-xs">
-            <CardHeader className="pb-3 border-b">
-              <CardTitle className="text-sm font-semibold text-foreground flex items-center justify-between">
-                <span>System Infrastructure</span>
-                <Badge variant="outline" className="text-[10px] text-emerald-600 border-emerald-500/30 gap-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 inline-block" />
-                  All Systems Operational
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4 flex flex-col gap-3 text-xs">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Server className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">NestJS API (v11)</span>
-                </div>
-                <span className="font-semibold text-emerald-600">Healthy (28ms)</span>
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Database className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">PostgreSQL & Prisma</span>
-                </div>
-                <span className="font-semibold text-emerald-600">Connected</span>
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">SMTP OTP Mailer</span>
-                </div>
-                <span className="font-semibold text-emerald-600">Active</span>
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Quick Management Shortcuts */}
           <Card className="border-border/60 shadow-xs">
             <CardHeader className="pb-3 border-b">
@@ -420,6 +379,13 @@ export default function DashboardPage() {
                 className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/40 transition-colors font-medium text-foreground"
               >
                 <span>Review Active Escrow Balances</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </Link>
+              <Link
+                href="/disputes"
+                className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/40 transition-colors font-medium text-foreground"
+              >
+                <span>Arbitrate Open Disputes</span>
                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
               </Link>
               <Link
