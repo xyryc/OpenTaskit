@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 import { MOCK_TRANSACTIONS, TransactionRecord } from "@/data/mock-data";
+import { exportToCsv, CsvColumn } from "@/lib/export-csv";
 import {
   Card,
   CardContent,
@@ -79,6 +80,24 @@ export default function EscrowLedgerPage() {
     .filter((t) => t.status === "SUCCESS")
     .reduce((acc, t) => acc + t.fee, 0);
 
+  const handleExportCsv = () => {
+    const columns: CsvColumn<TransactionRecord>[] = [
+      { key: "id", label: "Transaction ID" },
+      { key: "createdAt", label: "Date & Time" },
+      { key: "type", label: "Transaction Type" },
+      { key: (t) => t.taskId || "N/A", label: "Task ID" },
+      { key: (t) => t.taskTitle || "N/A", label: "Task Title" },
+      { key: "userName", label: "User Name" },
+      { key: "userEmail", label: "User Email" },
+      { key: "gateway", label: "Payment Gateway" },
+      { key: "amount", label: "Amount (LKR)" },
+      { key: "fee", label: "Platform Fee (LKR)" },
+      { key: "status", label: "Status" },
+    ];
+
+    exportToCsv("opentaskit_escrow_ledger", filteredTransactions, columns);
+  };
+
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto w-full">
       {/* Page Header */}
@@ -92,7 +111,12 @@ export default function EscrowLedgerPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 gap-1.5 text-xs"
+            onClick={handleExportCsv}
+          >
             <Download className="h-3.5 w-3.5" />
             <span>Export Ledger CSV</span>
           </Button>

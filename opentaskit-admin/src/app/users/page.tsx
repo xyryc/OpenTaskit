@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 import { MOCK_USERS, UserRecord } from "@/data/mock-data";
+import { exportToCsv, CsvColumn } from "@/lib/export-csv";
 import {
   Card,
   CardContent,
@@ -93,6 +94,29 @@ export default function UsersPage() {
     );
   };
 
+  const handleExportCsv = () => {
+    const columns: CsvColumn<UserRecord>[] = [
+      { key: "id", label: "User ID" },
+      { key: "fullName", label: "Full Name" },
+      { key: "email", label: "Email" },
+      { key: "phoneNumber", label: "Phone Number" },
+      { key: "role", label: "Role" },
+      { key: "status", label: "Account Status" },
+      { key: (u) => (u.isKycVerified ? "Verified" : "Unverified"), label: "KYC Status" },
+      { key: (u) => u.kycDocumentType || "N/A", label: "KYC Document" },
+      { key: "rating", label: "Rating" },
+      { key: "reviewCount", label: "Reviews" },
+      { key: "tasksPostedCount", label: "Tasks Posted" },
+      { key: "tasksCompletedCount", label: "Tasks Completed" },
+      { key: "walletBalance", label: "Wallet Balance (LKR)" },
+      { key: "escrowLockedBalance", label: "Locked Escrow (LKR)" },
+      { key: "location", label: "Location" },
+      { key: "createdAt", label: "Joined At" },
+    ];
+
+    exportToCsv("opentaskit_users", filteredUsers, columns);
+  };
+
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto">
       {/* Top Header */}
@@ -106,7 +130,12 @@ export default function UsersPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 gap-1.5 text-xs"
+            onClick={handleExportCsv}
+          >
             <Download className="h-3.5 w-3.5" />
             <span>Export CSV</span>
           </Button>
