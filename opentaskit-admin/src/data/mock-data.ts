@@ -36,6 +36,41 @@ export interface KycSubmission {
   accountRole: "PROVIDER" | "DUAL" | "POSTER";
 }
 
+export interface CategoryRecord {
+  id: string;
+  name: string;
+  slug: string;
+  icon?: string;
+  description?: string;
+  isActive: boolean;
+  tasksCount: number;
+  createdAt: string;
+}
+
+export interface TaskRecord {
+  id: string;
+  title: string;
+  details: string;
+  images: string[];
+  categoryId: string;
+  categoryName: string;
+  locationType: "IN_PERSON" | "ONLINE";
+  address?: string;
+  budgetType: "TOTAL" | "HOURLY";
+  budgetAmount: number;
+  hourlyHours?: number;
+  hourlyRate?: number;
+  status: "OPEN" | "ASSIGNED" | "COMPLETED" | "CANCELLED" | "EXPIRED";
+  posterId: string;
+  posterName: string;
+  posterEmail: string;
+  posterPhone: string;
+  providerId?: string;
+  providerName?: string;
+  offersCount: number;
+  createdAt: string;
+}
+
 export const MOCK_USERS: UserRecord[] = [
   {
     id: "USR-001",
@@ -233,5 +268,179 @@ export const MOCK_KYC_SUBMISSIONS: KycSubmission[] = [
     status: "REJECTED",
     reviewerNote: "Photo is blurry and national ID number text is unreadable.",
     accountRole: "DUAL",
+  },
+];
+
+export const MOCK_CATEGORIES: CategoryRecord[] = [
+  {
+    id: "CAT-001",
+    name: "Cleaning & Housekeeping",
+    slug: "cleaning-housekeeping",
+    icon: "Sparkles",
+    description: "Deep house cleaning, move-in/move-out, sofa and carpet shampooing.",
+    isActive: true,
+    tasksCount: 48,
+    createdAt: "2026-01-01T00:00:00Z",
+  },
+  {
+    id: "CAT-002",
+    name: "Handyman & Repairs",
+    slug: "handyman-repairs",
+    icon: "Wrench",
+    description: "Plumbing, electrical wiring, carpentry, wall mounting, and general repairs.",
+    isActive: true,
+    tasksCount: 62,
+    createdAt: "2026-01-01T00:00:00Z",
+  },
+  {
+    id: "CAT-003",
+    name: "Delivery & Courier",
+    slug: "delivery-courier",
+    icon: "Truck",
+    description: "Same-day parcel courier, intercity delivery, and grocery pick-up.",
+    isActive: true,
+    tasksCount: 34,
+    createdAt: "2026-01-01T00:00:00Z",
+  },
+  {
+    id: "CAT-004",
+    name: "Tech & IT Support",
+    slug: "tech-it-support",
+    icon: "Laptop",
+    description: "Computer repair, Wi-Fi setup, software installation, and web design.",
+    isActive: true,
+    tasksCount: 22,
+    createdAt: "2026-01-01T00:00:00Z",
+  },
+  {
+    id: "CAT-005",
+    name: "Gardening & Landscaping",
+    slug: "gardening-landscaping",
+    icon: "TreePine",
+    description: "Lawn mowing, tree trimming, garden maintenance, and landscaping.",
+    isActive: true,
+    tasksCount: 18,
+    createdAt: "2026-01-01T00:00:00Z",
+  },
+  {
+    id: "CAT-006",
+    name: "Event Help & Photography",
+    slug: "event-photography",
+    icon: "Camera",
+    description: "Event catering, photography, party setups, and helpers.",
+    isActive: false,
+    tasksCount: 0,
+    createdAt: "2026-02-15T00:00:00Z",
+  },
+];
+
+export const MOCK_TASKS: TaskRecord[] = [
+  {
+    id: "TSK-891",
+    title: 'Mount 65" TV on Concrete Wall with Cable Concealment',
+    details: "Need a professional handyman to mount a 65 inch Samsung smart TV securely onto a solid concrete wall. Must bring own drill and wall mount brackets. Conceal cables with trunking.",
+    images: [
+      "https://images.unsplash.com/photo-1593784991095-a205069470b6?w=800&auto=format&fit=crop&q=80",
+    ],
+    categoryId: "CAT-002",
+    categoryName: "Handyman & Repairs",
+    locationType: "IN_PERSON",
+    address: "Kollupitiya, Colombo 03",
+    budgetType: "TOTAL",
+    budgetAmount: 6500,
+    status: "OPEN",
+    posterId: "USR-003",
+    posterName: "Ruwan Nandana",
+    posterEmail: "ruwan.nandana@gmail.com",
+    posterPhone: "+94 76 345 8921",
+    offersCount: 3,
+    createdAt: "2026-09-01T09:30:00Z",
+  },
+  {
+    id: "TSK-892",
+    title: "Deep Clean 3 Bedroom Apartment Before Moving In",
+    details: "Thorough deep cleaning needed for a newly painted 3-bedroom apartment. Includes scrubbing 2 bathrooms, kitchen cabinets, floor polishing, and window glass wiping.",
+    images: [
+      "https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=800&auto=format&fit=crop&q=80",
+    ],
+    categoryId: "CAT-001",
+    categoryName: "Cleaning & Housekeeping",
+    locationType: "IN_PERSON",
+    address: "Stanley Tilakaratne Mawatha, Nugegoda",
+    budgetType: "TOTAL",
+    budgetAmount: 14000,
+    status: "ASSIGNED",
+    posterId: "USR-007",
+    posterName: "Sanduni Wickramasinghe",
+    posterEmail: "sanduni.w@gmail.com",
+    posterPhone: "+94 77 823 4512",
+    providerId: "USR-001",
+    providerName: "Kasun Perera",
+    offersCount: 5,
+    createdAt: "2026-08-31T14:10:00Z",
+  },
+  {
+    id: "TSK-893",
+    title: "Urgent Document Parcel Delivery from Kandy to Colombo",
+    details: "Pick up legal documents from Kandy city center and deliver to Colombo 07 legal firm by 4:00 PM today. Requires careful handling.",
+    images: [],
+    categoryId: "CAT-003",
+    categoryName: "Delivery & Courier",
+    locationType: "IN_PERSON",
+    address: "Kandy to Colombo 07",
+    budgetType: "TOTAL",
+    budgetAmount: 8000,
+    status: "COMPLETED",
+    posterId: "USR-003",
+    posterName: "Ruwan Nandana",
+    posterEmail: "ruwan.nandana@gmail.com",
+    posterPhone: "+94 76 345 8921",
+    providerId: "USR-002",
+    providerName: "Dilshan Alwis",
+    offersCount: 2,
+    createdAt: "2026-08-30T08:00:00Z",
+  },
+  {
+    id: "TSK-894",
+    title: "Fix Wi-Fi Mesh Network and Office Router Configuration",
+    details: "Small office network keeps dropping connections during video conferences. Need someone to diagnose router, re-configure DHCP range, and optimize mesh satellites.",
+    images: [],
+    categoryId: "CAT-004",
+    categoryName: "Tech & IT Support",
+    locationType: "IN_PERSON",
+    address: "Battaramulla, Sri Jayawardenepura Kotte",
+    budgetType: "HOURLY",
+    budgetAmount: 3000,
+    hourlyHours: 3,
+    hourlyRate: 1000,
+    status: "OPEN",
+    posterId: "USR-002",
+    posterName: "Dilshan Alwis",
+    posterEmail: "dilshan.alwis@outlook.com",
+    posterPhone: "+94 71 889 2314",
+    offersCount: 1,
+    createdAt: "2026-09-01T11:00:00Z",
+  },
+  {
+    id: "TSK-895",
+    title: "Overgrown Garden Grass Cut and Yard Cleanup",
+    details: "Approx 15 perches garden. Grass is overgrown after recent monsoon rains. Need grass cutting, weeding flower beds, and disposing garden waste bags.",
+    images: [
+      "https://images.unsplash.com/photo-1558904541-efa8c4a08931?w=800&auto=format&fit=crop&q=80",
+    ],
+    categoryId: "CAT-005",
+    categoryName: "Gardening & Landscaping",
+    locationType: "IN_PERSON",
+    address: "Thalawathugoda",
+    budgetType: "TOTAL",
+    budgetAmount: 7500,
+    status: "CANCELLED",
+    posterId: "USR-007",
+    posterName: "Sanduni Wickramasinghe",
+    posterEmail: "sanduni.w@gmail.com",
+    posterPhone: "+94 77 823 4512",
+    offersCount: 0,
+    createdAt: "2026-08-28T16:20:00Z",
   },
 ];
