@@ -7,6 +7,7 @@ import {
   TextInput,
   Linking,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import {
   ChevronDown,
@@ -43,6 +44,7 @@ const FAQS = [
 ];
 
 export default function HelpCenterScreen() {
+  const router = useRouter();
   const { toast } = useApp();
   const [query, setQuery] = useState('');
   const [openIndex, setOpenIndex] = useState<number | null>(0);
@@ -81,13 +83,7 @@ export default function HelpCenterScreen() {
           {/* Quick Contact Cards */}
           <View className="flex-row gap-2.5" style={{ gap: 10 }}>
             <Pressable
-              onPress={() =>
-                toast({
-                  title: 'Support chat opening…',
-                  description: 'Average reply time is under 4 minutes.',
-                  variant: 'info',
-                })
-              }
+              onPress={() => router.push('/(screens)/support-chat')}
               className="flex-1 rounded-3xl border border-ink-200 bg-white p-4 active:bg-ink-100/60"
             >
               <View className="h-10 w-10 items-center justify-center rounded-xl bg-brand-tint">
