@@ -1,43 +1,76 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
-# dependencies
-node_modules/
-
-# Expo
-.expo/
-dist/
-web-build/
-expo-env.d.ts
-
-# Native
-.kotlin/
-*.orig.*
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
-
-# Metro
-.metro-health-check*
-
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
-
-# macOS
-.DS_Store
+# ==========================================
+# 1. ENVIRONMENT VARIABLES & SECRETS (STRICT)
+# ==========================================
+.env
+.env*
+*.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 *.pem
+*.key
+*.cert
+*.jks
+*.keystore
 
-# local env files
-.env*.local
+# ==========================================
+# 2. DEPENDENCIES
+# ==========================================
+node_modules/
+.pnpm-store/
+.npm/
+.yarn/
 
-# typescript
-*.tsbuildinfo
+# ==========================================
+# 3. NEXT.JS (opentaskit-admin)
+# ==========================================
+.next/
+out/
 
-example
+# ==========================================
+# 4. NESTJS & PRISMA (opentaskit-backend)
+# ==========================================
+opentaskit-backend/dist/
+opentaskit-backend/coverage/
+opentaskit-backend/generated/
+.prisma/client/
 
-# generated native folders
-/ios
-/android
+# ==========================================
+# 5. REACT NATIVE & EXPO (opentaskit-app)
+# ==========================================
+.expo/
+opentaskit-app/dist/
+opentaskit-app/web-build/
+opentaskit-app/android/
+opentaskit-app/ios/
+
+# ==========================================
+# 6. IDE, AI AGENTS & LOCAL METADATA
+# ==========================================
+.agents/
+.claude/
+.windsurf/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+
+# ==========================================
+# 7. LOGS, METRO & BUILD ARTIFACTS
+# ==========================================
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.turbo/
+.cache/
+.tsbuildinfo
+
+# ==========================================
+# 8. SYSTEM & OS FILES
+# ==========================================
+.DS_Store
+Thumbs.db
