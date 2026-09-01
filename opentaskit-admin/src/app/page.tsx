@@ -14,9 +14,19 @@ import {
   Clock,
   ExternalLink,
   ChevronRight,
-  Plus,
   RefreshCw,
+  Layers,
 } from "lucide-react";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 import {
   Card,
@@ -29,6 +39,48 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
+
+// Chart data & configurations
+const revenueChartData = [
+  { month: "Mar", gmv: 2800000, revenue: 280000 },
+  { month: "Apr", gmv: 3100000, revenue: 310000 },
+  { month: "May", gmv: 3600000, revenue: 360000 },
+  { month: "Jun", gmv: 3950000, revenue: 395000 },
+  { month: "Jul", gmv: 4100000, revenue: 410000 },
+  { month: "Aug", gmv: 4250000, revenue: 425000 },
+];
+
+const revenueChartConfig = {
+  gmv: {
+    label: "Gross Volume (LKR)",
+    color: "#0094F7",
+  },
+  revenue: {
+    label: "Net Revenue (LKR)",
+    color: "#10b981",
+  },
+} satisfies ChartConfig;
+
+const categoryChartData = [
+  { category: "Handyman", tasks: 62, fill: "#f59e0b" },
+  { category: "Cleaning", tasks: 48, fill: "#0094F7" },
+  { category: "Delivery", tasks: 34, fill: "#10b981" },
+  { category: "Tech & IT", tasks: 22, fill: "#8b5cf6" },
+  { category: "Gardening", tasks: 18, fill: "#16a34a" },
+];
+
+const categoryChartConfig = {
+  tasks: {
+    label: "Tasks",
+    color: "#0094F7",
+  },
+} satisfies ChartConfig;
 
 export default function DashboardPage() {
   return (
@@ -47,16 +99,6 @@ export default function DashboardPage() {
           <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs">
             <RefreshCw className="h-3.5 w-3.5" />
             <span>Refresh</span>
-          </Button>
-          <Button
-            size="sm"
-            className="h-9 gap-1.5 text-xs bg-[#0094F7] hover:bg-[#007cd6] text-white"
-            asChild
-          >
-            <Link href="/tasks">
-              <Plus className="h-3.5 w-3.5" />
-              <span>Create Announcement</span>
-            </Link>
           </Button>
         </div>
       </div>
@@ -139,6 +181,119 @@ export default function DashboardPage() {
               <TrendingUp className="h-3.5 w-3.5" />
               <span>10% average commission fee</span>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Interactive Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Monthly Volume Area Chart (2/3 width) */}
+        <Card className="lg:col-span-2 border-border/60 shadow-xs">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 border-b">
+            <div>
+              <CardTitle className="text-sm font-semibold text-foreground">
+                Escrow Volume & Revenue Trend
+              </CardTitle>
+              <CardDescription className="text-xs mt-0.5">
+                Monthly gross transacted volume and 10% platform commission revenue.
+              </CardDescription>
+            </div>
+            <Badge variant="outline" className="text-[10px] text-emerald-600 border-emerald-500/30">
+              +14.2% Growth
+            </Badge>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6">
+            <ChartContainer config={revenueChartConfig} className="h-64 w-full aspect-auto">
+              <AreaChart data={revenueChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="fillGmv" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#0094F7" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#0094F7" stopOpacity={0.0} />
+                  </linearGradient>
+                  <linearGradient id="fillRevenue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis
+                  dataKey="month"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  tickFormatter={(val) => val}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(val) => `${(val / 1000000).toFixed(1)}M`}
+                />
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent indicator="dot" />}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="gmv"
+                  stroke="#0094F7"
+                  strokeWidth={2}
+                  fill="url(#fillGmv)"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="#10b981"
+                  strokeWidth={2}
+                  fill="url(#fillRevenue)"
+                />
+              </AreaChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        {/* Category Breakdown Bar Chart (1/3 width) */}
+        <Card className="border-border/60 shadow-xs">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 border-b">
+            <div>
+              <CardTitle className="text-sm font-semibold text-foreground">
+                Tasks by Category
+              </CardTitle>
+              <CardDescription className="text-xs mt-0.5">
+                Active job volume distribution.
+              </CardDescription>
+            </div>
+            <Link href="/categories" className="text-xs text-primary hover:underline font-medium">
+              View all
+            </Link>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6">
+            <ChartContainer config={categoryChartConfig} className="h-64 w-full aspect-auto">
+              <BarChart
+                data={categoryChartData}
+                layout="vertical"
+                margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                <XAxis type="number" hide />
+                <YAxis
+                  dataKey="category"
+                  type="category"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={4}
+                  className="text-[11px]"
+                />
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent hideLabel />}
+                />
+                <Bar
+                  dataKey="tasks"
+                  radius={[0, 4, 4, 0]}
+                  fill="#0094F7"
+                />
+              </BarChart>
+            </ChartContainer>
           </CardContent>
         </Card>
       </div>
@@ -259,142 +414,156 @@ export default function DashboardPage() {
                   Latest activity across Colombo, Kandy, and Galle areas.
                 </CardDescription>
               </div>
-              <Button variant="ghost" size="sm" className="h-8 text-xs gap-1" asChild>
+              <Button variant="ghost" size="sm" className="h-8 text-xs font-semibold gap-1 text-primary" asChild>
                 <Link href="/tasks">
-                  <span>View all</span>
+                  <span>View All Tasks</span>
                   <ChevronRight className="h-3.5 w-3.5" />
                 </Link>
               </Button>
             </CardHeader>
-            <CardContent className="p-0">
-              <div className="divide-y divide-border/60 text-xs">
-                <div className="flex items-center justify-between p-3.5">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-8 w-8 border">
-                      <AvatarFallback className="text-[11px] font-semibold bg-muted">
-                        SM
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-semibold text-foreground">
-                        Mount 65" TV on Concrete Wall
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">
-                        Colombo 03 · Handyman · 3 Offers received
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className="font-semibold text-foreground block">
-                      LKR 6,500
+            <CardContent className="p-0 divide-y divide-border/60">
+              {/* Task 1 */}
+              <div className="p-4 flex items-center justify-between hover:bg-muted/30 transition-colors">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-foreground">
+                      Fix Living Room Ceiling Fan Electrical Wiring
                     </span>
-                    <Badge variant="outline" className="text-[10px] text-emerald-600 border-emerald-500/30">
-                      Open
+                    <Badge variant="outline" className="text-[10px] text-emerald-600 border-emerald-500/30 font-semibold">
+                      Open (3 offers)
                     </Badge>
                   </div>
+                  <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                    <span>Colombo 03</span>
+                    <span>•</span>
+                    <span>Budget: LKR 4,500</span>
+                    <span>•</span>
+                    <span>Poster: Nuwan Pradeep</span>
+                  </div>
                 </div>
+                <Button size="sm" variant="ghost" className="h-8 text-xs text-muted-foreground hover:text-foreground" asChild>
+                  <Link href="/tasks">Inspect</Link>
+                </Button>
+              </div>
 
-                <div className="flex items-center justify-between p-3.5">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-8 w-8 border">
-                      <AvatarFallback className="text-[11px] font-semibold bg-muted">
-                        RN
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-semibold text-foreground">
-                        Deep Clean 3 Bedroom Apartment
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">
-                        Nugegoda · Cleaning · Assigned to Kamal W.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className="font-semibold text-foreground block">
-                      LKR 14,000
+              {/* Task 2 */}
+              <div className="p-4 flex items-center justify-between hover:bg-muted/30 transition-colors">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-foreground">
+                      Deep Cleaning 2-Story House Before Move-in
                     </span>
-                    <Badge variant="secondary" className="text-[10px] text-blue-600">
-                      In Progress
+                    <Badge variant="secondary" className="text-[10px] font-semibold text-blue-600">
+                      Assigned
                     </Badge>
                   </div>
-                </div>
-
-                <div className="flex items-center justify-between p-3.5">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-8 w-8 border">
-                      <AvatarFallback className="text-[11px] font-semibold bg-muted">
-                        AK
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-semibold text-foreground">
-                        Package Delivery from Kandy to Colombo
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">
-                        Intercity · Delivery · Escrow Released
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className="font-semibold text-foreground block">
-                      LKR 8,000
-                    </span>
-                    <Badge variant="outline" className="text-[10px] text-muted-foreground">
-                      Completed
-                    </Badge>
+                  <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                    <span>Nugegoda</span>
+                    <span>•</span>
+                    <span>Budget: LKR 18,000</span>
+                    <span>•</span>
+                    <span>Provider: Kasun Perera</span>
                   </div>
                 </div>
+                <Button size="sm" variant="ghost" className="h-8 text-xs text-muted-foreground hover:text-foreground" asChild>
+                  <Link href="/tasks">Inspect</Link>
+                </Button>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Right Column (1/3): Quick Shortcuts & Platform Rates */}
+        {/* Right Column (1/3): Quick Links & System Health */}
         <div className="flex flex-col gap-6">
-          {/* Quick Management Shortcuts */}
+          {/* Quick Navigation Cards */}
           <Card className="border-border/60 shadow-xs">
             <CardHeader className="pb-3 border-b">
               <CardTitle className="text-sm font-semibold text-foreground">
-                Quick Shortcuts
+                Administrative Tools
               </CardTitle>
             </CardHeader>
-            <CardContent className="pt-3 flex flex-col gap-1.5 text-xs">
-              <Link
-                href="/categories"
-                className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/40 transition-colors font-medium text-foreground"
-              >
-                <span>Manage Marketplace Categories</span>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-              </Link>
+            <CardContent className="p-3 grid grid-cols-1 gap-1 text-xs">
               <Link
                 href="/kyc"
-                className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/40 transition-colors font-medium text-foreground"
+                className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/50 transition-colors font-medium text-foreground"
               >
-                <span>Verify Provider Credentials</span>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                <div className="flex items-center gap-2.5">
+                  <ShieldCheck className="h-4 w-4 text-amber-500" />
+                  <span>KYC Identity Queue</span>
+                </div>
+                <Badge variant="secondary" className="text-[10px]">4</Badge>
               </Link>
-              <Link
-                href="/finance/escrow"
-                className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/40 transition-colors font-medium text-foreground"
-              >
-                <span>Review Active Escrow Balances</span>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-              </Link>
+
               <Link
                 href="/disputes"
-                className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/40 transition-colors font-medium text-foreground"
+                className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/50 transition-colors font-medium text-foreground"
               >
-                <span>Arbitrate Open Disputes</span>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                <div className="flex items-center gap-2.5">
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
+                  <span>Disputes & Arbitration</span>
+                </div>
+                <Badge variant="destructive" className="text-[10px]">2</Badge>
               </Link>
+
               <Link
-                href="/settings"
-                className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/40 transition-colors font-medium text-foreground"
+                href="/finance/escrow"
+                className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/50 transition-colors font-medium text-foreground"
               >
-                <span>Configure Platform Fee %</span>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                <div className="flex items-center gap-2.5">
+                  <Wallet className="h-4 w-4 text-primary" />
+                  <span>Escrow Ledger & Gateway</span>
+                </div>
+                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
               </Link>
+
+              <Link
+                href="/categories"
+                className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/50 transition-colors font-medium text-foreground"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Layers className="h-4 w-4 text-[#0094F7]" />
+                  <span>Manage Service Categories</span>
+                </div>
+                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+              </Link>
+
+              <Link
+                href="/support/chat"
+                className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/50 transition-colors font-medium text-foreground"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Clock className="h-4 w-4 text-emerald-600" />
+                  <span>Live Support Chat</span>
+                </div>
+                <Badge variant="default" className="text-[10px] bg-[#0094F7]">1 New</Badge>
+              </Link>
+            </CardContent>
+          </Card>
+
+          {/* Platform Performance Summary */}
+          <Card className="border-border/60 shadow-xs">
+            <CardHeader className="pb-3 border-b">
+              <CardTitle className="text-sm font-semibold text-foreground">
+                Marketplace Health
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-3.5 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Task Completion Rate</span>
+                <span className="font-semibold text-foreground">94.8%</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Dispute Frequency</span>
+                <span className="font-semibold text-emerald-600">1.2% (Low)</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Avg. Provider Rating</span>
+                <span className="font-semibold text-foreground">4.8 / 5.0</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Escrow Safety Vault</span>
+                <span className="font-semibold text-emerald-600">100% Protected</span>
+              </div>
             </CardContent>
           </Card>
         </div>

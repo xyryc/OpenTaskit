@@ -22,7 +22,12 @@ export const metadata: Metadata = {
   title: "OpenTaskit Admin Portal",
   description: "Management, KYC verification, dispute resolution, and escrow oversight for OpenTaskit.",
   icons: {
-    icon: "/brand/icon-brand.png",
+    icon: [
+      { url: "/brand/icon-brand.png", type: "image/png" },
+      { url: "/icon.png", type: "image/png" },
+    ],
+    shortcut: "/brand/icon-brand.png",
+    apple: "/brand/icon-brand.png",
   },
 };
 
@@ -37,12 +42,20 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col font-sans bg-background text-foreground">
+      <head>
+        <link rel="icon" href="/brand/icon-brand.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/brand/icon-brand.png" />
+      </head>
+      <body
+        suppressHydrationWarning
+        className="min-h-full flex flex-col font-sans bg-background text-foreground"
+      >
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
           storageKey="opentaskit-admin-theme"
           enableSystem={false}
+          enableColorScheme={false}
           disableTransitionOnChange
         >
           <TooltipProvider>

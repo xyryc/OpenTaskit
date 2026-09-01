@@ -145,8 +145,33 @@ export interface LegalDocSection {
 export interface LegalDocRecord {
   slug: "terms" | "privacy";
   title: string;
+  version: string;
   updatedAt: string;
   sections: LegalDocSection[];
+}
+
+export interface SupportChatMessage {
+  id: string;
+  sender: "USER" | "ADMIN";
+  senderName: string;
+  text: string;
+  createdAt: string;
+}
+
+export interface SupportChatThreadRecord {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  userPhone: string;
+  userRole: "POSTER" | "PROVIDER" | "DUAL";
+  userRating: number;
+  walletBalance: number;
+  unreadCount: number;
+  status: "ACTIVE" | "RESOLVED";
+  lastMessage: string;
+  lastMessageAt: string;
+  messages: SupportChatMessage[];
 }
 
 export const MOCK_USERS: UserRecord[] = [
@@ -783,6 +808,7 @@ export const MOCK_LEGAL_DOCS: Record<"terms" | "privacy", LegalDocRecord> = {
   terms: {
     slug: "terms",
     title: "Terms of Service",
+    version: "1.2.0",
     updatedAt: "2026-08-01T00:00:00Z",
     sections: [
       {
@@ -820,6 +846,7 @@ export const MOCK_LEGAL_DOCS: Record<"terms" | "privacy", LegalDocRecord> = {
   privacy: {
     slug: "privacy",
     title: "Privacy Policy",
+    version: "1.1.0",
     updatedAt: "2026-08-01T00:00:00Z",
     sections: [
       {
@@ -845,3 +872,117 @@ export const MOCK_LEGAL_DOCS: Record<"terms" | "privacy", LegalDocRecord> = {
     ],
   },
 };
+
+export const MOCK_SUPPORT_CHATS: SupportChatThreadRecord[] = [
+  {
+    id: "CHT-101",
+    userId: "USR-001",
+    userName: "Kasun Perera",
+    userEmail: "kasun.p@gmail.com",
+    userPhone: "+94 77 123 4567",
+    userRole: "PROVIDER",
+    userRating: 4.9,
+    walletBalance: 34500,
+    unreadCount: 1,
+    status: "ACTIVE",
+    lastMessage: "Could you please check my National ID verification status? I uploaded it this morning.",
+    lastMessageAt: "2026-09-01T11:45:00Z",
+    messages: [
+      {
+        id: "m-1",
+        sender: "USER",
+        senderName: "Kasun Perera",
+        text: "Hi support team, I submitted my National ID card for verification earlier today.",
+        createdAt: "2026-09-01T11:40:00Z",
+      },
+      {
+        id: "m-2",
+        sender: "ADMIN",
+        senderName: "Support Agent (Nimal)",
+        text: "Hello Kasun! Our compliance team is currently reviewing submissions. Let me pull up your queue record.",
+        createdAt: "2026-09-01T11:42:00Z",
+      },
+      {
+        id: "m-3",
+        sender: "USER",
+        senderName: "Kasun Perera",
+        text: "Could you please check my National ID verification status? I uploaded it this morning.",
+        createdAt: "2026-09-01T11:45:00Z",
+      },
+    ],
+  },
+  {
+    id: "CHT-102",
+    userId: "USR-007",
+    userName: "Sanduni Wickramasinghe",
+    userEmail: "sanduni.w@gmail.com",
+    userPhone: "+94 77 823 4512",
+    userRole: "POSTER",
+    userRating: 4.9,
+    walletBalance: 12000,
+    unreadCount: 0,
+    status: "ACTIVE",
+    lastMessage: "Okay thank you, I have submitted the dispute form with photos.",
+    lastMessageAt: "2026-09-01T10:10:00Z",
+    messages: [
+      {
+        id: "m-4",
+        sender: "USER",
+        senderName: "Sanduni Wickramasinghe",
+        text: "Hello, I have an issue with Task #TSK-892. The cleaning was incomplete.",
+        createdAt: "2026-09-01T09:50:00Z",
+      },
+      {
+        id: "m-5",
+        sender: "ADMIN",
+        senderName: "Support Agent (Kavindi)",
+        text: "Hi Sanduni. Please open the task from your activity tab and tap 'Raise Dispute' so escrow funds remain protected.",
+        createdAt: "2026-09-01T10:00:00Z",
+      },
+      {
+        id: "m-6",
+        sender: "USER",
+        senderName: "Sanduni Wickramasinghe",
+        text: "Okay thank you, I have submitted the dispute form with photos.",
+        createdAt: "2026-09-01T10:10:00Z",
+      },
+    ],
+  },
+  {
+    id: "CHT-103",
+    userId: "USR-003",
+    userName: "Ruwan Nandana",
+    userEmail: "ruwan.nandana@gmail.com",
+    userPhone: "+94 76 345 8921",
+    userRole: "POSTER",
+    userRating: 5.0,
+    walletBalance: 8500,
+    unreadCount: 0,
+    status: "RESOLVED",
+    lastMessage: "Glad we could assist! Feel free to reach out anytime.",
+    lastMessageAt: "2026-08-30T15:30:00Z",
+    messages: [
+      {
+        id: "m-7",
+        sender: "USER",
+        senderName: "Ruwan Nandana",
+        text: "How do I change the pickup time on an urgent delivery task?",
+        createdAt: "2026-08-30T15:10:00Z",
+      },
+      {
+        id: "m-8",
+        sender: "ADMIN",
+        senderName: "Support Agent (Nimal)",
+        text: "You can message the assigned provider directly in the task chat to agree on the new time.",
+        createdAt: "2026-08-30T15:20:00Z",
+      },
+      {
+        id: "m-9",
+        sender: "ADMIN",
+        senderName: "Support Agent (Nimal)",
+        text: "Glad we could assist! Feel free to reach out anytime.",
+        createdAt: "2026-08-30T15:30:00Z",
+      },
+    ],
+  },
+];
