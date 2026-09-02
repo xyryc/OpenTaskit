@@ -21,4 +21,11 @@ export class TasksController {
   findAll(@Query() query: FilterTasksDto) {
     return this.tasksService.findAll(query);
   }
+
+  // GET /tasks/my - Fetch authenticated user's posted tasks
+  @UseGuards(JwtAuthGuard)
+  @Get('my')
+  findMyTasks(@CurrentUser('id') userId: string) {
+    return this.tasksService.findMyTasks(userId);
+  }
 }

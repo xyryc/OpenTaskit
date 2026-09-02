@@ -91,4 +91,17 @@ export class TasksService {
       data: tasks,
     };
   }
+
+  // 3. Get all tasks posted by the logged-in user
+  async findMyTasks(userId: string) {
+    return this.prisma.task.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        category: {
+          select: { id: true, name: true, slug: true, icon: true },
+        },
+      },
+    });
+  }
 }
