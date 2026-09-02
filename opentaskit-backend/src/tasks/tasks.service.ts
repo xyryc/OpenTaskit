@@ -199,4 +199,48 @@ export class TasksService {
       id,
     };
   }
+
+  // 7. Save / Bookmark a task
+  async saveTask(userId: string, taskId: string) {
+    // Check if task exists
+    const task = await this.prisma.task.findUnique({ where: { id: taskId } });
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    // Upsert prevents duplicate save entries
+    await this.prisma.savedTask.upsert({
+      where: {
+        userId_taskId: {
+          userId,
+          taskId,
+        },
+      },
+      create: {
+        userId,
+        taskId,
+      },
+      update: {},
+    });
+
+    return {
+      message: 'Task saved successfully',
+      taskId,
+    };
+  }
+
+  // 8. Remove from saved bookmarks
+  async unsaveTask(userId: string, taskId: string) {
+    await this.prisma.savedTask.deleteMany({
+      where: {
+        userId,
+        taskId,
+      },
+    });
+
+    return {
+      message: 'Task removed from saved bookmarks',
+      taskId,
+    };
+  }
 }

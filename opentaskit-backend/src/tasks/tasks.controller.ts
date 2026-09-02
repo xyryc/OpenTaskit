@@ -68,4 +68,18 @@ export class TasksController {
   ) {
     return this.tasksService.remove(id, userId, userRole);
   }
+
+  // POST /tasks/:id/save - Save/Bookmark a Task
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/save')
+  saveTask(@CurrentUser('id') userId: string, @Param('id') taskId: string) {
+    return this.tasksService.saveTask(userId, taskId);
+  }
+
+  // DELETE /tasks/:id/save - Remove Bookmark
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id/save')
+  unsaveTask(@CurrentUser('id') userId: string, @Param('id') taskId: string) {
+    return this.tasksService.unsaveTask(userId, taskId);
+  }
 }
