@@ -1,7 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { FilterTasksDto, TaskStatus } from './dto/filter-tasks.dto';
+import { UpdateTaskDto } from './dto/update-task.dto';
 
 @Injectable()
 export class TasksService {
@@ -129,5 +134,45 @@ export class TasksService {
     }
 
     return task;
+  }
+
+  // 5. Update task details (Owner or Admin only)
+  async update(
+    id: string,
+    userId: string,
+    userRole: string,
+    dto: UpdateTaskDto,
+  ) {
+    // 1. Find existing task
+    const task = await this.prisma.task.findUnique({ where: { id } });
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    // 2. Ownership check: Only task creator or Admin can edit
+    if (task.userId !== userId && userRole !== 'ADMIN') {
+      throw new ForbiddenException(
+        'You do not have permission to edit this task',
+      );
+    }
+
+    // 3. Update task
+    return this.prisma.task.update({
+      where: { id },
+      data: {
+        ...dto,
+        scheduledDate: dto.scheduledDate
+          ? new Date(dto.scheduledDate)
+          : undefined,
+      },
+      include: {
+        category: {
+          select: { id: true, name: true, slug: true, icon: true },
+        },
+        user: {
+          select: { id: true, fullName: true, phoneNumber: true },
+        },
+      },
+    });
   }
 }

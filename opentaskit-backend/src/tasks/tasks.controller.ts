@@ -6,12 +6,14 @@ import {
   Get,
   Query,
   Param,
+  Patch,
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { FilterTasksDto } from './dto/filter-tasks.dto';
+import { UpdateTaskDto } from './dto/update-task.dto';
 
 @Controller('tasks')
 export class TasksController {
@@ -41,5 +43,17 @@ export class TasksController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.tasksService.findOne(id);
+  }
+
+  // PATCH /tasks/:id - Update Task (Owner or Admin)
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id')
+  update(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: string,
+    @Body() dto: UpdateTaskDto,
+  ) {
+    return this.tasksService.update(id, userId, userRole, dto);
   }
 }
