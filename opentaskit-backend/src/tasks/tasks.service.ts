@@ -104,4 +104,30 @@ export class TasksService {
       },
     });
   }
+
+  // 4. Fetch single task details by ID
+  async findOne(id: string) {
+    const task = await this.prisma.task.findUnique({
+      where: { id },
+      include: {
+        category: {
+          select: { id: true, name: true, slug: true, icon: true },
+        },
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            phoneNumber: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    return task;
+  }
 }
