@@ -1,8 +1,9 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Get, Query } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { FilterTasksDto } from './dto/filter-tasks.dto';
 
 @Controller('tasks')
 export class TasksController {
@@ -13,5 +14,11 @@ export class TasksController {
   @Post()
   create(@CurrentUser('id') userId: string, @Body() dto: CreateTaskDto) {
     return this.tasksService.create(userId, dto);
+  }
+
+  // GET /tasks - Marketplace Feed (Public endpoint, no login required)
+  @Get()
+  findAll(@Query() query: FilterTasksDto) {
+    return this.tasksService.findAll(query);
   }
 }
