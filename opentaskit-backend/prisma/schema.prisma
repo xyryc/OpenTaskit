@@ -118,5 +118,5 @@ enum TimeType {
 enum PaymentMethod {
   CASH
   CARD
-  ONLINE
+  WALLET
 }
