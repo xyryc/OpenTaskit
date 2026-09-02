@@ -7,6 +7,7 @@ import {
   Query,
   Param,
   Patch,
+  Delete,
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
@@ -55,5 +56,16 @@ export class TasksController {
     @Body() dto: UpdateTaskDto,
   ) {
     return this.tasksService.update(id, userId, userRole, dto);
+  }
+
+  // DELETE /tasks/:id - Delete a Task (Owner or Admin)
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id')
+  remove(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: string,
+  ) {
+    return this.tasksService.remove(id, userId, userRole);
   }
 }

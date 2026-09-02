@@ -175,4 +175,28 @@ export class TasksService {
       },
     });
   }
+
+  // 6. Delete / Cancel a task (Owner or Admin only)
+  async remove(id: string, userId: string, userRole: string) {
+    // 1. Check if task exists
+    const task = await this.prisma.task.findUnique({ where: { id } });
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    // 2. Ownership check
+    if (task.userId !== userId && userRole !== 'ADMIN') {
+      throw new ForbiddenException(
+        'You do not have permission to delete this task',
+      );
+    }
+
+    // 3. Delete from database
+    await this.prisma.task.delete({ where: { id } });
+
+    return {
+      message: 'Task deleted successfully',
+      id,
+    };
+  }
 }
