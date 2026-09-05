@@ -4,9 +4,11 @@ import { ValidationPipe } from '@nestjs/common';
 import 'dotenv/config';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import helmet from 'helmet';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.use(helmet());
 
   // 1. Global API prefix & versioning (excludes root health routes)
   app.setGlobalPrefix('api/v1', {
