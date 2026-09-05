@@ -243,4 +243,27 @@ export class TasksService {
       taskId,
     };
   }
+
+  // 9. Fetch all tasks saved by the logged-in user
+  async findSavedTasks(userId: string) {
+    const saved = await this.prisma.savedTask.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        task: {
+          include: {
+            category: {
+              select: { id: true, name: true, slug: true, icon: true },
+            },
+            user: {
+              select: { id: true, fullName: true },
+            },
+          },
+        },
+      },
+    });
+
+    // Map to return just the task objects
+    return saved.map((item) => item.task);
+  }
 }

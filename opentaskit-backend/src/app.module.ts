@@ -7,6 +7,7 @@ import { ConfigModule } from '@nestjs/config';
 import { MailModule } from './mail/mail.module';
 import { CategoriesModule } from './categories/categories.module';
 import { TasksModule } from './tasks/tasks.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { TasksModule } from './tasks/tasks.module';
     AuthModule,
     CategoriesModule,
     TasksModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

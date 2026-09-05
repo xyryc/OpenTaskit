@@ -1,10 +1,7 @@
 # ==========================================
 # 1. ENVIRONMENT VARIABLES & SECRETS (STRICT)
 # ==========================================
-.env
-.env*
 *.env
-.env.local
 .env.development.local
 .env.test.local
 .env.production.local
@@ -74,3 +71,4 @@ yarn-error.log*
 # ==========================================
 .DS_Store
 Thumbs.db
+config.bat
