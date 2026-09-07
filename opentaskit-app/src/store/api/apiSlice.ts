@@ -8,6 +8,7 @@ import {
 import { createMMKV } from "react-native-mmkv";
 import type {
   AuthResponse,
+  AuthUser,
   CategoryItem,
   FilterTasksQuery,
   ForgotPasswordPayload,
@@ -31,19 +32,32 @@ if (!API_BASE_URL?.trim()) {
 const storage = createMMKV({ id: "opentaskit-auth" });
 const ACCESS_TOKEN_KEY = "opentaskit_access_token";
 const REFRESH_TOKEN_KEY = "opentaskit_refresh_token";
+const USER_KEY = "opentaskit_user";
 
 export const getAccessToken = () => storage.getString(ACCESS_TOKEN_KEY);
 export const getRefreshToken = () => storage.getString(REFRESH_TOKEN_KEY);
+export const getStoredUser = (): AuthUser | null => {
+  try {
+    const raw = storage.getString(USER_KEY);
+    return raw ? (JSON.parse(raw) as AuthUser) : null;
+  } catch {
+    return null;
+  }
+};
 
 export function clearAuthStorage() {
   storage.remove(ACCESS_TOKEN_KEY);
   storage.remove(REFRESH_TOKEN_KEY);
+  storage.remove(USER_KEY);
 }
 
 /** Persist synchronously before mutation success allows a screen to navigate. */
 function persistSession(response: AuthResponse): AuthResponse {
   storage.set(ACCESS_TOKEN_KEY, response.accessToken);
   storage.set(REFRESH_TOKEN_KEY, response.refreshToken);
+  if (response.user) {
+    storage.set(USER_KEY, JSON.stringify(response.user));
+  }
   return response;
 }
 

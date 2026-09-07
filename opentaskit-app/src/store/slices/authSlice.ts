@@ -1,7 +1,6 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, isAnyOf } from '@reduxjs/toolkit';
 import type { AuthUser } from '@/types';
-import { isAnyOf } from '@reduxjs/toolkit';
-import { apiSlice } from '../api/apiSlice';
+import { apiSlice, clearAuthStorage, getAccessToken, getStoredUser } from '../api/apiSlice';
 
 interface AuthState {
   authed: boolean;
@@ -9,10 +8,13 @@ interface AuthState {
   user: AuthUser | null;
 }
 
+const storedUser = getStoredUser();
+const storedToken = getAccessToken();
+
 const initialState: AuthState = {
-  authed: false,
+  authed: !!(storedToken && storedUser),
   guest: false,
-  user: null,
+  user: storedUser,
 };
 
 export const authSlice = createSlice({
@@ -25,13 +27,14 @@ export const authSlice = createSlice({
       state.authed = false;
     },
     signOut: (state) => {
+      clearAuthStorage();
       state.user = null;
       state.authed = false;
       state.guest = false;
     },
   },
   extraReducers: (builder) => {
-    // API success is the only way to establish an authenticated session.
+    // API success establishes an authenticated session
     builder.addMatcher(
       isAnyOf(apiSlice.endpoints.login.matchFulfilled, apiSlice.endpoints.register.matchFulfilled),
       (state, { payload }) => {
@@ -45,3 +48,4 @@ export const authSlice = createSlice({
 
 export const { continueAsGuest, signOut } = authSlice.actions;
 export default authSlice.reducer;
+
