@@ -5,6 +5,7 @@ import {
   Param,
   UseGuards,
   ParseUUIDPipe,
+  Get,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { OffersService } from './offers.service';
@@ -28,5 +29,12 @@ export class OffersController {
     @Body() dto: CreateOfferDto,
   ) {
     return this.offersService.create(taskId, userId, dto);
+  }
+
+  // GET /api/v1/tasks/:taskId/offers - Fetch all offers for a task;
+  @ApiOperation({ summary: 'Get all offers submitted for a specific task' })
+  @Get('tasks/:taskId/offers')
+  findByTask(@Param('taskId', ParseUUIDPipe) taskId: string) {
+    return this.offersService.findByTask(taskId);
   }
 }

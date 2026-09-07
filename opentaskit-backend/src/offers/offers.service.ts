@@ -56,4 +56,31 @@ export class OffersService {
       },
     });
   }
+
+  // 2. Fetch all offers for a specific task
+  async findByTask(taskId: string) {
+    const task = await this.prisma.task.findUnique({
+      where: {
+        id: taskId,
+      },
+    });
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    return this.prisma.offer.findMany({
+      where: { taskId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            phoneNumber: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+  }
 }
