@@ -36,12 +36,14 @@ import { ConfirmDialog } from '@/components/ui/Overlay';
 import { Toggle } from '@/components/ui/Input';
 import { CardBackgroundPattern } from '@/components/ui/CardBackgroundPattern';
 import { ProviderAvailabilityCard } from '@/components/provider/ProviderAvailabilityCard';
+import { useAuthActions } from '@/hooks/useAuthActions';
+import { useAppSelector } from '@/store';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const { guest, user } = useAppSelector((state) => state.auth);
   const {
     me,
-    guest,
     kyc,
     wallet,
     savedTaskIds,
@@ -49,11 +51,18 @@ export default function ProfileScreen() {
     unreadMessages,
     available,
     toggleAvailable,
-    signOut,
     toast,
   } = useApp();
 
   const [logoutOpen, setLogoutOpen] = useState(false);
+  const { signOut, isLoggingOut: logoutLoading } = useAuthActions();
+
+  const handleLogout = async () => {
+    if (logoutLoading) return;
+    await signOut();
+    setLogoutOpen(false);
+    router.replace('/(screens)/welcome');
+  };
 
   // Guest view
   if (guest) {
@@ -154,7 +163,7 @@ export default function ProfileScreen() {
                 numberOfLines={1}
                 className="text-[20px] font-geist-semibold tracking-[-0.03em] text-ink"
               >
-                {me.name}
+                {user?.fullName}
               </Text>
               <Text
                 numberOfLines={1}
@@ -367,6 +376,7 @@ export default function ProfileScreen() {
               variant="ghost"
               icon={<LogOut size={18} color="#C7382F" />}
               onPress={() => setLogoutOpen(true)}
+              loading={logoutLoading}
             >
               Log out
             </Button>
@@ -378,13 +388,10 @@ export default function ProfileScreen() {
       <ConfirmDialog
         open={logoutOpen}
         onClose={() => setLogoutOpen(false)}
-        onConfirm={() => {
-          signOut();
-          router.replace('/(screens)/welcome');
-        }}
+        onConfirm={handleLogout}
         title="Log out of OpenTaskit?"
         message="You will need your password to log back in. Your tasks and offers stay exactly as they are."
-        confirmLabel="Log out"
+        confirmLabel={logoutLoading ? 'Logging out…' : 'Log out'}
         cancelLabel="Stay logged in"
         tone="danger"
       />

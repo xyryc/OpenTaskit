@@ -10,62 +10,49 @@ import {
   EyeOff,
   Lock,
   Mail,
-  ShieldAlert,
 } from 'lucide-react-native';
 
 import { useApp } from '@/contexts/AppContext';
-import { useAppDispatch } from '@/store';
-import { setAuthed, continueAsGuest as reduxContinueAsGuest } from '@/store/slices/authSlice';
+import { useAuthActions } from '@/hooks/useAuthActions';
+import { useLoginMutation } from '@/store/api/apiSlice';
+import { getApiErrorMessage } from '@/utils/apiError';
 import { BrandLockup } from '@/components/brand/BrandMark';
 import { Button } from '@/components/ui/Button';
 import { TextField } from '@/components/ui/Input';
 
-type Problem = 'none' | 'invalid' | 'suspended';
-
 export default function LoginScreen() {
   const router = useRouter();
-  const dispatch = useAppDispatch();
-  const { signIn, continueAsGuest: appContinueAsGuest, toast } = useApp();
+  const { continueAsGuest } = useAuthActions();
+  const { toast } = useApp();
 
-  const [email, setEmail] = useState('kavindu@opentaskit.lk');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [show, setShow] = useState(false);
   const [remember, setRemember] = useState(true);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
-  const [problem, setProblem] = useState<Problem>('none');
-  const [loading, setLoading] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [login, { isLoading: loading }] = useLoginMutation();
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (loading) return;
     const nextErrors: { email?: string; password?: string } = {};
-    if (!email.trim()) nextErrors.email = 'Enter your email or phone number';
+    if (!email.trim()) nextErrors.email = 'Enter your email address';
     if (!password.trim()) nextErrors.password = 'Enter your password';
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
-    setProblem('none');
-    setLoading(true);
-
-    setTimeout(() => {
-      setLoading(false);
-      if (email.startsWith('suspended')) {
-        setProblem('suspended');
-        return;
-      }
-      if (password.length < 4) {
-        setProblem('invalid');
-        return;
-      }
-
-      signIn();
-      dispatch(setAuthed(true));
-      toast({ title: 'Welcome back, Kavindu', variant: 'success' });
+    setSubmitError('');
+    try {
+      await login({ email: email.trim().toLowerCase(), password, rememberMe: remember }).unwrap();
+      toast({ title: 'Welcome back', variant: 'success' });
       router.replace('/home');
-    }, 800);
+    } catch (error) {
+      setSubmitError(getApiErrorMessage(error));
+    }
   };
 
   const handleBrowseAsGuest = () => {
-    dispatch(reduxContinueAsGuest());
-    appContinueAsGuest();
+    continueAsGuest();
     router.replace('/home');
   };
 
@@ -88,30 +75,19 @@ export default function LoginScreen() {
         </Text>
 
         {/* Problem Banners */}
-        {problem === 'invalid' && (
+        {!!submitError && (
           <View className="mt-5 flex-row gap-2.5 rounded-2xl bg-danger/10 p-3.5 items-start">
             <AlertTriangle size={18} color="#C7382F" className="mt-0.5" />
             <Text className="font-geist text-[13px] leading-snug text-danger flex-1">
-              <Text className="font-geist-bold font-bold">Incorrect password.</Text> Try again or reset your password.
+              {submitError}
             </Text>
-          </View>
-        )}
-
-        {problem === 'suspended' && (
-          <View className="mt-5 flex-row gap-2.5 rounded-2xl bg-warning/10 p-3.5 items-start">
-            <ShieldAlert size={18} color="#B4690E" className="mt-0.5" />
-            <View className="flex-1">
-              <Text className="font-geist text-[13px] leading-snug text-warning">
-                <Text className="font-geist-bold font-bold">This account is suspended.</Text> Contact support to review your account.
-              </Text>
-            </View>
           </View>
         )}
 
         {/* Form Fields */}
         <View className="mt-6 gap-4">
           <TextField
-            label="Email or phone"
+            label="Email"
             value={email}
             onChangeText={setEmail}
             error={errors.email}
@@ -168,12 +144,6 @@ export default function LoginScreen() {
           </View>
         </View>
 
-        {/* Prototype tip */}
-        <View className="mt-6 rounded-2xl bg-ink-100 p-3.5">
-          <Text className="font-geist text-[12px] leading-snug text-ink-500">
-            Prototype tip: log in with any details. Use a password shorter than 4 characters to see the error state, or start the email with “suspended” for the suspended-account state.
-          </Text>
-        </View>
       </ScrollView>
 
       {/* Bottom Action CTA */}

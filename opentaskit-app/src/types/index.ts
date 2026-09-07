@@ -1,26 +1,26 @@
-export type Language = 'en' | 'si' | 'ta';
+export type Language = "en" | "si" | "ta";
 
-export type UserMode = 'requester' | 'provider';
+export type UserMode = "requester" | "provider";
 
-export type KycStatus = 'none' | 'pending' | 'verified' | 'rejected';
+export type KycStatus = "none" | "pending" | "verified" | "rejected";
 
 export type TaskStatus =
-'draft' |
-'posted' |
-'receiving_offers' |
-'assigned' |
-'in_progress' |
-'awaiting_completion' |
-'completed' |
-'cancelled' |
-'disputed';
+  | "draft"
+  | "posted"
+  | "receiving_offers"
+  | "assigned"
+  | "in_progress"
+  | "awaiting_completion"
+  | "completed"
+  | "cancelled"
+  | "disputed";
 
-export type OfferStatus = 'pending' | 'accepted' | 'rejected' | 'withdrawn';
+export type OfferStatus = "pending" | "accepted" | "rejected" | "withdrawn";
 
-export type ScheduleType = 'asap' | 'date' | 'flexible';
+export type ScheduleType = "asap" | "date" | "flexible";
 
 /** How the poster settles the agreed price with the tasker. Chosen before the task is posted. */
-export type PaymentMethod = 'cash' | 'card' | 'wallet';
+export type PaymentMethod = "cash" | "card" | "wallet";
 
 export interface PortfolioItem {
   id: string;
@@ -49,7 +49,7 @@ export interface User {
   skills: string[];
   /** Service categories this member offers work in — drives the category provider lists. */
   categoryIds: string[];
-  services: {name: string;from: number;}[];
+  services: { name: string; from: number }[];
   portfolio: PortfolioItem[];
   available: boolean;
   respondsIn: string;
@@ -78,7 +78,7 @@ export interface Task {
   flexibleBudget: boolean;
   location: string;
   distanceKm: number;
-  pin: {x: number;y: number;};
+  pin: { x: number; y: number };
   schedule: Schedule;
   /** Selected by the poster before posting so taskers know how they will be paid. */
   paymentMethod: PaymentMethod;
@@ -113,17 +113,11 @@ export interface Message {
   text: string;
   at: string;
   attachment?: string;
-  status: 'sent' | 'delivered' | 'seen';
+  status: "sent" | "delivered" | "seen";
 }
 
 export type NotificationKind =
-'offer' |
-'message' |
-'task' |
-'payment' |
-'dispute' |
-'review' |
-'system';
+  "offer" | "message" | "task" | "payment" | "dispute" | "review" | "system";
 
 export interface AppNotification {
   id: string;
@@ -138,14 +132,14 @@ export interface AppNotification {
 }
 
 export type TransactionKind =
-'commission' |
-'topup' |
-'payment_received' |
-'payment_released' |
-'adjustment' |
-'refund' |
-'partial_payment' |
-'penalty';
+  | "commission"
+  | "topup"
+  | "payment_received"
+  | "payment_released"
+  | "adjustment"
+  | "refund"
+  | "partial_payment"
+  | "penalty";
 
 export interface Transaction {
   id: string;
@@ -155,7 +149,7 @@ export interface Transaction {
   title: string;
   subtitle: string;
   taskId?: string;
-  status: 'completed' | 'pending' | 'failed';
+  status: "completed" | "pending" | "failed";
   method?: string;
 }
 
@@ -168,17 +162,18 @@ export interface Review {
   text: string;
   tags: string[];
   at: string;
-  role: 'provider' | 'requester';
+  role: "provider" | "requester";
 }
 
 export type DisputeStatus =
-'submitted' |
-'under_review' |
-'waiting_response' |
-'decision_made' |
-'resolved';
+  | "submitted"
+  | "under_review"
+  | "waiting_response"
+  | "decision_made"
+  | "resolved";
 
-export type DisputeOutcome = 'full_payment' | 'partial_payment' | 'refund' | 'no_refund';
+export type DisputeOutcome =
+  "full_payment" | "partial_payment" | "refund" | "no_refund";
 
 export interface DisputeEvent {
   id: string;
@@ -199,12 +194,14 @@ export interface Dispute {
   outcome?: DisputeOutcome;
   outcomeAmount?: number;
   timeline: DisputeEvent[];
-  responses: {id: string;authorId: string;text: string;at: string;}[];
+  responses: { id: string; authorId: string; text: string; at: string }[];
 }
 
 export interface ToastMessage {
   id: string;
   title: string;
   description?: string;
-  variant: 'success' | 'error' | 'info';
+  variant: "success" | "error" | "info";
 }
+
+export * from "./api";

@@ -7,16 +7,13 @@ import Animated, { FadeInUp } from 'react-native-reanimated';
 import { CheckCircle2, MessageSquare } from 'lucide-react-native';
 
 import { useApp } from '@/contexts/AppContext';
-import { useAppDispatch } from '@/store';
-import { setAuthed } from '@/store/slices/authSlice';
 import { ScreenHeader } from '@/components/layout/Screen';
 import { Button } from '@/components/ui/Button';
 
 export default function OtpVerifyScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ flow?: string; phone?: string }>();
-  const dispatch = useAppDispatch();
-  const { signIn, toast } = useApp();
+  const { toast } = useApp();
 
   const flow = params.flow ?? 'signup';
   const phone = params.phone || '+94 77 123 4567';
@@ -46,10 +43,8 @@ export default function OtpVerifyScreen() {
         if (flow === 'reset') {
           router.push('/reset' as any);
         } else {
-          signIn();
-          dispatch(setAuthed(true));
-          toast({ title: 'Account verified', description: 'Welcome to OpenTaskit.', variant: 'success' });
-          router.replace('/home');
+          // Prototype verification cannot establish an API session.
+          router.replace('/login');
         }
       }, 800);
     }, 900);

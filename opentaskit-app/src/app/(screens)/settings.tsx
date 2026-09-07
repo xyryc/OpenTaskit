@@ -25,6 +25,7 @@ import {
   Wallet2,
 } from 'lucide-react-native';
 
+import { useAuthActions } from '@/hooks/useAuthActions';
 import { useApp } from '@/contexts/AppContext';
 import { LANGUAGES } from '@/utils/i18n';
 import { Screen, ScreenHeader } from '@/components/layout/Screen';
@@ -33,10 +34,10 @@ import { Toggle } from '@/components/ui/Input';
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { signOut } = useAuthActions();
   const {
     language,
     kyc,
-    signOut,
     locationPermission,
     setLocationPermission,
     available,
@@ -232,8 +233,8 @@ export default function SettingsScreen() {
       <ConfirmDialog
         open={logoutOpen}
         onClose={() => setLogoutOpen(false)}
-        onConfirm={() => {
-          signOut();
+        onConfirm={async () => {
+          await signOut();
           router.replace('/(screens)/welcome');
         }}
         title="Log out of OpenTaskit?"
@@ -247,8 +248,8 @@ export default function SettingsScreen() {
       <ConfirmDialog
         open={deleteOpen}
         onClose={() => setDeleteOpen(false)}
-        onConfirm={() => {
-          signOut();
+        onConfirm={async () => {
+          await signOut();
           toast({
             title: 'Account deleted',
             description: 'Your account data has been removed.',

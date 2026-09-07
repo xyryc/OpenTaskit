@@ -1,4 +1,6 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { useAppSelector } from '@/store';
+import { useEffect } from 'react';
 import type {
   AppNotification,
   Dispute,
@@ -57,12 +59,6 @@ interface AppState {
   t: (key: string) => string;
   mode: UserMode;
   setMode: (m: UserMode) => void;
-  authed: boolean;
-  /** Browsing without an account. Can view everything, cannot offer or post. */
-  guest: boolean;
-  signIn: () => void;
-  signOut: () => void;
-  continueAsGuest: () => void;
   /** Set while the account prompt is on screen, describing what the guest tried to do. */
   gateIntent: AccountGateIntent | null;
   /**
@@ -149,9 +145,10 @@ const now = () => new Date().toISOString();
 export function AppProvider({ children }: {children: React.ReactNode;}) {
   const [language, setLanguage] = useState<Language>('en');
   const [mode, setMode] = useState<UserMode>('requester');
-  const [authed, setAuthed] = useState(false);
-  const [guest, setGuest] = useState(false);
+  const { authed, guest } = useAppSelector((state) => state.auth);
   const [gateIntent, setGateIntent] = useState<AccountGateIntent | null>(null);
+  // The prompt is UI state; its access decision comes from Redux.
+  useEffect(() => setGateIntent(null), [authed, guest]);
   const [available, setAvailable] = useState(true);
   const [kyc, setKyc] = useState<KycStatus>('verified');
   const [locationPermission, setLocationPermission] = useState<LocationPermission>('granted');
@@ -730,22 +727,6 @@ export function AppProvider({ children }: {children: React.ReactNode;}) {
     t,
     mode,
     setMode,
-    authed,
-    guest,
-    signIn: () => {
-      setAuthed(true);
-      setGuest(false);
-      setGateIntent(null);
-    },
-    signOut: () => {
-      setAuthed(false);
-      setGuest(false);
-      setGateIntent(null);
-    },
-    continueAsGuest: () => {
-      setGuest(true);
-      setAuthed(false);
-    },
     gateIntent,
     requireAccount: (intent: AccountGateIntent) => {
       if (authed) return true;

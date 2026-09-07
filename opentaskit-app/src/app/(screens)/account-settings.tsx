@@ -17,6 +17,7 @@ import {
   User,
 } from 'lucide-react-native';
 
+import { useAuthActions } from '@/hooks/useAuthActions';
 import { useApp } from '@/contexts/AppContext';
 import { Screen, ScreenHeader } from '@/components/layout/Screen';
 import { Button } from '@/components/ui/Button';
@@ -26,7 +27,8 @@ import { ConfirmDialog } from '@/components/ui/Overlay';
 
 export default function AccountSettingsScreen() {
   const router = useRouter();
-  const { me, kyc, updateMe, toast, signOut } = useApp();
+  const { signOut } = useAuthActions();
+  const { me, kyc, updateMe, toast } = useApp();
 
   const [name, setName] = useState(me.name);
   const [email, setEmail] = useState('kavindu@opentaskit.lk');
@@ -168,8 +170,8 @@ export default function AccountSettingsScreen() {
       <ConfirmDialog
         open={deleteOpen}
         onClose={() => setDeleteOpen(false)}
-        onConfirm={() => {
-          signOut();
+        onConfirm={async () => {
+          await signOut();
           toast({ title: 'Account deleted', variant: 'info' });
           router.replace('/(screens)/welcome');
         }}

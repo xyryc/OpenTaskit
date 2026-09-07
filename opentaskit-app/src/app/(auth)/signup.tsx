@@ -6,8 +6,9 @@ import { StatusBar } from 'expo-status-bar';
 import { Compass, Lock, Mail, Phone, User } from 'lucide-react-native';
 
 import { useApp } from '@/contexts/AppContext';
-import { useAppDispatch } from '@/store';
-import { setAuthed, continueAsGuest as reduxContinueAsGuest } from '@/store/slices/authSlice';
+import { useAuthActions } from '@/hooks/useAuthActions';
+import { useRegisterMutation } from '@/store/api/apiSlice';
+import { getApiErrorMessage } from '@/utils/apiError';
 import { ScreenHeader } from '@/components/layout/Screen';
 import { Button } from '@/components/ui/Button';
 import { TextField } from '@/components/ui/Input';
@@ -22,8 +23,8 @@ interface Form {
 
 export default function SignUpScreen() {
   const router = useRouter();
-  const dispatch = useAppDispatch();
-  const { signIn, continueAsGuest: appContinueAsGuest, toast } = useApp();
+  const { continueAsGuest } = useAuthActions();
+  const { toast } = useApp();
 
   const [form, setForm] = useState<Form>({
     name: '',
@@ -34,23 +35,25 @@ export default function SignUpScreen() {
   });
 
   const [terms, setTerms] = useState(false);
+  const [submitError, setSubmitError] = useState('');
   const [errors, setErrors] = useState<Partial<Record<keyof Form | 'terms', string>>>({});
-  const [loading, setLoading] = useState(false);
+  const [register, { isLoading: loading }] = useRegisterMutation();
 
   const updateField = (key: keyof Form) => (value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleBrowseAsGuest = () => {
-    dispatch(reduxContinueAsGuest());
-    appContinueAsGuest();
+    continueAsGuest();
     router.replace('/home');
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (loading) return;
+    setSubmitError('');
     const nextErrors: Partial<Record<keyof Form | 'terms', string>> = {};
     if (form.name.trim().length < 3) nextErrors.name = 'Enter your full name';
-    if (!/^\S+@\S+\.\S+$/.test(form.email)) nextErrors.email = 'Enter a valid email address';
+    if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) nextErrors.email = 'Enter a valid email address';
     if (form.phone.replace(/\D/g, '').length < 9) nextErrors.phone = 'Enter a valid phone number';
     if (form.password.length < 6) nextErrors.password = 'Use at least 6 characters';
     if (form.confirm !== form.password) nextErrors.confirm = 'Passwords do not match';
@@ -59,14 +62,21 @@ export default function SignUpScreen() {
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      router.push({
-        pathname: '/verify',
-        params: { flow: 'signup', phone: form.phone },
-      } as any);
-    }, 800);
+    try {
+      await register({
+        fullName: form.name.trim(),
+        email: form.email.trim().toLowerCase(),
+        phoneNumber: form.phone.trim(),
+        password: form.password,
+        confirmPassword: form.confirm,
+        agreeToTerms: terms,
+      }).unwrap();
+
+      toast({ title: 'Account created!', description: 'Welcome to OpenTaskit', variant: 'success' });
+      router.replace('/home');
+    } catch (error) {
+      setSubmitError(getApiErrorMessage(error));
+    }
   };
 
   return (
@@ -87,6 +97,7 @@ export default function SignUpScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View className="gap-4">
+          {!!submitError && <Text accessibilityRole="alert" className="text-danger">{submitError}</Text>}
           <TextField
             label="Full name"
             value={form.name}
@@ -114,7 +125,6 @@ export default function SignUpScreen() {
             error={errors.phone}
             keyboardType="phone-pad"
             placeholder="+94 77 123 4567"
-            hint="We send a one-time code to verify this number."
             leading={<Phone size={18} color="#8A959B" />}
           />
 

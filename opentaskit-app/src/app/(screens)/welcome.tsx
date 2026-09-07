@@ -6,20 +6,16 @@ import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { ArrowLeftRight, BadgeCheck, Compass, Star } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 
-import { useAppDispatch } from '@/store';
-import { continueAsGuest } from '@/store/slices/authSlice';
-import { useApp } from '@/contexts/AppContext';
+import { useAuthActions } from '@/hooks/useAuthActions';
 import { BrandLockup } from '@/components/brand/BrandMark';
 import { Button } from '@/components/ui/Button';
 
 export default function WelcomeScreen() {
   const router = useRouter();
-  const dispatch = useAppDispatch();
-  const { continueAsGuest: appContinueAsGuest } = useApp();
+  const { continueAsGuest } = useAuthActions();
 
   const browseAsGuest = () => {
-    dispatch(continueAsGuest());
-    appContinueAsGuest();
+    continueAsGuest();
     router.replace('/home');
   };
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { BadgeCheck, ShieldCheck, Sparkles, UserRound } from 'lucide-react-native';
+import { useAppSelector } from '@/store';
 import { useApp } from '@/contexts/AppContext';
 import { BottomSheet } from '@/components/ui/Overlay';
 import { Button } from '@/components/ui/Button';
@@ -97,7 +98,7 @@ export function AccountGate() {
 
 export function GuestBanner() {
   const router = useRouter();
-  const { guest } = useApp();
+  const guest = useAppSelector((state) => state.auth.guest);
   if (!guest) return null;
 
   return (
