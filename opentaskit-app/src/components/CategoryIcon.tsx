@@ -35,16 +35,19 @@ const icons: Record<string, React.ComponentType<{ size?: number; color?: string 
 
 export function CategoryIcon({
   categoryId,
+  iconName,
   size = 20,
   color,
 }: {
-  categoryId: string;
+  categoryId?: string;
+  iconName?: string | null;
   size?: number;
   color?: string;
 }) {
-  const category = categoryById(categoryId);
-  const Icon = icons[category?.icon] ?? LayoutGrid;
-  return <Icon size={size} color={color ?? '#0C1417'} />;
+  const category = categoryId ? categoryById(categoryId) : undefined;
+  const key = iconName || category?.icon;
+  const Component = key && key in icons ? icons[key] : LayoutGrid;
+  return <Component size={size} color={color ?? '#0C1417'} />;
 }
 
 export function CategoryBadge({

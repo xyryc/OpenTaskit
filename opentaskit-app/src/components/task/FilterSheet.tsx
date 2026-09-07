@@ -9,6 +9,7 @@ import {
 import { Minus, Plus } from 'lucide-react-native';
 
 import { categories } from '@/data/categories';
+import { useGetCategoriesQuery } from '@/store/api/apiSlice';
 import { money } from '@/utils/format';
 import {
   dateOptions,
@@ -37,11 +38,15 @@ export function FilterSheet({
   onApply,
   resultCount,
 }: FilterSheetProps) {
+  const { data: apiCategories } = useGetCategoriesQuery();
+  const displayCategories = apiCategories && apiCategories.length > 0 ? apiCategories : categories;
+
   const [draft, setDraft] = useState<TaskFilters>(filters);
 
   useEffect(() => {
     if (open) setDraft(filters);
   }, [open, filters]);
+
 
   const toggleCategory = (id: string) => {
     setDraft((d) => ({
@@ -199,7 +204,7 @@ export function FilterSheet({
               )}
             </View>
             <View className="mt-3 flex-row flex-wrap gap-2" style={{ gap: 8 }}>
-              {categories.map((category) => (
+              {displayCategories.map((category) => (
                 <SelectChip
                   key={category.id}
                   selected={draft.categoryIds.includes(category.id)}
