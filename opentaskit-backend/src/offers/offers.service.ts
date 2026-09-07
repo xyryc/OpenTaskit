@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -81,6 +82,58 @@ export class OffersService {
           },
         },
       },
+    });
+  }
+
+  // 3. Poster accepts an offer
+  async accept(offerId: string, posterId: string) {
+    const offer = await this.prisma.offer.findUnique({
+      where: { id: offerId },
+      include: { task: true },
+    });
+    if (!offer) {
+      throw new NotFoundException('Offer not found');
+    }
+
+    // Rule A: Only the task poster can accept offers
+    if (offer.task.userId !== posterId) {
+      throw new ForbiddenException('Only the task owner can accept offers');
+    }
+
+    // Rule B: Can only accept on OPEN tasks
+    if (offer.task.status !== TaskStatus.OPEN) {
+      throw new BadRequestException(
+        'This task is no longer open for assignment',
+      );
+    }
+
+    // Atomic transaction: Accept chosen offer, reject others, assign task
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Mark this offer as ACCEPTED
+      const acceptedOffer = await tx.offer.update({
+        where: { id: offerId },
+        data: { status: OfferStatus.ACCEPTED },
+      });
+
+      // 2. Mark all competing offers for this task as REJECTED
+      await tx.offer.updateMany({
+        where: {
+          taskId: offer.taskId,
+          id: { not: offerId },
+        },
+        data: { status: OfferStatus.REJECTED },
+      });
+
+      // 3. Update Task status to ASSIGNED
+      await tx.task.update({
+        where: { id: offer.taskId },
+        data: { status: TaskStatus.ASSIGNED },
+      });
+
+      return {
+        message: 'Offer accepted successfully. Task is now assigned.',
+        offer: acceptedOffer,
+      };
     });
   }
 }

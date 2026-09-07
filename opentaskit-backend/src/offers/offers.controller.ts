@@ -37,4 +37,14 @@ export class OffersController {
   findByTask(@Param('taskId', ParseUUIDPipe) taskId: string) {
     return this.offersService.findByTask(taskId);
   }
+
+  // POST /api/v1/offers/:offerId/accept - Accept an offer
+  @ApiOperation({ summary: 'Accept a task offer (Poster only)' })
+  @Post('offers/:offerId/accept')
+  accept(
+    @Param('offerId', ParseUUIDPipe) offerId: string,
+    @CurrentUser('id') posterId: string,
+  ) {
+    return this.offersService.accept(offerId, posterId);
+  }
 }
