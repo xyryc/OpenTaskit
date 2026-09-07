@@ -4,12 +4,10 @@ import { useRouter } from 'expo-router';
 import { Bookmark, Clock, MapPin, Users } from 'lucide-react-native';
 import type { Task } from '@/types';
 import { useApp } from '@/contexts/AppContext';
-import { categoryById } from '@/data/categories';
 import { distance, money, scheduleLabel, timeAgo } from '@/utils/format';
 import { paymentMethodLabel } from '@/utils/payment';
 import { CategoryBadge } from '@/components/CategoryIcon';
 import { Avatar } from '@/components/ui/Avatar';
-import { StarRating } from '@/components/ui/Rating';
 import { StatusChip } from '@/components/ui/Chip';
 import { shadows } from '@/utils/shadows';
 
@@ -35,11 +33,27 @@ export function TaskCard({
   onClick,
 }: TaskCardProps) {
   const router = useRouter();
-  const { savedTaskIds, toggleSaved, offersForTask, userById } = useApp();
+  const { savedTaskIds, toggleSaved } = useApp();
   const saved = savedTaskIds.includes(task.id);
-  const requester = userById(task.requesterId);
-  const offerCount = offersForTask(task.id).length;
-  const category = categoryById(task.categoryId);
+  const offerCount = task.offersCount ?? 0;
+  const categoryName = task.category?.name ?? '';
+  const categoryIcon = task.category?.icon;
+
+  const posterName = task.user?.fullName ?? '';
+  const posterInitials =
+    posterName
+      .split(' ')
+      .filter(Boolean)
+      .map((p) => p[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase() || 'U';
+  const posterAvatarUser = {
+    name: posterName,
+    initials: posterInitials,
+    tone: 'bg-brand-tint text-brand-dark',
+    verified: false,
+  };
 
   const handleOpen = () => {
     if (onClick) {
@@ -75,9 +89,9 @@ export function TaskCard({
           {/* Card Header Tone */}
           <View className="flex-row items-center justify-between gap-2 bg-brand-tint px-3.5 py-2.5">
             <View className="flex-row items-center gap-2 flex-1 min-w-0">
-              <CategoryBadge categoryId={task.categoryId} size="md" />
+              <CategoryBadge categoryId={task.categoryId} iconName={categoryIcon} size="md" />
               <Text numberOfLines={1} className="text-[12px] font-geist-semibold font-semibold text-brand-dark flex-1">
-                {category?.name}
+                {categoryName}
               </Text>
             </View>
             {bookmarkButton}
@@ -104,7 +118,7 @@ export function TaskCard({
               <View className="mt-1 flex-row items-center gap-1">
                 <Clock size={13} color="#8A959B" />
                 <Text numberOfLines={1} className="font-geist text-[11.5px] text-ink-500 flex-1">
-                  {scheduleLabel(task.schedule).replace('As soon as possible', 'ASAP')}
+                  {scheduleLabel(task.schedule)}
                 </Text>
               </View>
             </View>
@@ -116,9 +130,9 @@ export function TaskCard({
                 </Text>
               ) : (
                 <View className="flex-row items-center gap-1.5 min-w-0">
-                  <Avatar user={requester} size="xs" />
+                  <Avatar user={posterAvatarUser} size="xs" />
                   <Text numberOfLines={1} className="font-geist text-[11.5px] text-ink-500 max-w-[90px]">
-                    {requester.name.split(' ')[0]}
+                    {posterName.split(' ')[0]}
                   </Text>
                 </View>
               )}
@@ -151,7 +165,7 @@ export function TaskCard({
     >
       <Pressable onPress={handleOpen} className="w-full p-4">
         <View className="flex-row items-start gap-3">
-          <CategoryBadge categoryId={task.categoryId} size="lg" />
+          <CategoryBadge categoryId={task.categoryId} iconName={categoryIcon} size="lg" />
 
           <View className="flex-1 min-w-0">
             <View className="flex-row items-start justify-between gap-2">
@@ -166,7 +180,7 @@ export function TaskCard({
 
             {/* Category · Distance · Schedule */}
             <View className="mt-1.5 flex-row flex-wrap items-center gap-x-2.5 gap-y-1">
-              <Text className="text-[12px] font-geist-semibold font-semibold text-ink-700">{category?.name}</Text>
+              <Text className="text-[12px] font-geist-semibold font-semibold text-ink-700">{categoryName}</Text>
               <View className="flex-row items-center gap-1">
                 <MapPin size={13} color="#8A959B" />
                 <Text className="font-geist text-[12px] text-ink-500">{distance(task.distanceKm)}</Text>
@@ -174,7 +188,7 @@ export function TaskCard({
               <View className="flex-row items-center gap-1">
                 <Clock size={13} color="#8A959B" />
                 <Text className="font-geist text-[12px] text-ink-500">
-                  {scheduleLabel(task.schedule).replace('As soon as possible', 'ASAP')}
+                  {scheduleLabel(task.schedule)}
                 </Text>
               </View>
             </View>
@@ -220,13 +234,10 @@ export function TaskCard({
             </View>
           ) : (
             <View className="flex-1 flex-row items-center gap-2 min-w-0">
-              <Avatar user={requester} size="xs" showVerified />
-              <View className="min-w-0 flex-1">
-                <Text numberOfLines={1} className="text-[12.5px] font-geist-semibold font-semibold text-ink">
-                  {requester.name}
-                </Text>
-                <StarRating value={requester.rating} count={requester.reviewCount} size="sm" />
-              </View>
+              <Avatar user={posterAvatarUser} size="xs" />
+              <Text numberOfLines={1} className="text-[12.5px] font-geist-semibold font-semibold text-ink flex-1">
+                {posterName}
+              </Text>
             </View>
           )}
 

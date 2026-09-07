@@ -72,6 +72,18 @@ export interface Task {
   id: string;
   title: string;
   categoryId: string;
+  category?: {
+    id: string;
+    name: string;
+    slug?: string;
+    icon?: string | null;
+  };
+  user?: {
+    id: string;
+    fullName: string;
+    phoneNumber?: string;
+  };
+  offersCount?: number;
   description: string;
   images: (string | any)[];
   budget: number;

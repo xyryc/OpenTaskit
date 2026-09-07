@@ -45,7 +45,7 @@ export default function SignUpScreen() {
 
   const handleBrowseAsGuest = () => {
     continueAsGuest();
-    router.replace('/home');
+    router.replace('/(tabs)/home');
   };
 
   const handleSubmit = async () => {
@@ -73,7 +73,7 @@ export default function SignUpScreen() {
       }).unwrap();
 
       toast({ title: 'Account created!', description: 'Welcome to OpenTaskit', variant: 'success' });
-      router.replace('/home');
+      router.replace('/(tabs)/home');
     } catch (error) {
       const parsed = parseApiError(error, ['name', 'email', 'phone', 'password', 'confirm']);
       if (Object.keys(parsed.fieldErrors).length > 0) {

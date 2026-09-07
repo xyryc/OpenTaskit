@@ -77,7 +77,9 @@ export interface CategoryItem {
 }
 
 export type TaskApiStatus = 'OPEN' | 'ASSIGNED' | 'COMPLETED' | 'CANCELLED';
-export type LocationApiType = 'REMOTE' | 'IN_PERSON';
+export type LocationApiType = 'IN_PERSON' | 'REMOTE';
+export type TimeApiType = 'ASAP' | 'SPECIFIC_DATE' | 'FLEXIBLE';
+export type PaymentApiMethod = 'CASH' | 'CARD' | 'WALLET';
 
 export interface FilterTasksQuery {
   search?: string;
@@ -102,13 +104,18 @@ export interface TaskItem {
   userId: string;
   categoryId: string;
   title: string;
-  description: string;
-  budget: number;
+  details: string;
+  images: string[];
   locationType: LocationApiType;
-  locationName?: string | null;
+  address?: string | null;
   latitude?: number | null;
   longitude?: number | null;
-  dueDate?: string | null;
+  budget: number;
+  isBudgetFlexible: boolean;
+  paymentMethod: PaymentApiMethod;
+  timeType: TimeApiType;
+  scheduledDate?: string | null;
+  scheduledTime?: string | null;
   status: TaskApiStatus;
   createdAt: string;
   updatedAt: string;
@@ -117,8 +124,29 @@ export interface TaskItem {
     name: string;
     slug: string;
     icon?: string | null;
+    description?: string | null;
   };
   user: TaskUserSummary;
+  _count?: {
+    offers: number;
+  };
+}
+
+export interface CreateTaskPayload {
+  title: string;
+  details: string;
+  categoryId: string;
+  images?: string[];
+  locationType?: LocationApiType;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  budget: number;
+  isBudgetFlexible?: boolean;
+  paymentMethod?: PaymentApiMethod;
+  timeType?: TimeApiType;
+  scheduledDate?: string;
+  scheduledTime?: string;
 }
 
 export interface PaginatedTasksResponse {
@@ -128,6 +156,7 @@ export interface PaginatedTasksResponse {
   totalPages: number;
   data: TaskItem[];
 }
+
 
 
 

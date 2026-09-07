@@ -1,7 +1,14 @@
 import React from 'react';
-import { Stack } from 'expo-router';
+import { Redirect, Stack } from 'expo-router';
+import { useAppSelector } from '@/store';
 
 export default function AuthLayout() {
+  const authed = useAppSelector((state) => state.auth.authed);
+
+  if (authed) {
+    return <Redirect href="/(tabs)/home" />;
+  }
+
   return (
     <Stack
       screenOptions={{

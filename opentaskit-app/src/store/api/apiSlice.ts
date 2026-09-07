@@ -10,6 +10,7 @@ import type {
   AuthResponse,
   AuthUser,
   CategoryItem,
+  CreateTaskPayload,
   FilterTasksQuery,
   ForgotPasswordPayload,
   LoginPayload,

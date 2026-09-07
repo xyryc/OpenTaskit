@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useAppSelector } from '@/store';
+import { Redirect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { ArrowLeftRight, BadgeCheck, Compass, Star } from 'lucide-react-native';
@@ -12,11 +13,16 @@ import { Button } from '@/components/ui/Button';
 
 export default function WelcomeScreen() {
   const router = useRouter();
+  const authed = useAppSelector((state) => state.auth.authed);
   const { continueAsGuest } = useAuthActions();
+
+  if (authed) {
+    return <Redirect href="/(tabs)/home" />;
+  }
 
   const browseAsGuest = () => {
     continueAsGuest();
-    router.replace('/home');
+    router.replace('/(tabs)/home');
   };
 
   return (

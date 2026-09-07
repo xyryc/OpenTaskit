@@ -93,24 +93,54 @@ export function mapApiTaskToTask(item: import('@/types/api').TaskItem): Task {
     CANCELLED: 'cancelled',
   };
 
+  const scheduleTypeMap: Record<string, Task['schedule']['type']> = {
+    ASAP: 'asap',
+    SPECIFIC_DATE: 'date',
+    FLEXIBLE: 'flexible',
+  };
+
+  const paymentMethodMap: Record<string, Task['paymentMethod']> = {
+    CASH: 'cash',
+    CARD: 'card',
+    WALLET: 'wallet',
+  };
+
   return {
     id: item.id,
     title: item.title,
     categoryId: item.categoryId,
-    description: item.description,
-    images: [],
+    category: item.category
+      ? {
+          id: item.category.id,
+          name: item.category.name,
+          slug: item.category.slug,
+          icon: item.category.icon,
+        }
+      : undefined,
+    user: item.user
+      ? {
+          id: item.user.id,
+          fullName: item.user.fullName,
+          phoneNumber: item.user.phoneNumber,
+        }
+      : undefined,
+    offersCount: item._count?.offers ?? 0,
+    description: item.details,
+    images: item.images ?? [],
     budget: item.budget,
-    flexibleBudget: false,
-    location: item.locationName || (item.locationType === 'REMOTE' ? 'Remote' : 'In Person'),
-    distanceKm: 2.5,
-    pin: { x: item.latitude ?? 40, y: item.longitude ?? 60 },
+    flexibleBudget: item.isBudgetFlexible ?? false,
+    location: item.address || (item.locationType === 'REMOTE' ? 'Remote' : 'In Person'),
+    distanceKm: item.locationType === 'REMOTE' ? 0 : 2.5,
+    pin: { x: item.latitude ?? 52, y: item.longitude ?? 36 },
     schedule: {
-      type: 'asap',
-      date: item.dueDate || undefined,
+      type: scheduleTypeMap[item.timeType] || 'asap',
+      date: item.scheduledDate ? item.scheduledDate.slice(0, 10) : undefined,
+      time: item.scheduledTime || undefined,
     },
-    paymentMethod: 'cash',
+    paymentMethod: paymentMethodMap[item.paymentMethod] || 'cash',
     postedAt: item.createdAt,
     status: statusMap[item.status] || 'posted',
     requesterId: item.userId,
   };
-}
+}
+

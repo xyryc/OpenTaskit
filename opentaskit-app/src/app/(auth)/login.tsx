@@ -45,7 +45,7 @@ export default function LoginScreen() {
     try {
       await login({ email: email.trim().toLowerCase(), password, rememberMe: remember }).unwrap();
       toast({ title: 'Welcome back', variant: 'success' });
-      router.replace('/home');
+      router.replace('/(tabs)/home');
     } catch (error) {
       const parsed = parseApiError(error, ['email', 'password']);
       if (Object.keys(parsed.fieldErrors).length > 0) {
@@ -59,7 +59,7 @@ export default function LoginScreen() {
 
   const handleBrowseAsGuest = () => {
     continueAsGuest();
-    router.replace('/home');
+    router.replace('/(tabs)/home');
   };
 
   return (

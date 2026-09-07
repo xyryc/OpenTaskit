@@ -52,15 +52,43 @@ export function earningsFor(amount: number): number {
   return amount - commissionFor(amount);
 }
 
-export function scheduleLabel(schedule: {
-  type: string;
-  date?: string;
-  time?: string;
+export function scheduleLabel(schedule?: {
+  type?: string;
+  date?: string | null;
+  time?: string | null;
 }): string {
-  if (schedule.type === 'asap') return 'As soon as possible';
-  if (schedule.type === 'flexible') return 'Flexible — anytime';
-  return [schedule.date, schedule.time].filter(Boolean).join(' · ');
+  if (!schedule) return 'ASAP';
+  const type = schedule.type?.toLowerCase();
+  if (type === 'asap') return 'ASAP';
+  if (type === 'flexible') return 'Flexible';
+
+  if (!schedule.date) return 'ASAP';
+
+  const d = new Date(schedule.date);
+  const formattedDate = isNaN(d.getTime())
+    ? schedule.date
+    : d.toLocaleDateString('en-GB', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+      }).replace(/^(\w{3}) /, '$1, ');
+
+  if (schedule.time) {
+    let timeStr = schedule.time;
+    const match = schedule.time.match(/^(\d{1,2}):(\d{2})/);
+    if (match) {
+      let hours = parseInt(match[1], 10);
+      const mins = match[2];
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12 || 12;
+      timeStr = mins === '00' ? `${hours}${ampm}` : `${hours}:${mins}${ampm}`;
+    }
+    return `${formattedDate} · ${timeStr}`;
+  }
+
+  return formattedDate;
 }
+
 
 export function initialsOf(name: string): string {
   return name.
