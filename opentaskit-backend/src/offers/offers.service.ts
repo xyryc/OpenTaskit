@@ -136,4 +136,37 @@ export class OffersService {
       };
     });
   }
+
+  // 4. Tasker withdraws an offer
+  async withdraw(offerId: string, userId: string) {
+    const offer = await this.prisma.offer.findUnique({
+      where: { id: offerId },
+      include: { task: true },
+    });
+    if (!offer) {
+      throw new NotFoundException('Offer not found');
+    }
+
+    // Ownership check: only the bidder can withdraw
+    if (offer.userId !== userId) {
+      throw new ForbiddenException('You can only withdraw your own offer');
+    }
+
+    // Cannot withdraw if the task is already assigned or completed
+    if (offer.task.status !== TaskStatus.OPEN) {
+      throw new BadRequestException(
+        'Cannot withdraw an offer on an assigned or closed task',
+      );
+    }
+
+    await this.prisma.offer.update({
+      where: { id: offerId },
+      data: { status: OfferStatus.WITHDRAWN },
+    });
+
+    return {
+      message: 'Offer withdrawn successfully',
+      offerId,
+    };
+  }
 }

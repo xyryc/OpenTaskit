@@ -6,6 +6,7 @@ import {
   UseGuards,
   ParseUUIDPipe,
   Get,
+  Delete,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { OffersService } from './offers.service';
@@ -46,5 +47,15 @@ export class OffersController {
     @CurrentUser('id') posterId: string,
   ) {
     return this.offersService.accept(offerId, posterId);
+  }
+
+  // DELETE /api/v1/offers/:offerId - Withdraw an offer
+  @ApiOperation({ summary: 'Withdraw a submitted offer (Tasker only)' })
+  @Delete('offers/:offerId')
+  withdraw(
+    @Param('offerId', ParseUUIDPipe) offerId: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.offersService.withdraw(offerId, userId);
   }
 }
