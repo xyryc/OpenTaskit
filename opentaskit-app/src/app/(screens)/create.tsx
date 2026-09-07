@@ -30,20 +30,23 @@ import {
 } from 'lucide-react-native';
 
 import { useApp } from '@/contexts/AppContext';
-import { categories, categoryById } from '@/data/categories';
+import { useGetCategoriesQuery, useCreateTaskMutation } from '@/store/api/apiSlice';
+import { parseApiError } from '@/utils/apiError';
+import { categories } from '@/data/categories';
 import { Screen } from '@/components/layout/Screen';
 import { Button } from '@/components/ui/Button';
 import { TextField, TextArea, Toggle } from '@/components/ui/Input';
 import { SelectChip } from '@/components/ui/Chip';
 import { StepProgress } from '@/components/ui/Segmented';
 import { ConfirmDialog } from '@/components/ui/Overlay';
-import { CategoryIcon } from '@/components/CategoryIcon';
+import { CategoryBadge, CategoryIcon } from '@/components/CategoryIcon';
 import { PhotoPicker } from '@/components/create/PhotoPicker';
 import { LocationPicker } from '@/components/create/LocationPicker';
 import { DatePickerSheet } from '@/components/create/DatePickerSheet';
 import { PAYMENT_METHODS, paymentMethodMeta, walletCovers } from '@/utils/payment';
 import { money, scheduleDateLabel, startOfToday } from '@/utils/format';
 import type { PaymentMethod, ScheduleType } from '@/types';
+import type { CreateTaskPayload } from '@/types/api';
 
 const steps = ['Basics', 'Photos', 'Location', 'Budget & payment', 'Schedule', 'Review'];
 
@@ -58,11 +61,15 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
 const PRESET_AMOUNTS = [3000, 5000, 8000, 12000, 20000];
 
 /** The next four days, offered as quick picks beside the full calendar. */
-function quickDates(): string[] {
+function quickDates(): { label: string; date: Date }[] {
   const start = startOfToday();
-  return Array.from({ length: 4 }).map((_, i) =>
-    scheduleDateLabel(new Date(start.getFullYear(), start.getMonth(), start.getDate() + i))
-  );
+  return Array.from({ length: 4 }).map((_, i) => {
+    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+    return {
+      label: scheduleDateLabel(d),
+      date: d,
+    };
+  });
 }
 
 const TIME_OPTIONS = [
@@ -89,10 +96,21 @@ const SCHEDULE_OPTIONS: { key: ScheduleType; title: string; body: string }[] = [
   },
 ];
 
+interface DisplayCategory {
+  id: string;
+  name: string;
+  icon?: string | null;
+  slug?: string;
+  tone?: string;
+}
+
 export default function CreateTaskScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { requireAccount, currentLocation, wallet, createTask, toast } = useApp();
+  const { requireAccount, currentLocation, wallet, toast } = useApp();
+
+  const { data: apiCategories } = useGetCategoriesQuery();
+  const [createTaskApi, { isLoading: posting }] = useCreateTaskMutation();
 
   const [step, setStep] = useState(1);
   const [title, setTitle] = useState('');
@@ -109,10 +127,10 @@ export default function CreateTaskScreen() {
   // Step 5: Schedule state
   const quickPicks = useMemo(quickDates, []);
   const [scheduleType, setScheduleType] = useState<ScheduleType>('date');
-  const [date, setDate] = useState(() => quickDates()[1]);
+  const [selectedDate, setSelectedDate] = useState<Date>(() => quickDates()[1].date);
+  const [date, setDate] = useState<string>(() => quickDates()[1].label);
   const [time, setTime] = useState('Morning (8am – 12pm)');
 
-  const [posting, setPosting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [photoOpen, setPhotoOpen] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
@@ -122,12 +140,21 @@ export default function CreateTaskScreen() {
   // Require account for posting
   useEffect(() => {
     if (!requireAccount('post')) {
-      router.replace('/home');
+      router.replace('/(tabs)/home');
     }
   }, [requireAccount, router]);
 
-  // Categories in rows of 3
-  const categoryRows = useMemo(() => chunkArray(categories, 3), []);
+  // Categories in rows of 3 (from API or static fallback during loading)
+  const activeCategories: DisplayCategory[] =
+    apiCategories && apiCategories.length > 0 ? apiCategories : categories;
+  const categoryRows = useMemo(
+    () => chunkArray<DisplayCategory>(activeCategories, 3),
+    [activeCategories]
+  );
+  const selectedCategory = useMemo(
+    () => activeCategories.find((c) => c.id === categoryId),
+    [activeCategories, categoryId]
+  );
 
   // Photo grid items in rows of 3
   const photoRows = useMemo(() => {
@@ -159,8 +186,8 @@ export default function CreateTaskScreen() {
     }
     if (target > 4) {
       const value = Number(budget);
-      if (!value || value < 500) {
-        next.budget = 'Enter a realistic budget (minimum Rs 500)';
+      if (!value || value < 100) {
+        next.budget = 'Enter a realistic budget (minimum Rs 100)';
       }
       if (!paymentMethod) {
         next.paymentMethod = 'Choose how you will pay for this task';
@@ -191,37 +218,68 @@ export default function CreateTaskScreen() {
     }
   };
 
-  const handlePost = () => {
+  const handlePost = async () => {
     if (!validate(6)) return;
     if (!paymentMethod) {
       setStep(4);
       return;
     }
 
-    setPosting(true);
-    setTimeout(() => {
-      const id = createTask({
+    try {
+      const isRemote = location.trim().toLowerCase() === 'remote';
+      const paymentMap: Record<PaymentMethod, 'CASH' | 'CARD' | 'WALLET'> = {
+        cash: 'CASH',
+        card: 'CARD',
+        wallet: 'WALLET',
+      };
+      const timeTypeMap: Record<ScheduleType, 'ASAP' | 'SPECIFIC_DATE' | 'FLEXIBLE'> = {
+        asap: 'ASAP',
+        date: 'SPECIFIC_DATE',
+        flexible: 'FLEXIBLE',
+      };
+
+      const payload: CreateTaskPayload = {
         title: title.trim(),
+        details: description.trim(),
         categoryId,
-        description: description.trim(),
-        images,
-        location,
+        images: images.length > 0 ? images : undefined,
+        locationType: isRemote ? 'REMOTE' : 'IN_PERSON',
+        address: isRemote ? undefined : location.trim(),
+        latitude: 6.9016,
+        longitude: 79.8542,
         budget: Number(budget),
-        flexibleBudget: flexible,
-        paymentMethod,
-        schedule:
-          scheduleType === 'date'
-            ? { type: 'date', date, time }
-            : scheduleType === 'asap'
-            ? { type: 'asap' }
-            : { type: 'flexible' },
-      });
-      setPosting(false);
+        isBudgetFlexible: flexible,
+        paymentMethod: paymentMap[paymentMethod] || 'CASH',
+        timeType: timeTypeMap[scheduleType] || 'ASAP',
+        scheduledDate:
+          scheduleType === 'date' && selectedDate ? selectedDate.toISOString() : undefined,
+        scheduledTime: scheduleType === 'date' ? time : undefined,
+      };
+
+      const result = await createTaskApi(payload).unwrap();
+      toast({ title: 'Task posted successfully!', variant: 'success' });
       router.replace({
         pathname: '/(screens)/posted',
-        params: { taskId: id },
+        params: { taskId: result.id },
       } as any);
-    }, 1100);
+    } catch (error) {
+      const parsed = parseApiError(error, [
+        'title',
+        'details',
+        'categoryId',
+        'budget',
+        'paymentMethod',
+        'address',
+      ]);
+      if (Object.keys(parsed.fieldErrors).length > 0) {
+        setErrors((prev) => ({ ...prev, ...parsed.fieldErrors }));
+      }
+      toast({
+        title: 'Failed to post task',
+        description: parsed.generalMessage || 'Please check your inputs and try again.',
+        variant: 'error',
+      });
+    }
   };
 
   const handleSkipPhotos = () => {
@@ -357,6 +415,7 @@ export default function CreateTaskScreen() {
                             >
                               <CategoryIcon
                                 categoryId={category.id}
+                                iconName={category.icon}
                                 size={20}
                                 color={active ? '#0072C4' : '#5B6A72'}
                               />
@@ -819,14 +878,17 @@ export default function CreateTaskScreen() {
                       >
                         {quickPicks.map((option, index) => (
                           <SelectChip
-                            key={option}
-                            selected={date === option}
-                            onPress={() => setDate(option)}
+                            key={option.label}
+                            selected={date === option.label}
+                            onPress={() => {
+                              setDate(option.label);
+                              setSelectedDate(option.date);
+                            }}
                           >
-                            {index === 0 ? `Today · ${option}` : option}
+                            {index === 0 ? `Today · ${option.label}` : option.label}
                           </SelectChip>
                         ))}
-                        {!quickPicks.includes(date) && (
+                        {!quickPicks.some((p) => p.label === date) && (
                           <SelectChip
                             selected
                             onPress={() => setCalendarOpen(true)}
@@ -906,7 +968,7 @@ export default function CreateTaskScreen() {
                   <View className="p-4">
                     <View className="self-start rounded-full bg-brand-tint px-2.5 py-1">
                       <Text className="font-geist-medium text-[11.5px] text-brand-dark">
-                        {categoryId ? categoryById(categoryId).name : 'Category'}
+                        {selectedCategory?.name || 'Category'}
                       </Text>
                     </View>
 
@@ -1054,7 +1116,10 @@ export default function CreateTaskScreen() {
         open={calendarOpen}
         onClose={() => setCalendarOpen(false)}
         value={date}
-        onSelect={(label) => setDate(label)}
+        onSelect={(label, d) => {
+          setDate(label);
+          setSelectedDate(d);
+        }}
       />
 
       {/* Discard Confirmation Modal */}

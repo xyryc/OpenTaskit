@@ -6,6 +6,8 @@ import { CheckCircle2, Home, Share2 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useApp } from '@/contexts/AppContext';
+import { useGetTaskByIdQuery } from '@/store/api/apiSlice';
+import { mapApiTaskToTask } from '@/utils/taskFilters';
 import { money, scheduleLabel } from '@/utils/format';
 import { Screen } from '@/components/layout/Screen';
 import { Button } from '@/components/ui/Button';
@@ -17,7 +19,8 @@ export default function TaskPostedScreen() {
   const insets = useSafeAreaInsets();
   const { taskById, toast } = useApp();
 
-  const task = taskById(taskId);
+  const { data: apiTask } = useGetTaskByIdQuery(taskId, { skip: !taskId });
+  const task = apiTask ? mapApiTaskToTask(apiTask) : taskById(taskId);
 
   const handleShare = async () => {
     try {

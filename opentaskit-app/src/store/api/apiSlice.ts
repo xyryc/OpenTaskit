@@ -179,6 +179,15 @@ export const apiSlice = createApi({
       providesTags: (_result, _error, id) => [{ type: 'Task', id }],
     }),
 
+    createTask: builder.mutation<TaskItem, CreateTaskPayload>({
+      query: (body) => ({
+        url: '/tasks',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: [{ type: 'Task', id: 'LIST' }],
+    }),
+
     resetPassword: builder.mutation<MessageResponse, ResetPasswordPayload>({
       query: (body) => ({ url: "/auth/reset-password", method: "POST", body }),
     }),
@@ -190,6 +199,7 @@ export const {
   useGetCategoryByIdQuery,
   useGetTasksQuery,
   useGetTaskByIdQuery,
+  useCreateTaskMutation,
   useRegisterMutation,
   useLoginMutation,
   useRefreshMutation,
