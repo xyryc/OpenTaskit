@@ -30,6 +30,8 @@ model User {
   tasks      Task[]
   savedTasks SavedTask[]
 
+  offers Offer[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -77,6 +79,8 @@ model Task {
 
   savedBy SavedTask[]
 
+  offers Offer[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -90,6 +94,31 @@ model SavedTask {
   createdAt DateTime @default(now())
 
   @@unique([userId, taskId])
+}
+
+model Offer {
+  id      String      @id @default(uuid())
+  amount  Float
+  message String      @db.Text
+  status  OfferStatus @default(PENDING)
+
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([taskId, userId])
+}
+
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
 }
 
 enum Role {

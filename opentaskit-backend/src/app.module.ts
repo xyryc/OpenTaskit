@@ -10,6 +10,7 @@ import { TasksModule } from './tasks/tasks.module';
 import { UsersModule } from './users/users.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import { OffersModule } from './offers/offers.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { APP_GUARD } from '@nestjs/core';
     CategoriesModule,
     TasksModule,
     UsersModule,
+    OffersModule,
   ],
   controllers: [AppController],
   providers: [
