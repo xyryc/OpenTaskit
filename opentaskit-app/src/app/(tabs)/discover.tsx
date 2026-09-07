@@ -16,11 +16,13 @@ import {
 } from 'lucide-react-native';
 
 import { useApp } from '@/contexts/AppContext';
+import { useGetTasksQuery } from '@/store/api/apiSlice';
 import { ME } from '@/data/users';
 import {
   applyFilters,
   activeFilterCount,
   defaultFilters,
+  mapApiTaskToTask,
   type TaskFilters,
 } from '@/utils/taskFilters';
 import { distance, money } from '@/utils/format';
@@ -44,28 +46,37 @@ export default function DiscoverScreen() {
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState<TaskFilters>(defaultFilters);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | undefined>();
 
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 400);
-    return () => clearTimeout(timer);
-  }, []);
+  const { data: tasksData, isLoading: tasksLoading } = useGetTasksQuery({
+    search: query.trim() || undefined,
+    categoryId: filters.categoryIds[0] || undefined,
+    minBudget: filters.budgetMin > 0 ? filters.budgetMin : undefined,
+    maxBudget: filters.budgetMax < 30000 ? filters.budgetMax : undefined,
+  });
+
+  const liveTasks = useMemo(() => {
+    if (tasksData?.data && tasksData.data.length > 0) {
+      return tasksData.data.map(mapApiTaskToTask);
+    }
+    return tasks;
+  }, [tasksData, tasks]);
 
   const openTasks = useMemo(
     () =>
-      tasks.filter(
+      liveTasks.filter(
         (task) =>
           task.requesterId !== ME &&
           ['posted', 'receiving_offers'].includes(task.status)
       ),
-    [tasks]
+    [liveTasks]
   );
 
   const results = useMemo(
     () => applyFilters(openTasks, filters, query),
     [openTasks, filters, query]
   );
+
 
   const filterCount = activeFilterCount(filters);
   const selected = results.find((task) => task.id === selectedId);
@@ -158,7 +169,7 @@ export default function DiscoverScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View className="px-5 pt-4">
-            {loading ? (
+            {tasksLoading ? (
               <ListSkeleton count={4} />
             ) : results.length === 0 ? (
               <EmptyState

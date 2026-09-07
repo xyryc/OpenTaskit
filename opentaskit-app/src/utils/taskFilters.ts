@@ -84,3 +84,33 @@ export function applyFilters(tasks: Task[], filters: TaskFilters, query = ''): T
   }
   return sorted;
 }
+
+export function mapApiTaskToTask(item: import('@/types/api').TaskItem): Task {
+  const statusMap: Record<string, Task['status']> = {
+    OPEN: 'posted',
+    ASSIGNED: 'assigned',
+    COMPLETED: 'completed',
+    CANCELLED: 'cancelled',
+  };
+
+  return {
+    id: item.id,
+    title: item.title,
+    categoryId: item.categoryId,
+    description: item.description,
+    images: [],
+    budget: item.budget,
+    flexibleBudget: false,
+    location: item.locationName || (item.locationType === 'REMOTE' ? 'Remote' : 'In Person'),
+    distanceKm: 2.5,
+    pin: { x: item.latitude ?? 40, y: item.longitude ?? 60 },
+    schedule: {
+      type: 'asap',
+      date: item.dueDate || undefined,
+    },
+    paymentMethod: 'cash',
+    postedAt: item.createdAt,
+    status: statusMap[item.status] || 'posted',
+    requesterId: item.userId,
+  };
+}

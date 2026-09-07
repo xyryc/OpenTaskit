@@ -18,10 +18,11 @@ import {
 } from "lucide-react-native";
 
 import { useApp } from "@/contexts/AppContext";
-import { useGetCategoriesQuery } from "@/store/api/apiSlice";
+import { useGetCategoriesQuery, useGetTasksQuery } from "@/store/api/apiSlice";
 import { ME } from "@/data/users";
 import { categories } from "@/data/categories";
 import { recommendedTasks, reasonLabel } from "@/utils/recommend";
+import { mapApiTaskToTask } from "@/utils/taskFilters";
 import { Screen, SectionHeader } from "@/components/layout/Screen";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
@@ -53,6 +54,14 @@ export default function HomeScreen() {
   const displayCategories =
     apiCategories && apiCategories.length > 0 ? apiCategories : categories;
 
+  const { data: tasksData, refetch: refetchTasks } = useGetTasksQuery();
+  const liveTasks = useMemo(() => {
+    if (tasksData?.data && tasksData.data.length > 0) {
+      return tasksData.data.map(mapApiTaskToTask);
+    }
+    return tasks;
+  }, [tasksData, tasks]);
+
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -65,12 +74,12 @@ export default function HomeScreen() {
 
   const openTasks = useMemo(
     () =>
-      tasks.filter(
+      liveTasks.filter(
         (task) =>
           task.requesterId !== ME &&
           ["posted", "receiving_offers"].includes(task.status),
       ),
-    [tasks],
+    [liveTasks],
   );
 
   const nearby = useMemo(
@@ -87,7 +96,7 @@ export default function HomeScreen() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await refetchCategories();
+      await Promise.all([refetchCategories(), refetchTasks()]);
     } finally {
       setRefreshing(false);
     }

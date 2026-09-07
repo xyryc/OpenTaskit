@@ -9,16 +9,19 @@ import { createMMKV } from "react-native-mmkv";
 import type {
   AuthResponse,
   CategoryItem,
+  FilterTasksQuery,
   ForgotPasswordPayload,
   LoginPayload,
   LogoutPayload,
   MessageResponse,
+  PaginatedTasksResponse,
   RefreshPayload,
   RefreshResponse,
   RegisterPayload,
   ResetPasswordPayload,
+  TaskItem,
   VerifyOtpPayload,
-} from "@/types";
+} from '@/types';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 if (!API_BASE_URL?.trim()) {
@@ -142,6 +145,25 @@ export const apiSlice = createApi({
       query: (body) => ({ url: "/auth/verify-otp", method: "POST", body }),
     }),
 
+    // Tasks Marketplace
+    getTasks: builder.query<PaginatedTasksResponse, FilterTasksQuery | void>({
+      query: (params) => ({
+        url: '/tasks',
+        params: params || undefined,
+      }),
+      providesTags: (result) =>
+        result?.data
+          ? [
+              ...result.data.map(({ id }) => ({ type: 'Task' as const, id })),
+              { type: 'Task', id: 'LIST' },
+            ]
+          : [{ type: 'Task', id: 'LIST' }],
+    }),
+    getTaskById: builder.query<TaskItem, string>({
+      query: (id) => `/tasks/${id}`,
+      providesTags: (_result, _error, id) => [{ type: 'Task', id }],
+    }),
+
     resetPassword: builder.mutation<MessageResponse, ResetPasswordPayload>({
       query: (body) => ({ url: "/auth/reset-password", method: "POST", body }),
     }),
@@ -151,6 +173,8 @@ export const apiSlice = createApi({
 export const {
   useGetCategoriesQuery,
   useGetCategoryByIdQuery,
+  useGetTasksQuery,
+  useGetTaskByIdQuery,
   useRegisterMutation,
   useLoginMutation,
   useRefreshMutation,
@@ -159,3 +183,4 @@ export const {
   useVerifyOtpMutation,
   useResetPasswordMutation,
 } = apiSlice;
+
