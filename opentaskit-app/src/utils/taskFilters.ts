@@ -122,6 +122,7 @@ export function mapApiTaskToTask(item: import('@/types/api').TaskItem): Task {
           id: item.user.id,
           fullName: item.user.fullName,
           phoneNumber: item.user.phoneNumber,
+          createdAt: item.user.createdAt,
         }
       : undefined,
     offersCount: item._count?.offers ?? 0,

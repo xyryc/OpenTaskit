@@ -38,8 +38,9 @@ import {
 } from 'lucide-react-native';
 
 import { useApp } from '@/contexts/AppContext';
-import { ME } from '@/data/users';
-import { categoryById } from '@/data/categories';
+import { useAppSelector } from '@/store';
+import { useGetTaskByIdQuery } from '@/store/api/apiSlice';
+import { mapApiTaskToTask } from '@/utils/taskFilters';
 import { distance, money, scheduleLabel, timeAgo } from '@/utils/format';
 import { paymentMethodMeta } from '@/utils/payment';
 import { Screen } from '@/components/layout/Screen';
@@ -47,7 +48,6 @@ import { Button } from '@/components/ui/Button';
 import { Chip, StatusChip } from '@/components/ui/Chip';
 import { SelectChip } from '@/components/ui/Chip';
 import { Avatar } from '@/components/ui/Avatar';
-import { StarRating } from '@/components/ui/Rating';
 import { Skeleton } from '@/components/ui/Feedback';
 import { BottomSheet, ConfirmDialog } from '@/components/ui/Overlay';
 import { CategoryBadge } from '@/components/CategoryIcon';
@@ -67,10 +67,9 @@ export default function TaskDetailScreen() {
   const insets = useSafeAreaInsets();
   const screenWidth = Dimensions.get('window').width;
 
+  const authUser = useAppSelector((state) => state.auth.user);
+
   const {
-    taskById,
-    userById,
-    offersForTask,
     myOffer,
     savedTaskIds,
     toggleSaved,
@@ -78,12 +77,14 @@ export default function TaskDetailScreen() {
     cancelTask,
     withdrawOffer,
     submitOffer,
-    acceptOffer,
-    rejectOffer,
     requireAccount,
   } = useApp();
 
-  const [loading, setLoading] = useState(true);
+  const { data: apiTask, isLoading: loading, isError: taskError } = useGetTaskByIdQuery(id, {
+    skip: !id,
+  });
+  const task = useMemo(() => (apiTask ? mapApiTaskToTask(apiTask) : undefined), [apiTask]);
+
   const [photoIndex, setPhotoIndex] = useState(0);
 
   // Modals state
@@ -91,7 +92,6 @@ export default function TaskDetailScreen() {
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [confirmWithdraw, setConfirmWithdraw] = useState(false);
   const [makeOfferOpen, setMakeOfferOpen] = useState(false);
-  const [offersSheetOpen, setOffersSheetOpen] = useState(false);
 
   // Make offer form state
   const [offerPrice, setOfferPrice] = useState('');
@@ -99,20 +99,13 @@ export default function TaskDetailScreen() {
   const [offerMessage, setOfferMessage] = useState('');
   const [offerError, setOfferError] = useState('');
 
-  const task = taskById(id);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 300);
-    return () => clearTimeout(timer);
-  }, [id]);
-
   useEffect(() => {
     if (task) {
       setOfferPrice(String(task.budget));
     }
   }, [task]);
 
-  if (!task && !loading) {
+  if (!loading && (!task || taskError)) {
     return (
       <Screen tone="canvas" edges={['top']}>
         <View className="flex-1 items-center justify-center px-8 text-center">
@@ -153,13 +146,34 @@ export default function TaskDetailScreen() {
     );
   }
 
-  const requester = userById(task.requesterId);
-  const offers = offersForTask(task.id);
-  const mine = task.requesterId === ME;
+  const mine = !!(authUser?.id && task.requesterId === authUser.id);
   const existingOffer = myOffer(task.id);
   const saved = savedTaskIds.includes(task.id);
-  const category = categoryById(task.categoryId);
+  const categoryName = task.category?.name || 'Category';
+  const categoryIcon = task.category?.icon;
   const payment = paymentMethodMeta(task.paymentMethod);
+
+  const posterName = task.user?.fullName || 'Requester';
+  const posterInitials =
+    posterName
+      .split(' ')
+      .filter(Boolean)
+      .map((p) => p[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase() || 'U';
+  const posterAvatarUser = {
+    name: posterName,
+    initials: posterInitials,
+    tone: 'bg-brand-tint text-brand-dark',
+    verified: false,
+  };
+  const memberSince = task.user?.createdAt
+    ? new Date(task.user.createdAt).toLocaleDateString('en-US', {
+        month: 'short',
+        year: 'numeric',
+      })
+    : undefined;
 
   const handleShare = async () => {
     try {
@@ -210,7 +224,7 @@ export default function TaskDetailScreen() {
     setMakeOfferOpen(false);
     toast({
       title: 'Offer submitted!',
-      description: `Your offer of ${money(num)} has been sent to ${requester.name}.`,
+      description: `Your offer of ${money(num)} has been sent to ${posterName}.`,
       variant: 'success',
     });
   };
@@ -278,7 +292,7 @@ export default function TaskDetailScreen() {
             </View>
           ) : (
             <View className="h-44 w-full items-center justify-center bg-brand-tint">
-              <CategoryBadge categoryId={task.categoryId} size="lg" />
+              <CategoryBadge categoryId={task.categoryId} iconName={categoryIcon} size="lg" />
             </View>
           )}
 
@@ -362,7 +376,7 @@ export default function TaskDetailScreen() {
 
           {/* Category, Status, Time Chips */}
           <View className="flex-row flex-wrap items-center gap-2">
-            <Chip tone="brand">{category.name}</Chip>
+            <Chip tone="brand">{categoryName}</Chip>
             <StatusChip status={task.status} />
             <Text className="font-geist text-[12px] text-ink-400">
               Posted {timeAgo(task.postedAt)}
@@ -395,18 +409,14 @@ export default function TaskDetailScreen() {
               <FactCard
                 icon={<CalendarDays size={16} color="#0094F7" />}
                 label="Preferred date"
-                value={
-                  task.schedule.type === 'asap'
-                    ? 'ASAP'
-                    : task.schedule.date ?? 'Flexible'
-                }
+                value={scheduleLabel(task.schedule)}
                 note={task.schedule.time}
               />
               <FactCard
                 icon={<Users size={16} color="#0094F7" />}
                 label="Offers"
-                value={String(offers.length)}
-                note={offers.length ? undefined : 'Be the first'}
+                value={String(task.offersCount ?? 0)}
+                note={(task.offersCount ?? 0) > 0 ? undefined : 'Be the first'}
               />
             </View>
 
@@ -459,46 +469,25 @@ export default function TaskDetailScreen() {
             <Text className="text-[15px] font-geist-semibold text-ink">
               {mine ? 'Posted by you' : 'About the requester'}
             </Text>
-            <Pressable
-              onPress={() => {
-                if (mine) {
-                  router.push('/(tabs)/profile');
-                } else {
-                  router.push({
-                    pathname: '/(screens)/provider/[userId]',
-                    params: { userId: requester.id },
-                  } as any);
-                }
-              }}
-              className="mt-2.5 flex-row items-center gap-3 rounded-3xl border border-ink-200 bg-white p-4 active:bg-ink-100"
+            <View
+              className="mt-2.5 flex-row items-center gap-3 rounded-3xl border border-ink-200 bg-white p-4"
               style={{ gap: 12 }}
             >
-              <Avatar user={requester} size="lg" showVerified />
+              <Avatar user={posterAvatarUser} size="lg" />
               <View className="flex-1 min-w-0">
-                <View className="flex-row items-center gap-1.5">
-                  <Text
-                    numberOfLines={1}
-                    className="text-[15px] font-geist-semibold text-ink truncate"
-                  >
-                    {requester.name}
-                  </Text>
-                  {requester.verified && (
-                    <BadgeCheck size={16} color="#0094F7" />
-                  )}
-                </View>
-                <View className="mt-0.5">
-                  <StarRating
-                    value={requester.rating}
-                    count={requester.reviewCount}
-                  />
-                </View>
-                <Text className="mt-1 font-geist text-[12px] text-ink-500">
-                  {requester.completedJobs} tasks · member since{' '}
-                  {requester.memberSince}
+                <Text
+                  numberOfLines={1}
+                  className="text-[15px] font-geist-semibold text-ink truncate"
+                >
+                  {posterName}
                 </Text>
+                {memberSince && (
+                  <Text className="mt-1 font-geist text-[12px] text-ink-500">
+                    Member since {memberSince}
+                  </Text>
+                )}
               </View>
-              <ChevronRight size={20} color="#B9C2C7" />
-            </Pressable>
+            </View>
           </View>
 
           {/* Trust & Dispute Protection Box */}
@@ -527,9 +516,14 @@ export default function TaskDetailScreen() {
                 size="lg"
                 variant="outline"
                 className="w-full"
-                onPress={() => setOffersSheetOpen(true)}
+                onPress={() => {
+                  router.push({
+                    pathname: '/(screens)/task/[id]/offers',
+                    params: { id: task.id },
+                  } as any);
+                }}
               >
-                Offers ({offers.length})
+                Offers ({task.offersCount ?? 0})
               </Button>
             </View>
             <View className="flex-[1.5]">
@@ -537,7 +531,12 @@ export default function TaskDetailScreen() {
                 size="lg"
                 variant="brand"
                 className="w-full"
-                onPress={() => setOffersSheetOpen(true)}
+                onPress={() => {
+                  router.push({
+                    pathname: '/(screens)/task/[id]/offers',
+                    params: { id: task.id },
+                  } as any);
+                }}
               >
                 Review offers
               </Button>
@@ -620,7 +619,7 @@ export default function TaskDetailScreen() {
         open={makeOfferOpen}
         onClose={() => setMakeOfferOpen(false)}
         title="Make an offer"
-        description={`Send your price and availability to ${requester.name}.`}
+        description={`Send your price and availability to ${posterName}.`}
         footer={
           <Button full size="lg" variant="brand" onPress={handleSubmitOffer}>
             Submit offer ({money(Number(offerPrice) || 0)})
@@ -709,161 +708,6 @@ export default function TaskDetailScreen() {
               className="min-h-[80px] rounded-2xl border border-ink-200 bg-white p-3.5 text-[14px] font-geist text-ink"
             />
           </View>
-        </View>
-      </BottomSheet>
-
-      {/* MODAL 2: Received Offers Bottom Sheet (Poster View) */}
-      <BottomSheet
-        open={offersSheetOpen}
-        onClose={() => setOffersSheetOpen(false)}
-        title={`Received offers (${offers.length})`}
-        description="Review proposals from nearby taskers and choose who to hire."
-      >
-        <View className="pb-4">
-          {offers.length === 0 ? (
-            <View className="py-8 items-center text-center">
-              <Users size={32} color="#8A959B" />
-              <Text className="mt-3 text-[15px] font-geist-semibold text-ink">
-                No offers yet
-              </Text>
-              <Text className="mt-1 text-center font-geist text-[13px] text-ink-500">
-                Taskers nearby will receive notifications and send proposals shortly.
-              </Text>
-            </View>
-          ) : (
-            <View className="gap-3.5" style={{ gap: 14 }}>
-              {offers.map((offer) => {
-                const provider = userById(offer.providerId);
-                const isPending = offer.status === 'pending';
-
-                return (
-                  <View
-                    key={offer.id}
-                    className="rounded-3xl border border-ink-200 bg-white p-4"
-                  >
-                    {/* Provider row */}
-                    <View className="flex-row items-center justify-between">
-                      <View className="flex-row items-center gap-3" style={{ gap: 10 }}>
-                        <Avatar user={provider} size="md" showVerified />
-                        <View>
-                          <Text className="text-[14.5px] font-geist-semibold text-ink">
-                            {provider.name}
-                          </Text>
-                          <StarRating
-                            value={provider.rating}
-                            count={provider.reviewCount}
-                          />
-                        </View>
-                      </View>
-                      <View className="items-end">
-                        <Text className="text-[18px] font-geist-bold text-ink">
-                          {money(offer.price)}
-                        </Text>
-                        <Text className="text-[11.5px] font-geist-medium text-brand-dark">
-                          {offer.eta}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {/* Offer message */}
-                    {offer.message && (
-                      <Text className="mt-3 font-geist text-[13px] leading-relaxed text-ink-700">
-                        "{offer.message}"
-                      </Text>
-                    )}
-
-                    {/* Action buttons */}
-                    {isPending ? (
-                      <View
-                        className="mt-4 flex-row items-center gap-2 border-t border-ink-100 pt-3"
-                        style={{ gap: 8 }}
-                      >
-                        <View className="flex-1">
-                          <Button
-                            size="md"
-                            variant="brand"
-                            className="w-full"
-                            onPress={() => {
-                              acceptOffer(offer.id);
-                              setOffersSheetOpen(false);
-                              toast({
-                                title: 'Offer accepted!',
-                                description: `You hired ${provider.name} for ${money(offer.price)}.`,
-                                variant: 'success',
-                              });
-                            }}
-                          >
-                            Accept offer
-                          </Button>
-                        </View>
-                        <Pressable
-                          onPress={() => {
-                            setOffersSheetOpen(false);
-                            router.push({
-                              pathname: '/(screens)/chat/[taskId]',
-                              params: { taskId: task.id },
-                            } as any);
-                          }}
-                          className="h-10 w-10 items-center justify-center rounded-xl border border-ink-200 bg-white active:bg-ink-100"
-                        >
-                          <MessageSquare size={17} color="#2B3A41" />
-                        </Pressable>
-                        <Pressable
-                          onPress={() => {
-                            rejectOffer(offer.id);
-                            toast({ title: 'Offer declined', variant: 'info' });
-                          }}
-                          className="h-10 px-3 items-center justify-center rounded-xl active:bg-ink-100"
-                        >
-                          <Text className="font-geist-medium text-[12.5px] text-danger">
-                            Decline
-                          </Text>
-                        </Pressable>
-                      </View>
-                    ) : (
-                      <View className="mt-3 pt-2 border-t border-ink-100 flex-row items-center justify-between">
-                        <Chip
-                          tone={offer.status === 'accepted' ? 'success' : 'neutral'}
-                        >
-                          {offer.status.toUpperCase()}
-                        </Chip>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onPress={() => {
-                            setOffersSheetOpen(false);
-                            router.push({
-                              pathname: '/(screens)/chat/[taskId]',
-                              params: { taskId: task.id },
-                            } as any);
-                          }}
-                        >
-                          Open chat
-                        </Button>
-                      </View>
-                    )}
-                  </View>
-                );
-              })}
-              {offers.length > 0 && (
-                <View className="mt-2">
-                  <Button
-                    variant="outline"
-                    size="md"
-                    onPress={() => {
-                      setOffersSheetOpen(false);
-                      router.push({
-                        pathname: '/(screens)/task/[id]/offers',
-                        params: { id: task.id },
-                      } as any);
-                    }}
-                  >
-                    View all offers & compare
-                  </Button>
-                </View>
-              )}
-            </View>
-          )}
         </View>
       </BottomSheet>
 

@@ -167,10 +167,10 @@ export const apiSlice = createApi({
         params: params || undefined,
       }),
       providesTags: (result) =>
-        result?.data
+        result
           ? [
-              ...result.data.map(({ id }) => ({ type: 'Task' as const, id })),
               { type: 'Task', id: 'LIST' },
+              ...result.data.map((task) => ({ type: 'Task' as const, id: task.id })),
             ]
           : [{ type: 'Task', id: 'LIST' }],
     }),

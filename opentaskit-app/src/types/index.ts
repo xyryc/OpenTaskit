@@ -82,6 +82,7 @@ export interface Task {
     id: string;
     fullName: string;
     phoneNumber?: string;
+    createdAt?: string;
   };
   offersCount?: number;
   description: string;
