@@ -15,7 +15,7 @@ import {
 import { useApp } from '@/contexts/AppContext';
 import { useAuthActions } from '@/hooks/useAuthActions';
 import { useLoginMutation } from '@/store/api/apiSlice';
-import { getApiErrorMessage } from '@/utils/apiError';
+import { getApiErrorMessage, parseApiError } from '@/utils/apiError';
 import { BrandLockup } from '@/components/brand/BrandMark';
 import { Button } from '@/components/ui/Button';
 import { TextField } from '@/components/ui/Input';
@@ -47,7 +47,13 @@ export default function LoginScreen() {
       toast({ title: 'Welcome back', variant: 'success' });
       router.replace('/home');
     } catch (error) {
-      setSubmitError(getApiErrorMessage(error));
+      const parsed = parseApiError(error, ['email', 'password']);
+      if (Object.keys(parsed.fieldErrors).length > 0) {
+        setErrors((prev) => ({ ...prev, ...parsed.fieldErrors }));
+      }
+      if (parsed.generalMessage) {
+        setSubmitError(parsed.generalMessage);
+      }
     }
   };
 

@@ -1,33 +1,41 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import Animated, { ZoomIn } from 'react-native-reanimated';
 import { Check, CheckCircle2, Lock } from 'lucide-react-native';
 
+import { useResetPasswordMutation } from '@/store/api/apiSlice';
+import { parseApiError } from '@/utils/apiError';
 import { ScreenHeader } from '@/components/layout/Screen';
 import { Button } from '@/components/ui/Button';
 import { TextField } from '@/components/ui/Input';
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ email?: string; otp?: string }>();
+  const email = params.email || '';
+  const otp = params.otp || '';
+
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [errors, setErrors] = useState<{ password?: string; confirm?: string }>({});
-  const [loading, setLoading] = useState(false);
+  const [submitError, setSubmitError] = useState('');
   const [done, setDone] = useState(false);
 
+  const [resetPassword, { isLoading: loading }] = useResetPasswordMutation();
+
   const rules = [
-    { label: 'At least 8 characters', ok: password.length >= 8 },
-    { label: 'One number', ok: /\d/.test(password) },
-    { label: 'One uppercase letter', ok: /[A-Z]/.test(password) },
+    { label: 'At least 6 characters', ok: password.length >= 6 },
+    { label: 'Passwords match', ok: password.length > 0 && confirm === password },
   ];
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    setSubmitError('');
     const nextErrors: { password?: string; confirm?: string } = {};
-    if (!rules.every((r) => r.ok)) {
-      nextErrors.password = 'Password does not meet the requirements yet';
+    if (password.length < 6) {
+      nextErrors.password = 'Password must be at least 6 characters long';
     }
     if (confirm !== password) {
       nextErrors.confirm = 'Passwords do not match';
@@ -35,12 +43,28 @@ export default function ResetPasswordScreen() {
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      await resetPassword({
+        email,
+        otp,
+        newPassword: password,
+        confirmNewPassword: confirm,
+      }).unwrap();
       setDone(true);
-    }, 900);
+    } catch (err) {
+      const parsed = parseApiError(err, ['password', 'confirm', 'newPassword', 'confirmNewPassword']);
+      if (Object.keys(parsed.fieldErrors).length > 0) {
+        setErrors({
+          password: parsed.fieldErrors.password || parsed.fieldErrors.newPassword,
+          confirm: parsed.fieldErrors.confirm || parsed.fieldErrors.confirmNewPassword,
+        });
+      }
+      if (parsed.generalMessage) {
+        setSubmitError(parsed.generalMessage);
+      }
+    }
   };
+
 
   if (done) {
     return (
@@ -85,6 +109,11 @@ export default function ResetPasswordScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View className="gap-4">
+          {!!submitError && (
+            <Text accessibilityRole="alert" className="text-danger text-[13px] font-geist-medium font-medium">
+              {submitError}
+            </Text>
+          )}
           <TextField
             label="New password"
             value={password}

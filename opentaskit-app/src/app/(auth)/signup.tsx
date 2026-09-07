@@ -8,7 +8,7 @@ import { Compass, Lock, Mail, Phone, User } from 'lucide-react-native';
 import { useApp } from '@/contexts/AppContext';
 import { useAuthActions } from '@/hooks/useAuthActions';
 import { useRegisterMutation } from '@/store/api/apiSlice';
-import { getApiErrorMessage } from '@/utils/apiError';
+import { getApiErrorMessage, parseApiError } from '@/utils/apiError';
 import { ScreenHeader } from '@/components/layout/Screen';
 import { Button } from '@/components/ui/Button';
 import { TextField } from '@/components/ui/Input';
@@ -75,7 +75,13 @@ export default function SignUpScreen() {
       toast({ title: 'Account created!', description: 'Welcome to OpenTaskit', variant: 'success' });
       router.replace('/home');
     } catch (error) {
-      setSubmitError(getApiErrorMessage(error));
+      const parsed = parseApiError(error, ['name', 'email', 'phone', 'password', 'confirm']);
+      if (Object.keys(parsed.fieldErrors).length > 0) {
+        setErrors((prev) => ({ ...prev, ...parsed.fieldErrors }));
+      }
+      if (parsed.generalMessage) {
+        setSubmitError(parsed.generalMessage);
+      }
     }
   };
 

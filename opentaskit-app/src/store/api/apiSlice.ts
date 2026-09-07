@@ -1,11 +1,22 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import {
+  createApi,
+  fetchBaseQuery,
+  type BaseQueryFn,
+  type FetchArgs,
+  type FetchBaseQueryError,
+} from '@reduxjs/toolkit/query/react';
 import { createMMKV } from 'react-native-mmkv';
 import type {
   AuthResponse,
+  ForgotPasswordPayload,
   LoginPayload,
   LogoutPayload,
   MessageResponse,
+  RefreshPayload,
+  RefreshResponse,
   RegisterPayload,
+  ResetPasswordPayload,
+  VerifyOtpPayload,
 } from '@/types';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -17,6 +28,7 @@ const storage = createMMKV({ id: 'opentaskit-auth' });
 const ACCESS_TOKEN_KEY = 'opentaskit_access_token';
 const REFRESH_TOKEN_KEY = 'opentaskit_refresh_token';
 
+export const getAccessToken = () => storage.getString(ACCESS_TOKEN_KEY);
 export const getRefreshToken = () => storage.getString(REFRESH_TOKEN_KEY);
 
 export function clearAuthStorage() {
@@ -31,17 +43,57 @@ function persistSession(response: AuthResponse): AuthResponse {
   return response;
 }
 
+const rawBaseQuery = fetchBaseQuery({
+  baseUrl: API_BASE_URL,
+  timeout: 10000,
+  prepareHeaders: (headers) => {
+    const token = storage.getString(ACCESS_TOKEN_KEY);
+    if (token) headers.set('Authorization', `Bearer ${token}`);
+    return headers;
+  },
+});
+
+const baseQueryWithReauth: BaseQueryFn<
+  string | FetchArgs,
+  unknown,
+  FetchBaseQueryError
+> = async (args, api, extraOptions) => {
+  let result = await rawBaseQuery(args, api, extraOptions);
+
+  // If request returned 401 Unauthorized, attempt token refresh
+  if (result.error && result.error.status === 401) {
+    const refreshToken = getRefreshToken();
+    if (refreshToken) {
+      const refreshResult = await rawBaseQuery(
+        {
+          url: '/auth/refresh',
+          method: 'POST',
+          body: { refreshToken },
+        },
+        api,
+        extraOptions,
+      );
+
+      if (refreshResult.data) {
+        const refreshData = refreshResult.data as RefreshResponse;
+        storage.set(ACCESS_TOKEN_KEY, refreshData.accessToken);
+        storage.set(REFRESH_TOKEN_KEY, refreshData.refreshToken);
+        // Retry the original request with the fresh token
+        result = await rawBaseQuery(args, api, extraOptions);
+      } else {
+        // Refresh token failed or expired: clear session & sign out
+        clearAuthStorage();
+        api.dispatch({ type: 'auth/signOut' });
+      }
+    }
+  }
+
+  return result;
+};
+
 export const apiSlice = createApi({
   reducerPath: 'api',
-  baseQuery: fetchBaseQuery({
-    baseUrl: API_BASE_URL,
-    timeout: 10000,
-    prepareHeaders: (headers) => {
-      const token = storage.getString(ACCESS_TOKEN_KEY);
-      if (token) headers.set('Authorization', `Bearer ${token}`);
-      return headers;
-    },
-  }),
+  baseQuery: baseQueryWithReauth,
   endpoints: (builder) => ({
     register: builder.mutation<AuthResponse, RegisterPayload>({
       query: (body) => ({ url: '/auth/register', method: 'POST', body }),
@@ -51,10 +103,37 @@ export const apiSlice = createApi({
       query: (body) => ({ url: '/auth/login', method: 'POST', body }),
       transformResponse: persistSession,
     }),
+    refresh: builder.mutation<RefreshResponse, RefreshPayload>({
+      query: (body) => ({ url: '/auth/refresh', method: 'POST', body }),
+      transformResponse: (response: RefreshResponse) => {
+        storage.set(ACCESS_TOKEN_KEY, response.accessToken);
+        storage.set(REFRESH_TOKEN_KEY, response.refreshToken);
+        return response;
+      },
+    }),
     logout: builder.mutation<MessageResponse, LogoutPayload>({
       query: (body) => ({ url: '/auth/logout', method: 'POST', body }),
+    }),
+    forgotPassword: builder.mutation<MessageResponse, ForgotPasswordPayload>({
+      query: (body) => ({ url: '/auth/forgot-password', method: 'POST', body }),
+    }),
+    verifyOtp: builder.mutation<MessageResponse, VerifyOtpPayload>({
+      query: (body) => ({ url: '/auth/verify-otp', method: 'POST', body }),
+    }),
+    resetPassword: builder.mutation<MessageResponse, ResetPasswordPayload>({
+      query: (body) => ({ url: '/auth/reset-password', method: 'POST', body }),
     }),
   }),
 });
 
-export const { useRegisterMutation, useLoginMutation, useLogoutMutation } = apiSlice;
+export const {
+  useRegisterMutation,
+  useLoginMutation,
+  useRefreshMutation,
+  useLogoutMutation,
+  useForgotPasswordMutation,
+  useVerifyOtpMutation,
+  useResetPasswordMutation,
+} = apiSlice;
+
+

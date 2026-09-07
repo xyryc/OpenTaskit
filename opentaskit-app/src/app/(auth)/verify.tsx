@@ -4,24 +4,30 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import Animated, { FadeInUp } from 'react-native-reanimated';
-import { CheckCircle2, MessageSquare } from 'lucide-react-native';
+import { CheckCircle2, Mail } from 'lucide-react-native';
 
 import { useApp } from '@/contexts/AppContext';
+import { useForgotPasswordMutation, useVerifyOtpMutation } from '@/store/api/apiSlice';
+import { getApiErrorMessage } from '@/utils/apiError';
 import { ScreenHeader } from '@/components/layout/Screen';
 import { Button } from '@/components/ui/Button';
 
 export default function OtpVerifyScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ flow?: string; phone?: string }>();
+  const params = useLocalSearchParams<{ flow?: string; email?: string; phone?: string }>();
   const { toast } = useApp();
 
-  const flow = params.flow ?? 'signup';
-  const phone = params.phone || '+94 77 123 4567';
+  const flow = params.flow ?? 'reset';
+  const email = params.email || params.phone || 'your email';
 
   const [digits, setDigits] = useState<string[]>(['', '', '', '', '', '']);
-  const [seconds, setSeconds] = useState(42);
+  const [seconds, setSeconds] = useState(60);
   const [status, setStatus] = useState<'idle' | 'verifying' | 'error' | 'done'>('idle');
+  const [errorMessage, setErrorMessage] = useState('');
   const inputRefs = useRef<Array<TextInput | null>>([]);
+
+  const [verifyOtp] = useVerifyOtpMutation();
+  const [forgotPassword, { isLoading: resending }] = useForgotPasswordMutation();
 
   useEffect(() => {
     if (seconds <= 0) return;
@@ -31,23 +37,42 @@ export default function OtpVerifyScreen() {
 
   const code = digits.join('');
 
-  const verifyCode = (enteredCode: string) => {
+  const verifyCode = async (enteredCode: string) => {
+    if (enteredCode.length !== 6) return;
     setStatus('verifying');
-    setTimeout(() => {
-      if (enteredCode === '000000') {
-        setStatus('error');
-        return;
-      }
+    setErrorMessage('');
+
+    try {
+      await verifyOtp({ email, otp: enteredCode }).unwrap();
       setStatus('done');
       setTimeout(() => {
         if (flow === 'reset') {
-          router.push('/reset' as any);
+          router.push({
+            pathname: '/reset',
+            params: { email, otp: enteredCode },
+          } as any);
         } else {
-          // Prototype verification cannot establish an API session.
           router.replace('/login');
         }
       }, 800);
-    }, 900);
+    } catch (err) {
+      setStatus('error');
+      setErrorMessage(getApiErrorMessage(err, 'Invalid or expired verification code.'));
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (seconds > 0 || resending) return;
+    try {
+      await forgotPassword({ email }).unwrap();
+      setSeconds(60);
+      setDigits(['', '', '', '', '', '']);
+      setStatus('idle');
+      setErrorMessage('');
+      toast({ title: 'New code sent', description: 'Check your email inbox', variant: 'info' });
+    } catch (err) {
+      toast({ title: 'Failed to resend code', description: getApiErrorMessage(err), variant: 'error' });
+    }
   };
 
   const handleDigitChange = (index: number, value: string) => {
@@ -56,6 +81,7 @@ export default function OtpVerifyScreen() {
     next[index] = char;
     setDigits(next);
     setStatus('idle');
+    setErrorMessage('');
 
     if (char && index < 5) {
       inputRefs.current[index + 1]?.focus();
@@ -78,7 +104,7 @@ export default function OtpVerifyScreen() {
       <StatusBar style="dark" />
 
       {/* Screen Header */}
-      <ScreenHeader title="Verify your number" border={false} />
+      <ScreenHeader title="Verify code" border={false} />
 
       {/* Body */}
       <ScrollView
@@ -87,14 +113,14 @@ export default function OtpVerifyScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View className="h-12 w-12 items-center justify-center rounded-2xl bg-brand-tint">
-          <MessageSquare size={24} color="#0072C4" />
+          <Mail size={24} color="#0072C4" />
         </View>
 
         <Text className="mt-4 text-[24px] font-geist-bold font-bold leading-tight tracking-tight text-ink">
           Enter the 6-digit code
         </Text>
         <Text className="font-geist mt-2 text-[14.5px] leading-relaxed text-ink-500">
-          We sent it to <Text className="font-geist-semibold font-semibold text-ink">{phone}</Text>. It expires in 10 minutes.
+          We sent it to <Text className="font-geist-semibold font-semibold text-ink">{email}</Text>. It expires in 10 minutes.
         </Text>
 
         {/* 6 Digit Inputs */}
@@ -128,7 +154,7 @@ export default function OtpVerifyScreen() {
         {/* Status Messages */}
         {status === 'error' && (
           <Text className="mt-3 text-[13px] font-geist-medium font-medium text-danger">
-            That code is not valid. Request a new one and try again.
+            {errorMessage || 'That code is not valid. Request a new one and try again.'}
           </Text>
         )}
 
@@ -136,7 +162,7 @@ export default function OtpVerifyScreen() {
           <Animated.View entering={FadeInUp.duration(300)} className="mt-3 flex-row items-center gap-1.5">
             <CheckCircle2 size={16} color="#0F8A5F" />
             <Text className="text-[13px] font-geist-medium font-medium text-success">
-              Verified — taking you in…
+              Verified — continuing…
             </Text>
           </Animated.View>
         )}
@@ -150,40 +176,28 @@ export default function OtpVerifyScreen() {
           </Text>
 
           <Pressable
-            disabled={seconds > 0}
-            onPress={() => {
-              setSeconds(42);
-              setDigits(['', '', '', '', '', '']);
-              setStatus('idle');
-              toast({ title: 'New code sent', variant: 'info' });
-            }}
+            disabled={seconds > 0 || resending}
+            onPress={handleResendOtp}
           >
             <Text
               className={`text-[13.5px] font-geist-semibold font-semibold ${
-                seconds > 0 ? 'text-ink-300' : 'text-brand'
+                seconds > 0 || resending ? 'text-ink-300' : 'text-brand'
               }`}
             >
-              Resend OTP
+              {resending ? 'Sending…' : 'Resend OTP'}
             </Text>
           </Pressable>
         </View>
 
-        {/* Change phone button */}
+        {/* Change email button */}
         <Pressable
           onPress={() => router.back()}
           className="mt-4 w-full rounded-2xl border border-ink-200 py-3.5 items-center justify-center active:bg-ink-100"
         >
           <Text className="text-[13.5px] font-geist-semibold font-semibold text-ink-700">
-            Change phone number
+            Change email
           </Text>
         </Pressable>
-
-        {/* Prototype tip */}
-        <View className="mt-6 rounded-2xl bg-ink-100 p-3.5">
-          <Text className="font-geist text-[12px] leading-snug text-ink-500">
-            Prototype tip: any 6 digits verify successfully. Enter 000000 to see the invalid-code state.
-          </Text>
-        </View>
       </ScrollView>
 
       {/* Bottom Action */}
@@ -202,3 +216,4 @@ export default function OtpVerifyScreen() {
     </SafeAreaView>
   );
 }
+

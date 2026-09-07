@@ -5,32 +5,45 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { KeyRound, Mail } from 'lucide-react-native';
 
+import { useApp } from '@/contexts/AppContext';
+import { useForgotPasswordMutation } from '@/store/api/apiSlice';
+import { parseApiError } from '@/utils/apiError';
 import { ScreenHeader } from '@/components/layout/Screen';
 import { Button } from '@/components/ui/Button';
 import { TextField } from '@/components/ui/Input';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
+  const { toast } = useApp();
   const [value, setValue] = useState('');
   const [error, setError] = useState<string>();
-  const [loading, setLoading] = useState(false);
+  const [forgotPassword, { isLoading: loading }] = useForgotPasswordMutation();
 
-  const handleSubmit = () => {
-    if (!value.trim()) {
-      setError('Enter the email or phone number on your account');
+  const handleSubmit = async () => {
+    const trimmed = value.trim().toLowerCase();
+    if (!trimmed || !/^\S+@\S+\.\S+$/.test(trimmed)) {
+      setError('Enter a valid email address');
       return;
     }
     setError(undefined);
-    setLoading(true);
 
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const res = await forgotPassword({ email: trimmed }).unwrap();
+      toast({
+        title: 'Code Sent',
+        description: res.message || 'Check your inbox for the 6-digit verification code.',
+        variant: 'info',
+      });
       router.push({
         pathname: '/verify',
-        params: { flow: 'reset', phone: value },
+        params: { flow: 'reset', email: trimmed },
       } as any);
-    }, 800);
+    } catch (err) {
+      const parsed = parseApiError(err, ['email']);
+      setError(parsed.fieldErrors.email || parsed.generalMessage);
+    }
   };
+
 
   return (
     <SafeAreaView className="flex-1 bg-white" edges={['top', 'bottom']}>
