@@ -169,4 +169,24 @@ export class OffersService {
       offerId,
     };
   }
+
+  // 5. Fetch all offers submitted by the current tasker
+  async findMyOffers(userId: string) {
+    return this.prisma.offer.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        task: {
+          select: {
+            id: true,
+            title: true,
+            budget: true,
+            status: true,
+            address: true,
+            locationType: true,
+          },
+        },
+      },
+    });
+  }
 }
