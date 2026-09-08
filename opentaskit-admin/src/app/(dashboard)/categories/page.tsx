@@ -20,19 +20,28 @@ import {
   RefreshCw,
   AlertCircle,
   Inbox,
+  Loader2,
+  X,
 } from "lucide-react";
 
 import type { CategoryItem } from "@/types/category";
+import { adminFetch } from "@/lib/api-client";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -49,6 +58,28 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+// Presets for the category icon picker matching backend supported strings
+const PRESET_ICONS = [
+  { id: "broom", label: "Cleaning", icon: Sparkles },
+  { id: "hammer", label: "Handyman", icon: Wrench },
+  { id: "truck", label: "Delivery", icon: Truck },
+  { id: "leaf", label: "Gardening", icon: TreePine },
+  { id: "box", label: "Moving", icon: Truck },
+  { id: "paw", label: "Pet Care", icon: Sparkles },
+  { id: "laptop", label: "Tech Support", icon: Laptop },
+  { id: "camera", label: "Photography", icon: Camera },
+  { id: "paintbrush", label: "Painting", icon: Paintbrush },
+];
+
+// Helper: Automatically format a category name into a URL-friendly slug
+const generateSlug = (name: string) => {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "");
+};
 
 // Icon mapping helper matching backend icon strings (truck, leaf, hammer, box, broom, paw, etc.)
 const getCategoryIcon = (iconName?: string | null) => {
@@ -92,16 +123,31 @@ const getCategoryIcon = (iconName?: string | null) => {
 };
 
 export default function CategoriesPage() {
+  // Data fetching state
   const [categories, setCategories] = React.useState<CategoryItem[]>([]);
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const [error, setError] = React.useState<string | null>(null);
   const [searchQuery, setSearchQuery] = React.useState<string>("");
 
+  // Feedback notifications
+  const [successBanner, setSuccessBanner] = React.useState<string | null>(null);
+
+  // Add Category Modal & Form State
+  const [isCreateOpen, setIsCreateOpen] = React.useState<boolean>(false);
+  const [formName, setFormName] = React.useState<string>("");
+  const [formSlug, setFormSlug] = React.useState<string>("");
+  const [isSlugManuallyEdited, setIsSlugManuallyEdited] = React.useState<boolean>(false);
+  const [formDescription, setFormDescription] = React.useState<string>("");
+  const [formIcon, setFormIcon] = React.useState<string>("broom");
+  const [formIsActive, setFormIsActive] = React.useState<boolean>(true);
+  const [isSubmitting, setIsSubmitting] = React.useState<boolean>(false);
+  const [submitError, setSubmitError] = React.useState<string | null>(null);
+
   const fetchCategories = React.useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/backend/categories?all=true");
+      const res = await adminFetch("/api/backend/categories?all=true");
       if (!res.ok) {
         throw new Error(`Failed to load categories (HTTP ${res.status})`);
       }
@@ -117,6 +163,87 @@ export default function CategoriesPage() {
   React.useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
+
+  // Modal open & reset
+  const handleOpenCreate = () => {
+    setFormName("");
+    setFormSlug("");
+    setIsSlugManuallyEdited(false);
+    setFormDescription("");
+    setFormIcon("broom");
+    setFormIsActive(true);
+    setSubmitError(null);
+    setIsCreateOpen(true);
+  };
+
+  // Name input handler with auto-slug generation
+  const handleNameChange = (val: string) => {
+    setFormName(val);
+    if (!isSlugManuallyEdited) {
+      setFormSlug(generateSlug(val));
+    }
+  };
+
+  // Explicit slug manual override
+  const handleSlugChange = (val: string) => {
+    setIsSlugManuallyEdited(true);
+    setFormSlug(val);
+  };
+
+  // Create Category Submission Handler
+  const handleCreateCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formName.trim()) {
+      setSubmitError("Category name is required.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const payload = {
+        name: formName.trim(),
+        slug: formSlug.trim() ? formSlug.trim() : undefined,
+        icon: formIcon,
+        description: formDescription.trim() || undefined,
+        isActive: formIsActive,
+      };
+
+      const res = await adminFetch("/api/backend/categories", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        if (res.status === 409) {
+          throw new Error(data?.message || "An active category with this name or slug already exists.");
+        }
+        if (res.status === 401 || res.status === 403) {
+          throw new Error("Admin session expired or insufficient permissions. Please log in again.");
+        }
+        const errorMsg = Array.isArray(data?.message)
+          ? data.message.join(", ")
+          : data?.message || `Failed to create category (HTTP ${res.status})`;
+        throw new Error(errorMsg);
+      }
+
+      // Success: close modal, set banner, and refresh list
+      setIsCreateOpen(false);
+      setSuccessBanner(data?.message || `Category "${data?.category?.name || formName.trim()}" created successfully.`);
+      await fetchCategories();
+    } catch (err: unknown) {
+      setSubmitError(err instanceof Error ? err.message : "An unexpected error occurred while creating category.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const filteredCategories = categories.filter(
     (c) =>
@@ -139,14 +266,31 @@ export default function CategoriesPage() {
         </div>
         <Button
           size="default"
-          className="h-10 px-5 text-xs bg-[#0094F7] hover:bg-[#007cd6] text-white gap-2 font-semibold self-start sm:self-auto opacity-60 cursor-not-allowed"
-          disabled
-          title="Category creation mutation API will be enabled in the next phase"
+          className="h-10 px-5 text-xs bg-[#0094F7] hover:bg-[#007cd6] text-white gap-2 font-semibold self-start sm:self-auto cursor-pointer"
+          onClick={handleOpenCreate}
         >
           <Plus className="h-4 w-4" />
           <span>Add New Category</span>
         </Button>
       </div>
+
+      {/* Success Notification Banner */}
+      {successBanner && (
+        <div className="flex items-center justify-between gap-3 p-3.5 text-xs bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 rounded-lg">
+          <div className="flex items-center gap-2.5">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+            <span className="font-medium">{successBanner}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSuccessBanner(null)}
+            className="p-1 hover:bg-emerald-500/20 rounded text-emerald-700 dark:text-emerald-400 cursor-pointer"
+            aria-label="Dismiss message"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* Metrics Summary Bar (Kept static until analytics APIs are integrated) */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -188,7 +332,7 @@ export default function CategoriesPage() {
               size="sm"
               onClick={fetchCategories}
               disabled={isLoading}
-              className="h-9 px-3 gap-1.5 text-xs self-start sm:self-auto"
+              className="h-9 px-3 gap-1.5 text-xs self-start sm:self-auto cursor-pointer"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
               <span>Refresh</span>
@@ -255,7 +399,7 @@ export default function CategoriesPage() {
                           variant="outline"
                           size="sm"
                           onClick={fetchCategories}
-                          className="mt-2 h-8 px-3 text-xs gap-1.5"
+                          className="mt-2 h-8 px-3 text-xs gap-1.5 cursor-pointer"
                         >
                           <RefreshCw className="h-3.5 w-3.5" />
                           <span>Try Again</span>
@@ -323,7 +467,7 @@ export default function CategoriesPage() {
                       <TableCell className="text-right whitespace-nowrap">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer">
                               <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
                               <span className="sr-only">Actions</span>
                             </Button>
@@ -373,6 +517,156 @@ export default function CategoriesPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Create Category Modal Dialog */}
+      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <DialogContent className="w-[95vw] sm:max-w-lg p-0 gap-0 overflow-hidden">
+          <DialogHeader className="p-6 border-b bg-muted/10">
+            <DialogTitle className="text-lg font-bold text-foreground">
+              Create New Category
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+              Service categories define how users discover tasks and browse services across OpenTaskit.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleCreateCategory}>
+            <div className="p-6 space-y-4 text-xs">
+              {submitError && (
+                <div className="flex items-start gap-2.5 p-3 text-xs bg-destructive/10 border border-destructive/30 text-destructive rounded-lg">
+                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-destructive" />
+                  <div className="flex-1 font-medium">{submitError}</div>
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <label className="font-semibold text-foreground" htmlFor="category-name">
+                  Category Name <span className="text-destructive">*</span>
+                </label>
+                <Input
+                  id="category-name"
+                  placeholder="e.g. Car Washing & Auto Detailing"
+                  value={formName}
+                  onChange={(e) => handleNameChange(e.target.value)}
+                  className="h-9 text-xs"
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="font-semibold text-foreground" htmlFor="category-slug">
+                    URL Slug
+                  </label>
+                  <span className="text-[10px] text-muted-foreground">Auto-generated</span>
+                </div>
+                <Input
+                  id="category-slug"
+                  placeholder="car-washing-auto-detailing"
+                  value={formSlug}
+                  onChange={(e) => handleSlugChange(e.target.value)}
+                  className="h-9 text-xs font-mono"
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Slug used in URL routing: /tasks?category={formSlug || "slug"}
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="font-semibold text-foreground" htmlFor="category-desc">
+                  Description
+                </label>
+                <Textarea
+                  id="category-desc"
+                  placeholder="Brief summary of tasks and services included in this category..."
+                  value={formDescription}
+                  onChange={(e) => setFormDescription(e.target.value)}
+                  className="text-xs min-h-[75px] resize-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="font-semibold text-foreground">Category Icon</label>
+                <div className="grid grid-cols-3 gap-2 pt-1">
+                  {PRESET_ICONS.map((item) => {
+                    const IconComp = item.icon;
+                    const isSelected = formIcon === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setFormIcon(item.id)}
+                        className={`h-9 px-2.5 flex items-center gap-2 rounded-md border text-xs font-medium transition-colors cursor-pointer ${
+                          isSelected
+                            ? "bg-[#0094F7] text-white border-[#0094F7]"
+                            : "bg-background hover:bg-muted/60 text-muted-foreground border-border"
+                        }`}
+                      >
+                        <IconComp className={`h-3.5 w-3.5 shrink-0 ${isSelected ? "text-white" : ""}`} />
+                        <span className="truncate">{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/20">
+                <div className="space-y-0.5">
+                  <label className="text-xs font-semibold text-foreground cursor-pointer" htmlFor="category-is-active">
+                    Marketplace Visibility
+                  </label>
+                  <p className="text-[11px] text-muted-foreground">
+                    When active, this category is visible across mobile apps for posting tasks and browsing services.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  id="category-is-active"
+                  role="switch"
+                  aria-checked={formIsActive}
+                  onClick={() => setFormIsActive(!formIsActive)}
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                    formIsActive ? "bg-[#0094F7]" : "bg-muted-foreground/30"
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                      formIsActive ? "translate-x-4" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+
+            <div className="w-full px-6 py-4 border-t bg-muted/20 flex items-center justify-end gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-9 px-4 text-xs cursor-pointer"
+                disabled={isSubmitting}
+                onClick={() => setIsCreateOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="h-9 px-5 bg-[#0094F7] hover:bg-[#007cd6] text-white font-semibold text-xs gap-1.5 cursor-pointer"
+                disabled={isSubmitting || !formName.trim()}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <span>Creating...</span>
+                  </>
+                ) : (
+                  <span>Create Category</span>
+                )}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

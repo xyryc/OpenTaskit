@@ -32,6 +32,13 @@ export function setStoredSession(accessToken: string, refreshToken: string, user
   document.cookie = `admin_auth=true; path=/; max-age=604800; SameSite=Lax`;
 }
 
+export function updateStoredTokens(accessToken: string, refreshToken: string): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+  localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  document.cookie = `admin_auth=true; path=/; max-age=604800; SameSite=Lax`;
+}
+
 export function clearStoredSession(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(ACCESS_TOKEN_KEY);

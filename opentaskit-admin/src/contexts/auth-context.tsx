@@ -1,12 +1,14 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, useTransition } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AdminUser, AdminLoginPayload, AdminLoginResponse, ApiError } from "@/types/auth";
 import {
   getStoredAccessToken,
+  getStoredRefreshToken,
   getStoredUser,
   setStoredSession,
+  updateStoredTokens,
   clearStoredSession,
 } from "@/lib/auth-storage";
 
@@ -16,7 +18,8 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (payload: AdminLoginPayload) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
+  refreshTokens: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -45,6 +48,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Synchronize React state whenever adminFetch rotates tokens in the background
+  useEffect(() => {
+    const handleTokenRefreshed = (e: Event) => {
+      const customEvent = e as CustomEvent<{ accessToken: string; refreshToken: string }>;
+      if (customEvent.detail?.accessToken) {
+        setAccessToken(customEvent.detail.accessToken);
+      }
+    };
+
+    window.addEventListener("admin_token_refreshed", handleTokenRefreshed);
+    return () => {
+      window.removeEventListener("admin_token_refreshed", handleTokenRefreshed);
+    };
+  }, []);
+
   const login = async (payload: AdminLoginPayload) => {
     const res = await fetch("/api/backend/auth/login", {
       method: "POST",
@@ -62,7 +80,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           errorMessage = errJson.message;
         }
       } catch {
-        // Fallback to HTTP status text
         errorMessage = res.statusText || errorMessage;
       }
       throw new Error(errorMessage);
@@ -81,7 +98,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(data.user);
   };
 
-  const logout = () => {
+  const refreshTokens = async (): Promise<boolean> => {
+    const refreshToken = getStoredRefreshToken();
+    if (!refreshToken) return false;
+
+    try {
+      const res = await fetch("/api/backend/auth/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Refresh rejected");
+      }
+
+      const data = await res.json();
+      if (!data.accessToken || !data.refreshToken) {
+        throw new Error("Invalid token payload");
+      }
+
+      updateStoredTokens(data.accessToken, data.refreshToken);
+      setAccessToken(data.accessToken);
+      return true;
+    } catch {
+      clearStoredSession();
+      setAccessToken(null);
+      setUser(null);
+      router.replace("/login?expired=true");
+      return false;
+    }
+  };
+
+  const logout = async () => {
+    const refreshToken = getStoredRefreshToken();
+
+    // Invalidate refresh token on backend database
+    if (refreshToken) {
+      try {
+        await fetch("/api/backend/auth/logout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refreshToken }),
+        });
+      } catch {
+        // Silently continue with local cleanup if network fails
+      }
+    }
+
     clearStoredSession();
     setAccessToken(null);
     setUser(null);
@@ -97,6 +161,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         login,
         logout,
+        refreshTokens,
       }}
     >
       {children}
