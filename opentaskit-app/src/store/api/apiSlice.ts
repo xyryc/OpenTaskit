@@ -113,7 +113,7 @@ const baseQueryWithReauth: BaseQueryFn<
 export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithReauth,
-  tagTypes: ["Category", "Task", "User"],
+  tagTypes: ["Category", "Task", "User", "SavedTask"],
   endpoints: (builder) => ({
     // Categories
     getCategories: builder.query<CategoryItem[], boolean | void>({
@@ -259,6 +259,34 @@ export const apiSlice = createApi({
     resetPassword: builder.mutation<MessageResponse, ResetPasswordPayload>({
       query: (body) => ({ url: "/auth/reset-password", method: "POST", body }),
     }),
+
+    // Saved Tasks (Bookmarks)
+    getSavedTasks: builder.query<TaskItem[], void>({
+      query: () => "/users/me/saved-tasks",
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map(({ id }) => ({ type: "SavedTask" as const, id })),
+              { type: "SavedTask", id: "LIST" },
+            ]
+          : [{ type: "SavedTask", id: "LIST" }],
+    }),
+
+    saveTask: builder.mutation<{ message: string; taskId: string }, string>({
+      query: (taskId) => ({
+        url: `/tasks/${taskId}/save`,
+        method: "POST",
+      }),
+      invalidatesTags: [{ type: "SavedTask", id: "LIST" }],
+    }),
+
+    unsaveTask: builder.mutation<{ message: string; taskId: string }, string>({
+      query: (taskId) => ({
+        url: `/tasks/${taskId}/save`,
+        method: "DELETE",
+      }),
+      invalidatesTags: [{ type: "SavedTask", id: "LIST" }],
+    }),
   }),
 });
 
@@ -276,6 +304,9 @@ export const {
   useForgotPasswordMutation,
   useVerifyOtpMutation,
   useResetPasswordMutation,
+  useGetSavedTasksQuery,
+  useSaveTaskMutation,
+  useUnsaveTaskMutation,
 } = apiSlice;
 
 

@@ -38,6 +38,7 @@ import {
 } from 'lucide-react-native';
 
 import { useApp } from '@/contexts/AppContext';
+import { useSavedTasks } from '@/hooks/useSavedTasks';
 import { useAppSelector } from '@/store';
 import { useGetTaskByIdQuery } from '@/store/api/apiSlice';
 import { mapApiTaskToTask } from '@/utils/taskFilters';
@@ -71,14 +72,14 @@ export default function TaskDetailScreen() {
 
   const {
     myOffer,
-    savedTaskIds,
-    toggleSaved,
     toast,
     cancelTask,
     withdrawOffer,
     submitOffer,
     requireAccount,
   } = useApp();
+
+  const { isTaskSaved, toggleSave, isLoggedIn } = useSavedTasks();
 
   const { data: apiTask, isLoading: loading, isError: taskError } = useGetTaskByIdQuery(id, {
     skip: !id,
@@ -148,7 +149,27 @@ export default function TaskDetailScreen() {
 
   const mine = !!(authUser?.id && task.requesterId === authUser.id);
   const existingOffer = myOffer(task.id);
-  const saved = savedTaskIds.includes(task.id);
+  const saved = isTaskSaved(task.id);
+
+  const handleToggleSaved = async () => {
+    if (!isLoggedIn) {
+      toast({
+        title: 'Sign in required',
+        description: 'Please sign in to bookmark tasks',
+        variant: 'info',
+      });
+      router.push('/(auth)/login' as any);
+      return;
+    }
+
+    const res = await toggleSave(task.id);
+    if (res.success) {
+      toast({
+        title: res.action === 'saved' ? 'Saved for later' : 'Removed from saved',
+        variant: res.action === 'saved' ? 'success' : 'info',
+      });
+    }
+  };
   const categoryName = task.category?.name || 'Category';
   const categoryIcon = task.category?.icon;
   const payment = paymentMethodMeta(task.paymentMethod);
@@ -308,7 +329,7 @@ export default function TaskDetailScreen() {
 
             <View className="flex-row items-center gap-2">
               <Pressable
-                onPress={() => toggleSaved(task.id)}
+                onPress={handleToggleSaved}
                 hitSlop={10}
                 className="h-10 w-10 items-center justify-center rounded-full bg-white/90 border border-white shadow-sm active:bg-white"
               >
@@ -591,7 +612,7 @@ export default function TaskDetailScreen() {
           /* Provider: Make an offer & bookmark */
           <View className="flex-row gap-2.5" style={{ gap: 10 }}>
             <Pressable
-              onPress={() => toggleSaved(task.id)}
+              onPress={handleToggleSaved}
               className="h-12 w-12 items-center justify-center rounded-2xl border border-ink-200 bg-white active:bg-ink-100"
             >
               <Bookmark
@@ -734,11 +755,7 @@ export default function TaskDetailScreen() {
           <Pressable
             onPress={() => {
               setMoreOpen(false);
-              toggleSaved(task.id);
-              toast({
-                title: saved ? 'Removed from saved' : 'Saved for later',
-                variant: 'info',
-              });
+              handleToggleSaved();
             }}
             className="flex-row items-center gap-3 py-3.5 px-2 active:bg-ink-100 rounded-2xl"
           >

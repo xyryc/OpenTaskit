@@ -38,15 +38,16 @@ import { CardBackgroundPattern } from '@/components/ui/CardBackgroundPattern';
 import { ProviderAvailabilityCard } from '@/components/provider/ProviderAvailabilityCard';
 import { useAuthActions } from '@/hooks/useAuthActions';
 import { useAppSelector } from '@/store';
+import { useSavedTasks } from '@/hooks/useSavedTasks';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { guest, user } = useAppSelector((state) => state.auth);
+  const { savedCount } = useSavedTasks();
   const {
     me,
     kyc,
     wallet,
-    savedTaskIds,
     unreadNotifications,
     unreadMessages,
     available,
@@ -267,7 +268,7 @@ export default function ProfileScreen() {
             <Tile
               icon={<Bookmark size={18} color="#0072C4" />}
               label="Saved"
-              note={`${savedTaskIds.length}`}
+              note={`${savedCount}`}
               onPress={() => router.push('/(screens)/saved')}
             />
             <Tile

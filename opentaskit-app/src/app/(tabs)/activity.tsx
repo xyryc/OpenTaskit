@@ -36,14 +36,16 @@ const statusFilters: { key: TaskStatus | 'all'; label: string }[] = [
   { key: 'cancelled', label: 'Cancelled' },
 ];
 
+import { useSavedTasks } from '@/hooks/useSavedTasks';
+
 export default function ActivityScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ tab?: Tab }>();
+  const { savedCount } = useSavedTasks();
   const {
     tasks,
     offers,
     unreadMessages,
-    savedTaskIds,
     taskById,
     deleteTask,
     requireAccount,
@@ -94,10 +96,10 @@ export default function ActivityScreen() {
               className="relative h-10 w-10 items-center justify-center rounded-full border border-ink-200 bg-white"
             >
               <Bookmark size={18} color="#0C1417" />
-              {savedTaskIds.length > 0 && (
+              {savedCount > 0 && (
                 <View className="absolute -right-0.5 -top-0.5 h-4 min-w-[16px] items-center justify-center rounded-full bg-ink px-1">
                   <Text className="text-[10px] font-geist-bold font-bold text-white">
-                    {savedTaskIds.length}
+                    {savedCount}
                   </Text>
                 </View>
               )}

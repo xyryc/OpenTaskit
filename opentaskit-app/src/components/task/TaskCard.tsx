@@ -11,6 +11,8 @@ import { Avatar } from '@/components/ui/Avatar';
 import { StatusChip } from '@/components/ui/Chip';
 import { shadows } from '@/utils/shadows';
 
+import { useSavedTasks } from '@/hooks/useSavedTasks';
+
 export interface TaskCardProps {
   task: Task;
   variant?: 'list' | 'carousel';
@@ -33,8 +35,9 @@ export function TaskCard({
   onClick,
 }: TaskCardProps) {
   const router = useRouter();
-  const { savedTaskIds, toggleSaved } = useApp();
-  const saved = savedTaskIds.includes(task.id);
+  const { toast } = useApp();
+  const { isTaskSaved, toggleSave, isLoggedIn } = useSavedTasks();
+  const saved = isTaskSaved(task.id);
   const offerCount = task.offersCount ?? 0;
   const categoryName = task.category?.name ?? '';
   const categoryIcon = task.category?.icon;
@@ -63,9 +66,29 @@ export function TaskCard({
     }
   };
 
+  const handleToggle = async () => {
+    if (!isLoggedIn) {
+      toast({
+        title: 'Sign in required',
+        description: 'Please sign in to bookmark tasks',
+        variant: 'info',
+      });
+      router.push('/(auth)/login' as any);
+      return;
+    }
+
+    const res = await toggleSave(task.id);
+    if (res.success) {
+      toast({
+        title: res.action === 'saved' ? 'Saved for later' : 'Removed from saved',
+        variant: res.action === 'saved' ? 'success' : 'info',
+      });
+    }
+  };
+
   const bookmarkButton = (
     <Pressable
-      onPress={() => toggleSaved(task.id)}
+      onPress={handleToggle}
       hitSlop={8}
       className="h-8 w-8 items-center justify-center rounded-full"
       style={{ backgroundColor: 'rgba(255, 255, 255, 0.85)' }}
