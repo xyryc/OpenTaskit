@@ -147,6 +147,11 @@ export default function CategoriesPage() {
   // Inline status toggle loading state
   const [togglingId, setTogglingId] = React.useState<string | null>(null);
 
+  // Delete Category Confirmation Modal State
+  const [deletingCategory, setDeletingCategory] = React.useState<CategoryItem | null>(null);
+  const [isDeleting, setIsDeleting] = React.useState<boolean>(false);
+  const [deleteError, setDeleteError] = React.useState<string | null>(null);
+
   const fetchCategories = React.useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -306,6 +311,41 @@ export default function CategoriesPage() {
     }
   };
 
+  // Delete Category Handler (Context-Aware Safe Deactivation vs Permanent Deletion)
+  const handleConfirmDelete = async () => {
+    if (!deletingCategory) return;
+
+    setIsDeleting(true);
+    setDeleteError(null);
+
+    try {
+      const res = await adminFetch(`/api/backend/categories/${deletingCategory.id}`, {
+        method: "DELETE",
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        throw new Error(data?.message || `Failed to delete category (HTTP ${res.status})`);
+      }
+
+      const deletedCategoryName = deletingCategory.name;
+      const taskCount = deletingCategory._count?.tasks ?? 0;
+      setDeletingCategory(null);
+      setSuccessBanner(
+        data?.message ||
+          (taskCount > 0
+            ? `Category "${deletedCategoryName}" has linked tasks, so it was safely deactivated.`
+            : `Category "${deletedCategoryName}" was deleted permanently.`)
+      );
+      await fetchCategories();
+    } catch (err: unknown) {
+      setDeleteError(err instanceof Error ? err.message : "An unexpected error occurred while deleting.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const filteredCategories = categories.filter(
     (c) =>
       c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -353,7 +393,7 @@ export default function CategoriesPage() {
         </div>
       )}
 
-      {/* Metrics Summary Bar (Kept static until analytics APIs are integrated) */}
+      {/* Metrics Summary Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         <Card className="border-border/60 shadow-xs">
           <CardContent className="pt-4 pb-4">
@@ -578,12 +618,15 @@ export default function CategoriesPage() {
 
                             <DropdownMenuSeparator />
 
-                            {/* Delete Action (Disabled until delete phase) */}
+                            {/* Delete Action (Active) */}
                             <DropdownMenuItem
-                              disabled
-                              className="text-xs gap-2 opacity-50 cursor-not-allowed"
+                              className="text-xs gap-2 text-destructive focus:text-destructive cursor-pointer"
+                              onClick={() => {
+                                setDeleteError(null);
+                                setDeletingCategory(cat);
+                              }}
                             >
-                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                              <Trash2 className="h-3.5 w-3.5" />
                               <span>Delete</span>
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -749,6 +792,97 @@ export default function CategoriesPage() {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Modal Dialog */}
+      <Dialog
+        open={!!deletingCategory}
+        onOpenChange={(open) => {
+          if (!open && !isDeleting) {
+            setDeletingCategory(null);
+            setDeleteError(null);
+          }
+        }}
+      >
+        <DialogContent className="w-[95vw] sm:max-w-md p-6">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
+              <span>
+                {(deletingCategory?._count?.tasks ?? 0) > 0
+                  ? "Deactivate Category?"
+                  : "Permanently Delete Category?"}
+              </span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground mt-2" asChild>
+              {(deletingCategory?._count?.tasks ?? 0) > 0 ? (
+                <div className="space-y-2.5">
+                  <p>
+                    The category <strong className="text-foreground">"{deletingCategory?.name}"</strong> currently has{" "}
+                    <span className="font-semibold text-foreground">
+                      {deletingCategory?._count?.tasks} associated task(s)
+                    </span>
+                    .
+                  </p>
+                  <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-[11px] leading-relaxed">
+                    <strong>Safe Deactivation Policy:</strong> To protect customer order records and task history, this category cannot be permanently deleted. It will be <strong>safely deactivated</strong> and hidden from the mobile app marketplace.
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  <p>
+                    Are you sure you want to permanently delete <strong className="text-foreground">"{deletingCategory?.name}"</strong>?
+                  </p>
+                  <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-[11px] leading-relaxed">
+                    This category has <strong>0 associated tasks</strong>. It will be completely removed from the database. <strong>This action cannot be undone.</strong>
+                  </div>
+                </div>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          {deleteError && (
+            <div className="flex items-start gap-2 p-3 text-xs bg-destructive/10 border border-destructive/30 text-destructive rounded-md">
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+              <div className="flex-1 font-medium">{deleteError}</div>
+            </div>
+          )}
+
+          <div className="flex items-center justify-end gap-3 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="text-xs h-9 px-4 cursor-pointer"
+              disabled={isDeleting}
+              onClick={() => {
+                setDeletingCategory(null);
+                setDeleteError(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              className="text-xs h-9 px-4 gap-1.5 cursor-pointer font-semibold"
+              disabled={isDeleting}
+              onClick={handleConfirmDelete}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span>Processing...</span>
+                </>
+              ) : (deletingCategory?._count?.tasks ?? 0) > 0 ? (
+                <span>Safe Deactivate</span>
+              ) : (
+                <span>Delete Permanently</span>
+              )}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
