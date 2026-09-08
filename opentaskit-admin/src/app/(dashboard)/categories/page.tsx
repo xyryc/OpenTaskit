@@ -17,10 +17,12 @@ import {
   TreePine,
   Camera,
   Paintbrush,
-  BookOpen,
+  RefreshCw,
+  AlertCircle,
+  Inbox,
 } from "lucide-react";
 
-import { MOCK_CATEGORIES, CategoryRecord } from "@/data/mock-data";
+import type { CategoryItem } from "@/types/category";
 import {
   Card,
   CardContent,
@@ -40,14 +42,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -55,24 +49,42 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Textarea } from "@/components/ui/textarea";
 
-// Icon mapping helper
-const getCategoryIcon = (iconName?: string) => {
-  switch (iconName) {
-    case "Sparkles":
-      return <Sparkles className="h-4 w-4 text-[#0094F7]" />;
-    case "Wrench":
-      return <Wrench className="h-4 w-4 text-amber-500" />;
-    case "Truck":
+// Icon mapping helper matching backend icon strings (truck, leaf, hammer, box, broom, paw, etc.)
+const getCategoryIcon = (iconName?: string | null) => {
+  const icon = (iconName || "").toLowerCase();
+  switch (icon) {
+    case "truck":
+    case "delivery":
+    case "fast-delivery":
       return <Truck className="h-4 w-4 text-emerald-600" />;
-    case "Laptop":
-      return <Laptop className="h-4 w-4 text-purple-600" />;
-    case "TreePine":
+    case "wrench":
+    case "hammer":
+    case "handyman":
+      return <Wrench className="h-4 w-4 text-amber-500" />;
+    case "leaf":
+    case "garden":
+    case "treepine":
       return <TreePine className="h-4 w-4 text-green-600" />;
-    case "Camera":
+    case "broom":
+    case "cleaning":
+    case "sparkles":
+      return <Sparkles className="h-4 w-4 text-[#0094F7]" />;
+    case "box":
+    case "moving":
+      return <Truck className="h-4 w-4 text-blue-600" />;
+    case "paw":
+    case "pet":
+    case "dog":
+      return <Sparkles className="h-4 w-4 text-rose-500" />;
+    case "camera":
+    case "photo":
       return <Camera className="h-4 w-4 text-rose-500" />;
-    case "Paintbrush":
+    case "laptop":
+    case "tech":
+      return <Laptop className="h-4 w-4 text-purple-600" />;
+    case "paintbrush":
+    case "painting":
       return <Paintbrush className="h-4 w-4 text-indigo-500" />;
     default:
       return <Layers className="h-4 w-4 text-muted-foreground" />;
@@ -80,100 +92,31 @@ const getCategoryIcon = (iconName?: string) => {
 };
 
 export default function CategoriesPage() {
-  const [categories, setCategories] = React.useState<CategoryRecord[]>(MOCK_CATEGORIES);
+  const [categories, setCategories] = React.useState<CategoryItem[]>([]);
+  const [isLoading, setIsLoading] = React.useState<boolean>(true);
+  const [error, setError] = React.useState<string | null>(null);
   const [searchQuery, setSearchQuery] = React.useState<string>("");
-  const [isCreateOpen, setIsCreateOpen] = React.useState<boolean>(false);
-  const [editingCategory, setEditingCategory] = React.useState<CategoryRecord | null>(null);
-  const [deletingId, setDeletingId] = React.useState<string | null>(null);
 
-  // Form states
-  const [formName, setFormName] = React.useState<string>("");
-  const [formSlug, setFormSlug] = React.useState<string>("");
-  const [formDescription, setFormDescription] = React.useState<string>("");
-  const [formIcon, setFormIcon] = React.useState<string>("Sparkles");
-  const [formIsActive, setFormIsActive] = React.useState<boolean>(true);
-
-  const slugify = (text: string) => {
-    return text
-      .toLowerCase()
-      .trim()
-      .replace(/[^\w\s-]/g, "")
-      .replace(/[\s_-]+/g, "-")
-      .replace(/^-+|-+$/g, "");
-  };
-
-  const handleNameChange = (name: string) => {
-    setFormName(name);
-    if (!editingCategory) {
-      setFormSlug(slugify(name));
+  const fetchCategories = React.useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/backend/categories?all=true");
+      if (!res.ok) {
+        throw new Error(`Failed to load categories (HTTP ${res.status})`);
+      }
+      const data = await res.json();
+      setCategories(Array.isArray(data) ? data : []);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to load categories from backend.");
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, []);
 
-  const openCreateDialog = () => {
-    setEditingCategory(null);
-    setFormName("");
-    setFormSlug("");
-    setFormDescription("");
-    setFormIcon("Sparkles");
-    setFormIsActive(true);
-    setIsCreateOpen(true);
-  };
-
-  const openEditDialog = (category: CategoryRecord) => {
-    setEditingCategory(category);
-    setFormName(category.name);
-    setFormSlug(category.slug);
-    setFormDescription(category.description || "");
-    setFormIcon(category.icon || "Sparkles");
-    setFormIsActive(category.isActive);
-    setIsCreateOpen(true);
-  };
-
-  const handleSave = () => {
-    if (!formName.trim() || !formSlug.trim()) return;
-
-    if (editingCategory) {
-      setCategories((prev) =>
-        prev.map((c) =>
-          c.id === editingCategory.id
-            ? {
-                ...c,
-                name: formName,
-                slug: formSlug,
-                description: formDescription,
-                icon: formIcon,
-                isActive: formIsActive,
-              }
-            : c
-        )
-      );
-    } else {
-      const newCategory: CategoryRecord = {
-        id: `CAT-${String(categories.length + 1).padStart(3, "0")}`,
-        name: formName,
-        slug: formSlug,
-        description: formDescription,
-        icon: formIcon,
-        isActive: formIsActive,
-        tasksCount: 0,
-        createdAt: new Date().toISOString(),
-      };
-      setCategories((prev) => [...prev, newCategory]);
-    }
-
-    setIsCreateOpen(false);
-  };
-
-  const toggleActiveStatus = (id: string, current: boolean) => {
-    setCategories((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, isActive: !current } : c))
-    );
-  };
-
-  const handleDelete = (id: string) => {
-    setCategories((prev) => prev.filter((c) => c.id !== id));
-    setDeletingId(null);
-  };
+  React.useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
 
   const filteredCategories = categories.filter(
     (c) =>
@@ -191,41 +134,38 @@ export default function CategoriesPage() {
             Category & Taxonomy Management
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Create, edit, and organize service categories displayed across the mobile marketplace.
+            Service categories configured in the backend and displayed across the mobile marketplace.
           </p>
         </div>
         <Button
           size="default"
-          className="h-10 px-5 text-xs bg-[#0094F7] hover:bg-[#007cd6] text-white gap-2 font-semibold self-start sm:self-auto"
-          onClick={openCreateDialog}
+          className="h-10 px-5 text-xs bg-[#0094F7] hover:bg-[#007cd6] text-white gap-2 font-semibold self-start sm:self-auto opacity-60 cursor-not-allowed"
+          disabled
+          title="Category creation mutation API will be enabled in the next phase"
         >
           <Plus className="h-4 w-4" />
           <span>Add New Category</span>
         </Button>
       </div>
 
-      {/* Metrics Summary Bar */}
+      {/* Metrics Summary Bar (Kept static until analytics APIs are integrated) */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         <Card className="border-border/60 shadow-xs">
           <CardContent className="pt-4 pb-4">
             <div className="text-xs font-medium text-muted-foreground">Total Categories</div>
-            <div className="text-xl font-bold text-foreground mt-0.5">{categories.length}</div>
+            <div className="text-xl font-bold text-foreground mt-0.5">6</div>
           </CardContent>
         </Card>
         <Card className="border-border/60 shadow-xs">
           <CardContent className="pt-4 pb-4">
             <div className="text-xs font-medium text-muted-foreground">Active in Marketplace</div>
-            <div className="text-xl font-bold text-emerald-600 mt-0.5">
-              {categories.filter((c) => c.isActive).length}
-            </div>
+            <div className="text-xl font-bold text-emerald-600 mt-0.5">6</div>
           </CardContent>
         </Card>
         <Card className="border-border/60 shadow-xs col-span-2 sm:col-span-1">
           <CardContent className="pt-4 pb-4">
             <div className="text-xs font-medium text-muted-foreground">Total Marketplace Tasks</div>
-            <div className="text-xl font-bold text-foreground mt-0.5">
-              {categories.reduce((acc, c) => acc + c.tasksCount, 0)}
-            </div>
+            <div className="text-xl font-bold text-foreground mt-0.5">14</div>
           </CardContent>
         </Card>
       </div>
@@ -233,14 +173,26 @@ export default function CategoriesPage() {
       {/* Filter and Search Bar */}
       <Card className="border-border/60 shadow-xs">
         <CardHeader className="pb-3 border-b">
-          <div className="relative max-w-md w-full">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search category name, slug, description..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 h-9 text-xs w-full"
-            />
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="relative max-w-md w-full">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search category name, slug, description..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8 h-9 text-xs w-full"
+              />
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchCategories}
+              disabled={isLoading}
+              className="h-9 px-3 gap-1.5 text-xs self-start sm:self-auto"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
+              <span>Refresh</span>
+            </Button>
           </div>
         </CardHeader>
 
@@ -259,13 +211,70 @@ export default function CategoriesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredCategories.length === 0 ? (
+                {/* 1. Loading Skeleton */}
+                {isLoading ? (
+                  [1, 2, 3, 4, 5].map((idx) => (
+                    <TableRow key={idx} className="text-xs">
+                      <TableCell>
+                        <div className="flex items-center gap-3 min-w-[200px]">
+                          <div className="h-8 w-8 rounded-lg bg-muted/60 animate-pulse shrink-0 border" />
+                          <div className="space-y-1.5">
+                            <div className="h-3 w-28 bg-muted/60 rounded animate-pulse" />
+                            <div className="h-2.5 w-16 bg-muted/40 rounded animate-pulse" />
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="h-3 w-24 bg-muted/40 rounded animate-pulse" />
+                      </TableCell>
+                      <TableCell>
+                        <div className="h-3 w-40 bg-muted/40 rounded animate-pulse" />
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="h-3 w-12 bg-muted/40 rounded mx-auto animate-pulse" />
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="h-5 w-16 bg-muted/50 rounded-full mx-auto animate-pulse" />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="h-6 w-6 bg-muted/40 rounded ml-auto animate-pulse" />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : error ? (
+                  /* 2. Error State */
                   <TableRow>
-                    <TableCell colSpan={6} className="h-32 text-center text-xs text-muted-foreground">
-                      No categories found matching your search.
+                    <TableCell colSpan={6} className="h-36 text-center text-xs">
+                      <div className="flex flex-col items-center justify-center gap-2 py-4">
+                        <AlertCircle className="h-6 w-6 text-destructive shrink-0" />
+                        <p className="font-semibold text-foreground">{error}</p>
+                        <p className="text-muted-foreground text-[11px] max-w-sm">
+                          Ensure the NestJS backend is running at http://localhost:3000.
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={fetchCategories}
+                          className="mt-2 h-8 px-3 text-xs gap-1.5"
+                        >
+                          <RefreshCw className="h-3.5 w-3.5" />
+                          <span>Try Again</span>
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : filteredCategories.length === 0 ? (
+                  /* 3. Empty State */
+                  <TableRow>
+                    <TableCell colSpan={6} className="h-36 text-center text-xs text-muted-foreground">
+                      <div className="flex flex-col items-center justify-center gap-1.5 py-6">
+                        <Inbox className="h-6 w-6 text-muted-foreground/60" />
+                        <span className="font-medium">No categories found matching your search.</span>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : (
+                  /* 4. Live Categories Data */
                   filteredCategories.map((cat) => (
                     <TableRow key={cat.id} className="text-xs hover:bg-muted/40">
                       {/* Name & Icon */}
@@ -278,7 +287,7 @@ export default function CategoriesPage() {
                             <span className="font-semibold text-foreground block">
                               {cat.name}
                             </span>
-                            <span className="text-[11px] font-mono text-muted-foreground">
+                            <span className="text-[10px] font-mono text-muted-foreground">
                               {cat.id}
                             </span>
                           </div>
@@ -297,27 +306,20 @@ export default function CategoriesPage() {
 
                       {/* Tasks Count */}
                       <TableCell className="text-center font-semibold text-foreground whitespace-nowrap">
-                        {cat.tasksCount} tasks
+                        {cat._count?.tasks ?? 0} tasks
                       </TableCell>
 
                       {/* Status */}
                       <TableCell className="text-center whitespace-nowrap">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 px-2.5 text-xs font-medium cursor-pointer"
-                          onClick={() => toggleActiveStatus(cat.id, cat.isActive)}
+                        <Badge
+                          variant={cat.isActive ? "outline" : "secondary"}
+                          className={cat.isActive ? "text-emerald-600 border-emerald-500/30" : "text-muted-foreground"}
                         >
-                          <Badge
-                            variant={cat.isActive ? "outline" : "secondary"}
-                            className={cat.isActive ? "text-emerald-600 border-emerald-500/30" : "text-muted-foreground"}
-                          >
-                            {cat.isActive ? "Active" : "Inactive"}
-                          </Badge>
-                        </Button>
+                          {cat.isActive ? "Active" : "Inactive"}
+                        </Badge>
                       </TableCell>
 
-                      {/* Actions */}
+                      {/* Actions (Disabled until mutation APIs phase) */}
                       <TableCell className="text-right whitespace-nowrap">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -326,19 +328,19 @@ export default function CategoriesPage() {
                               <span className="sr-only">Actions</span>
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-40">
+                          <DropdownMenuContent align="end" className="w-44">
                             <DropdownMenuLabel className="text-xs">Category Options</DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
-                              className="text-xs gap-2 cursor-pointer"
-                              onClick={() => openEditDialog(cat)}
+                              disabled
+                              className="text-xs gap-2 opacity-50 cursor-not-allowed"
                             >
                               <Edit className="h-3.5 w-3.5 text-muted-foreground" />
                               <span>Edit Category</span>
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              className="text-xs gap-2 cursor-pointer"
-                              onClick={() => toggleActiveStatus(cat.id, cat.isActive)}
+                              disabled
+                              className="text-xs gap-2 opacity-50 cursor-not-allowed"
                             >
                               {cat.isActive ? (
                                 <>
@@ -354,10 +356,10 @@ export default function CategoriesPage() {
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
-                              className="text-xs gap-2 text-destructive focus:text-destructive cursor-pointer"
-                              onClick={() => setDeletingId(cat.id)}
+                              disabled
+                              className="text-xs gap-2 opacity-50 cursor-not-allowed"
                             >
-                              <Trash2 className="h-3.5 w-3.5" />
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
                               <span>Delete</span>
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -371,135 +373,6 @@ export default function CategoriesPage() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Create / Edit Category Modal Dialog */}
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="w-[95vw] sm:max-w-lg p-0 gap-0 overflow-hidden">
-          <DialogHeader className="p-6 border-b bg-muted/10">
-            <DialogTitle className="text-lg font-bold text-foreground">
-              {editingCategory ? "Edit Category" : "Create New Category"}
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-              Service categories define how users discover tasks and browse services.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="p-6 space-y-4 text-xs">
-            <div className="space-y-1.5">
-              <label className="font-semibold text-foreground">Category Name</label>
-              <Input
-                placeholder="e.g. Plumbing & Sanitary Repairs"
-                value={formName}
-                onChange={(e) => handleNameChange(e.target.value)}
-                className="h-9 text-xs"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="font-semibold text-foreground">URL Slug</label>
-              <Input
-                placeholder="plumbing-sanitary-repairs"
-                value={formSlug}
-                onChange={(e) => setFormSlug(e.target.value)}
-                className="h-9 text-xs font-mono"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="font-semibold text-foreground">Description</label>
-              <Textarea
-                placeholder="Brief summary of tasks included in this category..."
-                value={formDescription}
-                onChange={(e) => setFormDescription(e.target.value)}
-                className="text-xs min-h-[80px]"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="font-semibold text-foreground">Icon Symbol</label>
-              <div className="flex flex-wrap gap-2 pt-1">
-                {[
-                  { name: "Sparkles", label: "Cleaning" },
-                  { name: "Wrench", label: "Handyman" },
-                  { name: "Truck", label: "Delivery" },
-                  { name: "Laptop", label: "Tech" },
-                  { name: "TreePine", label: "Garden" },
-                  { name: "Camera", label: "Photo" },
-                  { name: "Paintbrush", label: "Painting" },
-                ].map((item) => (
-                  <Button
-                    key={item.name}
-                    type="button"
-                    variant={formIcon === item.name ? "default" : "outline"}
-                    size="sm"
-                    className={`h-8 px-3 text-xs gap-1.5 ${
-                      formIcon === item.name ? "bg-[#0094F7] text-white" : ""
-                    }`}
-                    onClick={() => setFormIcon(item.name)}
-                  >
-                    {getCategoryIcon(item.name)}
-                    <span>{item.label}</span>
-                  </Button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="w-full px-6 py-4 border-t bg-muted/20 flex items-center justify-end gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              className="h-9 px-4 text-xs"
-              onClick={() => setIsCreateOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              className="h-9 px-5 bg-[#0094F7] hover:bg-[#007cd6] text-white font-semibold text-xs"
-              disabled={!formName.trim() || !formSlug.trim()}
-              onClick={handleSave}
-            >
-              {editingCategory ? "Save Changes" : "Create Category"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation Modal */}
-      <Dialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
-        <DialogContent className="w-[95vw] sm:max-w-md p-6">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold text-foreground">
-              Delete Category?
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground mt-1">
-              Are you sure you want to delete this category? This action cannot be undone. Existing tasks in this category will become unassigned.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="flex items-center justify-end gap-3 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="text-xs h-9 px-4"
-              onClick={() => setDeletingId(null)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              className="text-xs h-9 px-4"
-              onClick={() => deletingId && handleDelete(deletingId)}
-            >
-              Delete Category
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
