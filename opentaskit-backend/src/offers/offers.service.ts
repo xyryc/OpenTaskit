@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOfferDto } from './dto/create-offer.dto';
 import { OfferStatus, TaskStatus } from '../../generated/prisma/enums';
+import { UpdateOfferDto } from './dto/update-offer.dto';
 
 @Injectable()
 export class OffersService {
@@ -184,6 +185,53 @@ export class OffersService {
             status: true,
             address: true,
             locationType: true,
+          },
+        },
+      },
+    });
+  }
+
+  // 6. Tasker updates their existing pending offer
+  async update(offerId: string, userId: string, dto: UpdateOfferDto) {
+    const offer = await this.prisma.offer.findUnique({
+      where: { id: offerId },
+      include: { task: true },
+    });
+
+    if (!offer) {
+      throw new NotFoundException('Offer not found');
+    }
+
+    // Rule 1: Only the tasker who created the offer can edit it
+    if (offer.userId !== userId) {
+      throw new ForbiddenException('You can only edit your own offer');
+    }
+
+    // Rule 2: Offer must still be PENDING
+    if (offer.status !== OfferStatus.PENDING) {
+      throw new BadRequestException('Only pending offers can be edited');
+    }
+
+    // Rule 3: The task must still be OPEN
+    if (offer.task.status !== TaskStatus.OPEN) {
+      throw new BadRequestException(
+        'Cannot edit an offer on a task that is no longer open',
+      );
+    }
+
+    return this.prisma.offer.update({
+      where: { id: offerId },
+      data: {
+        amount: dto.amount !== undefined ? dto.amount : offer.amount,
+        message: dto.message !== undefined ? dto.message : offer.message,
+      },
+      include: {
+        task: {
+          select: {
+            id: true,
+            title: true,
+            budget: true,
+            status: true,
           },
         },
       },
