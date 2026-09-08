@@ -276,4 +276,53 @@ export class OffersService {
       offer: rejectedOffer,
     };
   }
+
+  // 8. Inspect single offer details
+  async findOne(offerId: string, userId: string, userRole: string) {
+    const offer = await this.prisma.offer.findUnique({
+      where: { id: offerId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            phoneNumber: true,
+            role: true,
+            status: true,
+            createdAt: true,
+          },
+        },
+        task: {
+          select: {
+            id: true,
+            title: true,
+            budget: true,
+            status: true,
+            userId: true,
+            address: true,
+            locationType: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+
+    if (!offer) {
+      throw new NotFoundException('Offer not found');
+    }
+
+    // Security: Only the offer owner, task owner, or Admin can view this offer
+    if (
+      offer.userId !== userId &&
+      offer.task.userId !== userId &&
+      userRole !== 'ADMIN'
+    ) {
+      throw new ForbiddenException(
+        'You do not have permission to view this offer',
+      );
+    }
+
+    return offer;
+  }
 }

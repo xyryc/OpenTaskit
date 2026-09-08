@@ -81,4 +81,15 @@ export class OffersController {
   ) {
     return this.offersService.reject(offerId, posterId);
   }
+
+  // GET /api/v1/offers/:offerId - Inspect single offer details
+  @ApiOperation({ summary: 'Get single offer details by ID' })
+  @Get('offers/:offerId')
+  findOne(
+    @Param('offerId', ParseUUIDPipe) offerId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: string,
+  ) {
+    return this.offersService.findOne(offerId, userId, userRole);
+  }
 }
