@@ -1,9 +1,13 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { TasksService } from '../tasks/tasks.service';
 import { OffersService } from 'src/offers/offers.service';
+import { UsersService } from './users.service';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { FilterUsersDto } from './dto/filter-users.dto';
 
 @ApiTags('Users')
 @ApiBearerAuth('JWT-auth')
@@ -11,6 +15,7 @@ import { OffersService } from 'src/offers/offers.service';
 @Controller('users')
 export class UsersController {
   constructor(
+    private readonly usersService: UsersService,
     private readonly tasksService: TasksService,
     private readonly offersService: OffersService,
   ) {}
@@ -34,5 +39,16 @@ export class UsersController {
   @Get('me/offers')
   getMyOffers(@CurrentUser('id') userId: string) {
     return this.offersService.findMyOffers(userId);
+  }
+
+  // GET /api/v1/users - Admin User Directory with Search & Pagination;
+  @ApiOperation({
+    summary: 'List and search users with pagination (Admin only)',
+  })
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
+  @Get()
+  findAll(@Query() query: FilterUsersDto) {
+    return this.usersService.findAll(query);
   }
 }
