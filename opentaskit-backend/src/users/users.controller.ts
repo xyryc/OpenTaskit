@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -50,5 +50,16 @@ export class UsersController {
   @Get()
   findAll(@Query() query: FilterUsersDto) {
     return this.usersService.findAll(query);
+  }
+
+  // GET /api/v1/users/:id - Admin Get Single User Details & Activity History
+  @ApiOperation({
+    summary: 'Get single user profile and history by ID (Admin only)',
+  })
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.usersService.findOne(id);
   }
 }
