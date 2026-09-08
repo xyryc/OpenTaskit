@@ -17,6 +17,7 @@ import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { FilterUsersDto } from './dto/filter-users.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
+import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 
 @ApiTags('Users')
 @ApiBearerAuth('JWT-auth')
@@ -79,5 +80,14 @@ export class UsersController {
   @Patch(':id/status')
   updateStatus(@Param('id') id: string, @Body() dto: UpdateUserStatusDto) {
     return this.usersService.updateStatus(id, dto);
+  }
+
+  // PATCH /api/v1/users/:id/role - Admin Update User Role
+  @ApiOperation({ summary: 'Update user role (Admin only)' })
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
+  @Patch(':id/role')
+  updateRole(@Param('id') id: string, @Body() dto: UpdateUserRoleDto) {
+    return this.usersService.updateRole(id, dto);
   }
 }

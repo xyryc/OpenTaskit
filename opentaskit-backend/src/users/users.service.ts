@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { FilterUsersDto } from './dto/filter-users.dto';
 import { Prisma } from '../../generated/prisma/client';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
+import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 
 @Injectable()
 export class UsersService {
@@ -153,6 +154,27 @@ export class UsersService {
     return this.prisma.user.update({
       where: { id },
       data: { status: dto.status },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        role: true,
+        status: true,
+        updatedAt: true,
+      },
+    });
+  }
+
+  // 4. Admin Update User Role (Promote / Demote)
+  async updateRole(id: string, dto: UpdateUserRoleDto) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+
+    return this.prisma.user.update({
+      where: { id },
+      data: { role: dto.role },
       select: {
         id: true,
         fullName: true,
