@@ -169,10 +169,10 @@ export const apiSlice = createApi({
       providesTags: (result) =>
         result
           ? [
-              { type: 'Task', id: 'LIST' },
-              ...result.data.map((task) => ({ type: 'Task' as const, id: task.id })),
+              { type: 'Task' as const, id: 'LIST' },
+              ...result.data.map(({ id }) => ({ type: 'Task' as const, id })),
             ]
-          : [{ type: 'Task', id: 'LIST' }],
+          : [{ type: 'Task' as const, id: 'LIST' }],
     }),
     getTaskById: builder.query<TaskItem, string>({
       query: (id) => `/tasks/${id}`,

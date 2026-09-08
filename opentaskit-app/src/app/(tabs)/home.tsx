@@ -11,6 +11,7 @@ import { StatusBar } from "expo-status-bar";
 import {
   Bell,
   ChevronDown,
+  Compass,
   MapPin,
   MessageCircle,
   RefreshCw,
@@ -19,8 +20,7 @@ import {
 
 import { useApp } from "@/contexts/AppContext";
 import { useGetCategoriesQuery, useGetTasksQuery } from "@/store/api/apiSlice";
-import { ME } from "@/data/users";
-import { categories } from "@/data/categories";
+import { getCachedCategories, setCachedCategories } from "@/utils/categoryCache";
 import { recommendedTasks, reasonLabel } from "@/utils/recommend";
 import { mapApiTaskToTask } from "@/utils/taskFilters";
 import { Screen, SectionHeader } from "@/components/layout/Screen";
@@ -42,42 +42,48 @@ export default function HomeScreen() {
     me,
     mode,
     setMode,
-    tasks,
     unreadNotifications,
     unreadMessages,
     currentLocation,
     requireAccount,
   } = useApp();
 
-  const { data: apiCategories, refetch: refetchCategories } =
-    useGetCategoriesQuery();
-  const displayCategories =
-    apiCategories && apiCategories.length > 0 ? apiCategories : categories;
+  const {
+    data: apiCategories,
+    isLoading: categoriesLoading,
+    refetch: refetchCategories,
+  } = useGetCategoriesQuery();
 
-  const { data: tasksData, refetch: refetchTasks } = useGetTasksQuery();
-  const liveTasks = useMemo(() => {
-    if (tasksData?.data && tasksData.data.length > 0) {
-      return tasksData.data.map(mapApiTaskToTask);
+  useEffect(() => {
+    if (apiCategories && apiCategories.length > 0) {
+      setCachedCategories(apiCategories);
     }
-    return tasks;
-  }, [tasksData, tasks]);
+  }, [apiCategories]);
 
-  const [loading, setLoading] = useState(true);
+  const displayCategories = useMemo(() => {
+    if (apiCategories && apiCategories.length > 0) return apiCategories;
+    return getCachedCategories() ?? [];
+  }, [apiCategories]);
+
+  const {
+    data: tasksData,
+    isLoading: tasksLoading,
+    refetch: refetchTasks,
+  } = useGetTasksQuery();
+
+  const liveTasks = useMemo(() => {
+    return tasksData?.data ? tasksData.data.map(mapApiTaskToTask) : [];
+  }, [tasksData]);
+
+  const loading = tasksLoading || categoriesLoading;
   const [refreshing, setRefreshing] = useState(false);
 
   const [locationOpen, setLocationOpen] = useState(false);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
-
   const openTasks = useMemo(
     () =>
-      liveTasks.filter(
-        (task) =>
-          task.requesterId !== ME &&
-          ["posted", "receiving_offers"].includes(task.status),
+      liveTasks.filter((task) =>
+        ["posted", "receiving_offers"].includes(task.status),
       ),
     [liveTasks],
   );
@@ -269,40 +275,48 @@ export default function HomeScreen() {
             />
           </View>
 
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 20, gap: 10 }}
-            className="pb-1"
-          >
-            {displayCategories.slice(0, 8).map((category) => (
-              <Pressable
-                key={category.id}
-                onPress={() => handleOpenCategory(category.id)}
-                className="w-[86px] items-center gap-2 rounded-3xl border border-ink-200 bg-white px-2 py-3.5"
-              >
-                <View
-                  className={`h-11 w-11 items-center justify-center rounded-2xl ${
-                    "tone" in category && typeof category.tone === "string"
-                      ? category.tone
-                      : "bg-brand-tint"
-                  }`}
+          {categoriesLoading && displayCategories.length === 0 ? (
+            <View className="flex-row gap-2.5 px-5">
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-[96px] w-[86px] rounded-3xl" />
+              ))}
+            </View>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 20, gap: 10 }}
+              className="pb-1"
+            >
+              {displayCategories.slice(0, 8).map((category) => (
+                <Pressable
+                  key={category.id}
+                  onPress={() => handleOpenCategory(category.id)}
+                  className="w-[86px] items-center gap-2 rounded-3xl border border-ink-200 bg-white px-2 py-3.5"
                 >
-                  <CategoryIcon
-                    categoryId={category.id}
-                    iconName={category.icon}
-                    size={20}
-                  />
-                </View>
-                <Text
-                  numberOfLines={2}
-                  className="w-full text-center text-[11.5px] font-geist-medium font-medium text-ink-700"
-                >
-                  {category.name}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
+                  <View
+                    className={`h-11 w-11 items-center justify-center rounded-2xl ${
+                      "tone" in category && typeof category.tone === "string"
+                        ? category.tone
+                        : "bg-brand-tint"
+                    }`}
+                  >
+                    <CategoryIcon
+                      categoryId={category.id}
+                      iconName={category.icon}
+                      size={20}
+                    />
+                  </View>
+                  <Text
+                    numberOfLines={2}
+                    className="w-full text-center text-[11.5px] font-geist-medium font-medium text-ink-700"
+                  >
+                    {category.name}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          )}
         </View>
 
         {/* Content depending on Mode */}
@@ -333,6 +347,27 @@ export default function HomeScreen() {
                 <View className="flex-row gap-3 px-5">
                   <Skeleton className="h-[212px] w-[252px] rounded-3xl" />
                   <Skeleton className="h-[212px] w-[252px] rounded-3xl" />
+                </View>
+              ) : nearby.length === 0 ? (
+                <View className="mx-5 rounded-3xl border border-ink-200/70 bg-white p-5 items-center text-center">
+                  <View className="h-11 w-11 items-center justify-center rounded-2xl bg-brand-tint mb-3">
+                    <Compass size={22} color="#0094F7" />
+                  </View>
+                  <Text className="text-[15px] font-geist-semibold text-ink text-center">
+                    No open tasks nearby right now
+                  </Text>
+                  <Text className="mt-1 text-center font-geist text-[13px] text-ink-500 leading-relaxed max-w-[280px]">
+                    Be the first to post a task or explore categories to discover more.
+                  </Text>
+                  <View className="mt-4 w-40">
+                    <Button
+                      size="sm"
+                      variant="brand"
+                      onPress={handlePostTask}
+                    >
+                      Post a task
+                    </Button>
+                  </View>
                 </View>
               ) : (
                 <ScrollView

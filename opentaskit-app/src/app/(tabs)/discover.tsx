@@ -17,7 +17,6 @@ import {
 
 import { useApp } from '@/contexts/AppContext';
 import { useGetTasksQuery } from '@/store/api/apiSlice';
-import { ME } from '@/data/users';
 import {
   applyFilters,
   activeFilterCount,
@@ -40,7 +39,7 @@ import { shadows } from '@/utils/shadows';
 export default function DiscoverScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { tasks, toast, requireAccount } = useApp();
+  const { toast, requireAccount } = useApp();
 
   const [view, setView] = useState<'list' | 'map'>('list');
   const [query, setQuery] = useState('');
@@ -56,18 +55,13 @@ export default function DiscoverScreen() {
   });
 
   const liveTasks = useMemo(() => {
-    if (tasksData?.data && tasksData.data.length > 0) {
-      return tasksData.data.map(mapApiTaskToTask);
-    }
-    return tasks;
-  }, [tasksData, tasks]);
+    return tasksData?.data ? tasksData.data.map(mapApiTaskToTask) : [];
+  }, [tasksData]);
 
   const openTasks = useMemo(
     () =>
-      liveTasks.filter(
-        (task) =>
-          task.requesterId !== ME &&
-          ['posted', 'receiving_offers'].includes(task.status)
+      liveTasks.filter((task) =>
+        ['posted', 'receiving_offers'].includes(task.status)
       ),
     [liveTasks]
   );
