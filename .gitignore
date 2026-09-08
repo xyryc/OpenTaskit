@@ -8,6 +8,7 @@
 .env.development.local
 .env.test.local
 .env.production.local
+!.env.example
 *.pem
 *.key
 *.cert
@@ -25,6 +26,10 @@ node_modules/
 # ==========================================
 # 3. NEXT.JS (opentaskit-admin)
 # ==========================================
+opentaskit-admin/.next/
+opentaskit-admin/out/
+opentaskit-admin/build/
+opentaskit-admin/.turbo/
 .next/
 out/
 

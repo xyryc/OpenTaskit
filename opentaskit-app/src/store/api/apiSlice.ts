@@ -188,6 +188,74 @@ export const apiSlice = createApi({
       invalidatesTags: [{ type: 'Task', id: 'LIST' }],
     }),
 
+    uploadImages: builder.mutation<{ message: string; urls: string[] }, FormData>({
+      async queryFn(formData) {
+        return new Promise((resolve) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open("POST", `${API_BASE_URL}/uploads`);
+          xhr.timeout = 60000; // 60s timeout for image upload
+
+          const token = storage.getString(ACCESS_TOKEN_KEY);
+          if (token) {
+            xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+          }
+
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              try {
+                const data = JSON.parse(xhr.responseText);
+                resolve({ data });
+              } catch {
+                resolve({
+                  error: {
+                    status: "CUSTOM_ERROR" as const,
+                    error: "Failed to parse upload response",
+                  },
+                });
+              }
+            } else {
+              try {
+                const errorData = JSON.parse(xhr.responseText);
+                resolve({
+                  error: {
+                    status: xhr.status,
+                    data: errorData,
+                  },
+                });
+              } catch {
+                resolve({
+                  error: {
+                    status: xhr.status,
+                    data: xhr.responseText,
+                  },
+                });
+              }
+            }
+          };
+
+          xhr.onerror = () => {
+            resolve({
+              error: {
+                status: "FETCH_ERROR" as const,
+                error: "Network error occurred while uploading photos",
+              },
+            });
+          };
+
+          xhr.ontimeout = () => {
+            resolve({
+              error: {
+                status: "TIMEOUT_ERROR" as const,
+                error: "Image upload timed out. Please try again.",
+              },
+            });
+          };
+
+          xhr.send(formData);
+        });
+      },
+    }),
+
     resetPassword: builder.mutation<MessageResponse, ResetPasswordPayload>({
       query: (body) => ({ url: "/auth/reset-password", method: "POST", body }),
     }),
@@ -200,6 +268,7 @@ export const {
   useGetTasksQuery,
   useGetTaskByIdQuery,
   useCreateTaskMutation,
+  useUploadImagesMutation,
   useRegisterMutation,
   useLoginMutation,
   useRefreshMutation,
@@ -208,4 +277,5 @@ export const {
   useVerifyOtpMutation,
   useResetPasswordMutation,
 } = apiSlice;
+
 

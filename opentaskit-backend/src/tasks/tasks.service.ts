@@ -39,6 +39,7 @@ export class TasksService {
   // 2. Fetch Marketplace Tasks with Filters & Pagination
   async findAll(query: FilterTasksDto) {
     const {
+      allStatuses,
       search,
       categoryId,
       status,
@@ -53,7 +54,7 @@ export class TasksService {
 
     // Build dynamic SQL where clause
     const where: any = {
-      status: status || TaskStatus.OPEN,
+      ...(status ? { status } : allStatuses ? {} : { status: TaskStatus.OPEN }),
       ...(categoryId && { categoryId }),
       ...(locationType && { locationType }),
       ...((minBudget || maxBudget) && {
@@ -84,6 +85,9 @@ export class TasksService {
             select: { id: true, name: true, slug: true, icon: true },
           },
           user: { select: { id: true, fullName: true } },
+          _count: {
+            select: { offers: true },
+          },
         },
       }),
     ]);
@@ -106,6 +110,9 @@ export class TasksService {
         category: {
           select: { id: true, name: true, slug: true, icon: true },
         },
+        _count: {
+          select: { offers: true },
+        },
       },
     });
   }
@@ -125,6 +132,9 @@ export class TasksService {
             phoneNumber: true,
             createdAt: true,
           },
+        },
+        _count: {
+          select: { offers: true },
         },
       },
     });

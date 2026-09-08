@@ -30,7 +30,11 @@ import {
 } from 'lucide-react-native';
 
 import { useApp } from '@/contexts/AppContext';
-import { useGetCategoriesQuery, useCreateTaskMutation } from '@/store/api/apiSlice';
+import {
+  useGetCategoriesQuery,
+  useCreateTaskMutation,
+  useUploadImagesMutation,
+} from '@/store/api/apiSlice';
 import { parseApiError } from '@/utils/apiError';
 import { categories } from '@/data/categories';
 import { Screen } from '@/components/layout/Screen';
@@ -111,6 +115,7 @@ export default function CreateTaskScreen() {
 
   const { data: apiCategories } = useGetCategoriesQuery();
   const [createTaskApi, { isLoading: posting }] = useCreateTaskMutation();
+  const [uploadImagesApi, { isLoading: uploadingImages }] = useUploadImagesMutation();
 
   const [step, setStep] = useState(1);
   const [title, setTitle] = useState('');
@@ -238,11 +243,47 @@ export default function CreateTaskScreen() {
         flexible: 'FLEXIBLE',
       };
 
+      // 1. Upload local device photos to Cloudinary CDN first
+      let finalImages: string[] = [];
+      const localUris = images.filter((img) => !img.startsWith('http'));
+      const remoteUris = images.filter((img) => img.startsWith('http'));
+
+      if (localUris.length > 0) {
+        const formData = new FormData();
+        for (const uri of localUris) {
+          const filename = uri.split('/').pop() || `photo-${Date.now()}.jpg`;
+          const match = /\.(\w+)$/.exec(filename);
+          const ext = match ? match[1].toLowerCase() : 'jpg';
+          const type = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+
+          formData.append('files', {
+            uri,
+            name: filename,
+            type,
+          } as any);
+        }
+
+        try {
+          const uploadRes = await uploadImagesApi(formData).unwrap();
+          finalImages = [...remoteUris, ...uploadRes.urls];
+        } catch (uploadErr) {
+          console.warn('Image upload error:', uploadErr);
+          toast({
+            title: 'Image Upload Failed',
+            description: 'Could not upload photos to cloud storage. Please check your network and try again.',
+            variant: 'error',
+          });
+          return;
+        }
+      } else {
+        finalImages = remoteUris;
+      }
+
       const payload: CreateTaskPayload = {
         title: title.trim(),
         details: description.trim(),
         categoryId,
-        images: images.length > 0 ? images : undefined,
+        images: finalImages.length > 0 ? finalImages : undefined,
         locationType: isRemote ? 'REMOTE' : 'IN_PERSON',
         address: isRemote ? undefined : location.trim(),
         latitude: 6.9016,
@@ -1064,11 +1105,11 @@ export default function CreateTaskScreen() {
               full
               size="lg"
               variant="brand"
-              loading={posting}
+              loading={posting || uploadingImages}
               icon={<Sparkles size={18} color="#FFFFFF" />}
               onPress={handlePost}
             >
-              Post task
+              {uploadingImages ? 'Uploading photos...' : 'Post task'}
             </Button>
           ) : (
             <Button full size="lg" variant="brand" onPress={goNext}>
