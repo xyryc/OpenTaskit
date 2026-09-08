@@ -35,6 +35,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useAuth } from "@/contexts/auth-context";
 
 interface NavItem {
   title: string;
@@ -150,6 +151,17 @@ const navGroups: NavGroup[] = [
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const { user } = useAuth();
+
+  const initials = user?.fullName
+    ? user.fullName
+        .split(" ")
+        .filter(Boolean)
+        .map((n) => n[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
+    : "AD";
 
   return (
     <Sidebar collapsible="icon">
@@ -246,15 +258,15 @@ export function AppSidebar() {
         <div className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center">
           <Avatar className="h-8 w-8 rounded-lg border">
             <AvatarFallback className="rounded-lg bg-primary/10 text-xs font-semibold text-primary">
-              AD
+              {initials}
             </AvatarFallback>
           </Avatar>
           <div className="flex flex-col overflow-hidden group-data-[collapsible=icon]:hidden">
             <span className="truncate text-xs font-medium text-foreground">
-              System Admin
+              {user?.fullName || "System Admin"}
             </span>
             <span className="truncate text-[11px] text-muted-foreground">
-              admin@opentaskit.com
+              {user?.email || "admin@opentaskit.com"}
             </span>
           </div>
         </div>

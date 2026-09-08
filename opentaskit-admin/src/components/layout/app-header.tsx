@@ -29,9 +29,21 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useAuth } from "@/contexts/auth-context";
 
 export function AppHeader() {
   const pathname = usePathname();
+  const { user, logout } = useAuth();
+
+  const initials = user?.fullName
+    ? user.fullName
+        .split(" ")
+        .filter(Boolean)
+        .map((n) => n[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
+    : "AD";
 
   // Helper to construct a clean breadcrumb title
   const getPageTitle = () => {
@@ -144,22 +156,22 @@ export function AppHeader() {
             >
               <Avatar className="h-7 w-7 border">
                 <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
-                  AD
+                  {initials}
                 </AvatarFallback>
               </Avatar>
               <span className="hidden md:inline-block text-xs font-semibold text-foreground">
-                Admin
+                {user?.fullName?.split(" ")[0] || "Admin"}
               </span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-semibold leading-none text-foreground">
-                  Super Administrator
+                <p className="text-sm font-semibold leading-none text-foreground truncate">
+                  {user?.fullName || "Super Administrator"}
                 </p>
-                <p className="text-xs leading-none text-muted-foreground">
-                  admin@opentaskit.com
+                <p className="text-xs leading-none text-muted-foreground truncate">
+                  {user?.email || "admin@opentaskit.com"}
                 </p>
               </div>
             </DropdownMenuLabel>
@@ -179,7 +191,10 @@ export function AppHeader() {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="gap-2 text-xs text-destructive focus:text-destructive cursor-pointer">
+            <DropdownMenuItem
+              onClick={logout}
+              className="gap-2 text-xs text-destructive focus:text-destructive cursor-pointer"
+            >
               <LogOut className="h-4 w-4" />
               <span>Log out</span>
             </DropdownMenuItem>

@@ -4,9 +4,7 @@ import "./globals.css";
 
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/layout/app-sidebar";
-import { AppHeader } from "@/components/layout/app-header";
+import { AuthProvider } from "@/contexts/auth-context";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -59,15 +57,9 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <TooltipProvider>
-            <SidebarProvider>
-              <AppSidebar />
-              <SidebarInset className="flex flex-col min-h-screen">
-                <AppHeader />
-                <main className="flex-1 p-4 md:p-6 lg:p-8 bg-muted/20">
-                  {children}
-                </main>
-              </SidebarInset>
-            </SidebarProvider>
+            <AuthProvider>
+              {children}
+            </AuthProvider>
           </TooltipProvider>
         </ThemeProvider>
       </body>
