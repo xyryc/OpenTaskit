@@ -102,4 +102,17 @@ export class TasksController {
   ) {
     return this.tasksService.completeTask(taskId, userId, userRole);
   }
+
+  // 9. POST /tasks/:id/cancel - Cancel a Task (Owner or Admin)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Cancel a task (Owner or Admin)' })
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/cancel')
+  cancelTask(
+    @Param('id') taskId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: string,
+  ) {
+    return this.tasksService.cancelTask(taskId, userId, userRole);
+  }
 }

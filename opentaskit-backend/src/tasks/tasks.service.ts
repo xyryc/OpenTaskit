@@ -332,4 +332,59 @@ export class TasksService {
       task: completedTask,
     };
   }
+
+  // 11. Cancel a task (Owner or Admin only)
+  async cancelTask(taskId: string, userId: string, userRole: string) {
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    // Rule 1: Only the task owner or an Admin can cancel
+    if (task.userId !== userId && userRole !== 'ADMIN') {
+      throw new ForbiddenException(
+        'Only the task owner or an admin can cancel this task',
+      );
+    }
+
+    // Rule 2: Cannot cancel completed task
+    if (task.status === TaskStatus.COMPLETED) {
+      throw new BadRequestException('Cannot cancel an already completed task');
+    }
+
+    // Rule 3: Cannot cancel already cancelled task
+    if (task.status === TaskStatus.CANCELLED) {
+      throw new BadRequestException('Task is already cancelled');
+    }
+
+    // Atomic transaction: Cancel task and mark active offers as WITHDRAWN;
+    return this.prisma.$transaction(async (tx) => {
+      const cancelledTask = await tx.task.update({
+        where: { id: taskId },
+        data: { status: TaskStatus.CANCELLED },
+        include: {
+          category: {
+            select: { id: true, name: true, slug: true, icon: true },
+          },
+        },
+      });
+
+      // Withdraw any active offers
+      await tx.offer.updateMany({
+        where: {
+          taskId,
+          status: { in: ['PENDING', 'ACCEPTED'] },
+        },
+        data: { status: 'WITHDRAWN' },
+      });
+
+      return {
+        message: 'Task cancelled successfully',
+        task: cancelledTask,
+      };
+    });
+  }
 }
