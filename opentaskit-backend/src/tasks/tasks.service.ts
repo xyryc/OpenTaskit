@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -275,5 +276,60 @@ export class TasksService {
 
     // Map to return just the task objects
     return saved.map((item) => item.task);
+  }
+
+  // 10. Mark task as COMPLETED
+  async completeTask(taskId: string, userId: string, userRole: string) {
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      include: {
+        offers: {
+          where: { status: 'ACCEPTED' },
+        },
+      },
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    // Rule 1: Task must currently be in ASSIGNED status
+    if (task.status !== TaskStatus.ASSIGNED) {
+      throw new BadRequestException(
+        `Only assigned tasks can be marked as completed. Current       
+  status: ${task.status}`,
+      );
+    }
+
+    // Rule 2: Caller must be the task poster, the assigned provider, or an Admin
+    const isPoster = task.userId === userId;
+    const isAssignedProvider = task.offers.some(
+      (offer) => offer.userId === userId,
+    );
+    const isAdmin = userRole === 'ADMIN';
+
+    if (!isPoster && !isAssignedProvider && !isAdmin) {
+      throw new ForbiddenException(
+        'Only the task poster or assigned provider can mark this task as completed',
+      );
+    }
+
+    const completedTask = await this.prisma.task.update({
+      where: { id: taskId },
+      data: { status: TaskStatus.COMPLETED },
+      include: {
+        category: {
+          select: { id: true, name: true, slug: true, icon: true },
+        },
+        user: {
+          select: { id: true, fullName: true, phoneNumber: true },
+        },
+      },
+    });
+
+    return {
+      message: 'Task marked as completed successfully',
+      task: completedTask,
+    };
   }
 }
