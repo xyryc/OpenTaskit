@@ -71,4 +71,14 @@ export class OffersController {
   ) {
     return this.offersService.update(offerId, userId, dto);
   }
+
+  // POST /api/v1/offers/:offerId/reject - Decline an offer (Poster only)
+  @ApiOperation({ summary: 'Decline an offer (Poster only)' })
+  @Post('offers/:offerId/reject')
+  reject(
+    @Param('offerId', ParseUUIDPipe) offerId: string,
+    @CurrentUser('id') posterId: string,
+  ) {
+    return this.offersService.reject(offerId, posterId);
+  }
 }

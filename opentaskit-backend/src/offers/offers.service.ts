@@ -237,4 +237,43 @@ export class OffersService {
       },
     });
   }
+
+  // 7. Poster declines/rejects a specific offer
+  async reject(offerId: string, posterId: string) {
+    const offer = await this.prisma.offer.findUnique({
+      where: { id: offerId },
+      include: { task: true },
+    });
+
+    if (!offer) {
+      throw new NotFoundException('Offer not found');
+    }
+
+    // Rule A: Only the task poster can decline offers
+    if (offer.task.userId !== posterId) {
+      throw new ForbiddenException('Only the task owner can decline offers');
+    }
+
+    // Rule B: Can only decline pending offers
+    if (offer.status !== OfferStatus.PENDING) {
+      throw new BadRequestException('Only pending offers can be declined');
+    }
+
+    // Rule C: Can only decline on OPEN tasks
+    if (offer.task.status !== TaskStatus.OPEN) {
+      throw new BadRequestException(
+        'Cannot decline an offer on a task that is no longer open',
+      );
+    }
+
+    const rejectedOffer = await this.prisma.offer.update({
+      where: { id: offerId },
+      data: { status: OfferStatus.REJECTED },
+    });
+
+    return {
+      message: 'Offer declined successfully',
+      offer: rejectedOffer,
+    };
+  }
 }
