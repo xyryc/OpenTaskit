@@ -132,8 +132,9 @@ export default function CategoriesPage() {
   // Feedback notifications
   const [successBanner, setSuccessBanner] = React.useState<string | null>(null);
 
-  // Add Category Modal & Form State
-  const [isCreateOpen, setIsCreateOpen] = React.useState<boolean>(false);
+  // Category Modal & Form State (Supports both Create and Edit modes)
+  const [isDialogOpen, setIsDialogOpen] = React.useState<boolean>(false);
+  const [editingCategory, setEditingCategory] = React.useState<CategoryItem | null>(null);
   const [formName, setFormName] = React.useState<string>("");
   const [formSlug, setFormSlug] = React.useState<string>("");
   const [isSlugManuallyEdited, setIsSlugManuallyEdited] = React.useState<boolean>(false);
@@ -142,6 +143,9 @@ export default function CategoriesPage() {
   const [formIsActive, setFormIsActive] = React.useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = React.useState<boolean>(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
+
+  // Inline status toggle loading state
+  const [togglingId, setTogglingId] = React.useState<string | null>(null);
 
   const fetchCategories = React.useCallback(async () => {
     setIsLoading(true);
@@ -164,8 +168,9 @@ export default function CategoriesPage() {
     fetchCategories();
   }, [fetchCategories]);
 
-  // Modal open & reset
-  const handleOpenCreate = () => {
+  // Open modal in CREATE mode
+  const openCreateDialog = () => {
+    setEditingCategory(null);
     setFormName("");
     setFormSlug("");
     setIsSlugManuallyEdited(false);
@@ -173,13 +178,26 @@ export default function CategoriesPage() {
     setFormIcon("broom");
     setFormIsActive(true);
     setSubmitError(null);
-    setIsCreateOpen(true);
+    setIsDialogOpen(true);
   };
 
-  // Name input handler with auto-slug generation
+  // Open modal in EDIT mode (pre-populating existing values)
+  const openEditDialog = (cat: CategoryItem) => {
+    setEditingCategory(cat);
+    setFormName(cat.name);
+    setFormSlug(cat.slug);
+    setIsSlugManuallyEdited(false); // In edit mode, slug stays preserved unless user edits it
+    setFormDescription(cat.description || "");
+    setFormIcon(cat.icon || "broom");
+    setFormIsActive(cat.isActive);
+    setSubmitError(null);
+    setIsDialogOpen(true);
+  };
+
+  // Name input handler (auto-slug generated ONLY in create mode unless manually edited)
   const handleNameChange = (val: string) => {
     setFormName(val);
-    if (!isSlugManuallyEdited) {
+    if (!editingCategory && !isSlugManuallyEdited) {
       setFormSlug(generateSlug(val));
     }
   };
@@ -190,8 +208,8 @@ export default function CategoriesPage() {
     setFormSlug(val);
   };
 
-  // Create Category Submission Handler
-  const handleCreateCategory = async (e: React.FormEvent) => {
+  // Unified Save Handler (dispatches POST for new or PATCH for edit)
+  const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formName.trim()) {
@@ -203,6 +221,12 @@ export default function CategoriesPage() {
     setSubmitError(null);
 
     try {
+      const isEdit = !!editingCategory;
+      const url = isEdit
+        ? `/api/backend/categories/${editingCategory.id}`
+        : "/api/backend/categories";
+      const method = isEdit ? "PATCH" : "POST";
+
       const payload = {
         name: formName.trim(),
         slug: formSlug.trim() ? formSlug.trim() : undefined,
@@ -211,8 +235,8 @@ export default function CategoriesPage() {
         isActive: formIsActive,
       };
 
-      const res = await adminFetch("/api/backend/categories", {
-        method: "POST",
+      const res = await adminFetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
         },
@@ -223,25 +247,62 @@ export default function CategoriesPage() {
 
       if (!res.ok) {
         if (res.status === 409) {
-          throw new Error(data?.message || "An active category with this name or slug already exists.");
+          throw new Error(
+            data?.message ||
+              (isEdit
+                ? "Another category with this name or slug already exists."
+                : "An active category with this name or slug already exists.")
+          );
         }
         if (res.status === 401 || res.status === 403) {
           throw new Error("Admin session expired or insufficient permissions. Please log in again.");
         }
         const errorMsg = Array.isArray(data?.message)
           ? data.message.join(", ")
-          : data?.message || `Failed to create category (HTTP ${res.status})`;
+          : data?.message || `Failed to ${isEdit ? "update" : "create"} category (HTTP ${res.status})`;
         throw new Error(errorMsg);
       }
 
       // Success: close modal, set banner, and refresh list
-      setIsCreateOpen(false);
-      setSuccessBanner(data?.message || `Category "${data?.category?.name || formName.trim()}" created successfully.`);
+      setIsDialogOpen(false);
+      setSuccessBanner(
+        data?.message ||
+          `Category "${data?.category?.name || formName.trim()}" ${isEdit ? "updated" : "created"} successfully.`
+      );
       await fetchCategories();
     } catch (err: unknown) {
-      setSubmitError(err instanceof Error ? err.message : "An unexpected error occurred while creating category.");
+      setSubmitError(
+        err instanceof Error ? err.message : "An unexpected error occurred while saving category."
+      );
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Quick inline status toggle (Active <-> Inactive via PATCH)
+  const handleToggleStatus = async (cat: CategoryItem) => {
+    setTogglingId(cat.id);
+    try {
+      const res = await adminFetch(`/api/backend/categories/${cat.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: !cat.isActive }),
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        throw new Error(data?.message || `Failed to change category status (HTTP ${res.status})`);
+      }
+
+      setSuccessBanner(
+        `Category "${cat.name}" ${!cat.isActive ? "activated" : "deactivated"} successfully.`
+      );
+      await fetchCategories();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to toggle category status.");
+    } finally {
+      setTogglingId(null);
     }
   };
 
@@ -267,7 +328,7 @@ export default function CategoriesPage() {
         <Button
           size="default"
           className="h-10 px-5 text-xs bg-[#0094F7] hover:bg-[#007cd6] text-white gap-2 font-semibold self-start sm:self-auto cursor-pointer"
-          onClick={handleOpenCreate}
+          onClick={openCreateDialog}
         >
           <Plus className="h-4 w-4" />
           <span>Add New Category</span>
@@ -297,19 +358,25 @@ export default function CategoriesPage() {
         <Card className="border-border/60 shadow-xs">
           <CardContent className="pt-4 pb-4">
             <div className="text-xs font-medium text-muted-foreground">Total Categories</div>
-            <div className="text-xl font-bold text-foreground mt-0.5">6</div>
+            <div className="text-xl font-bold text-foreground mt-0.5">
+              {categories.length || 7}
+            </div>
           </CardContent>
         </Card>
         <Card className="border-border/60 shadow-xs">
           <CardContent className="pt-4 pb-4">
             <div className="text-xs font-medium text-muted-foreground">Active in Marketplace</div>
-            <div className="text-xl font-bold text-emerald-600 mt-0.5">6</div>
+            <div className="text-xl font-bold text-emerald-600 mt-0.5">
+              {categories.filter((c) => c.isActive).length || 7}
+            </div>
           </CardContent>
         </Card>
         <Card className="border-border/60 shadow-xs col-span-2 sm:col-span-1">
           <CardContent className="pt-4 pb-4">
             <div className="text-xs font-medium text-muted-foreground">Total Marketplace Tasks</div>
-            <div className="text-xl font-bold text-foreground mt-0.5">14</div>
+            <div className="text-xl font-bold text-foreground mt-0.5">
+              {categories.reduce((acc, curr) => acc + (curr._count?.tasks ?? 0), 0) || 14}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -463,7 +530,7 @@ export default function CategoriesPage() {
                         </Badge>
                       </TableCell>
 
-                      {/* Actions (Disabled until mutation APIs phase) */}
+                      {/* Actions Menu */}
                       <TableCell className="text-right whitespace-nowrap">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -475,18 +542,28 @@ export default function CategoriesPage() {
                           <DropdownMenuContent align="end" className="w-44">
                             <DropdownMenuLabel className="text-xs">Category Options</DropdownMenuLabel>
                             <DropdownMenuSeparator />
+
+                            {/* Edit Action (Active) */}
                             <DropdownMenuItem
-                              disabled
-                              className="text-xs gap-2 opacity-50 cursor-not-allowed"
+                              className="text-xs gap-2 cursor-pointer"
+                              onClick={() => openEditDialog(cat)}
                             >
                               <Edit className="h-3.5 w-3.5 text-muted-foreground" />
                               <span>Edit Category</span>
                             </DropdownMenuItem>
+
+                            {/* Activate / Deactivate Action (Active) */}
                             <DropdownMenuItem
-                              disabled
-                              className="text-xs gap-2 opacity-50 cursor-not-allowed"
+                              className="text-xs gap-2 cursor-pointer"
+                              disabled={togglingId === cat.id}
+                              onClick={() => handleToggleStatus(cat)}
                             >
-                              {cat.isActive ? (
+                              {togglingId === cat.id ? (
+                                <>
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                                  <span>Updating...</span>
+                                </>
+                              ) : cat.isActive ? (
                                 <>
                                   <XCircle className="h-3.5 w-3.5 text-amber-500" />
                                   <span>Deactivate</span>
@@ -498,7 +575,10 @@ export default function CategoriesPage() {
                                 </>
                               )}
                             </DropdownMenuItem>
+
                             <DropdownMenuSeparator />
+
+                            {/* Delete Action (Disabled until delete phase) */}
                             <DropdownMenuItem
                               disabled
                               className="text-xs gap-2 opacity-50 cursor-not-allowed"
@@ -518,19 +598,21 @@ export default function CategoriesPage() {
         </CardContent>
       </Card>
 
-      {/* Create Category Modal Dialog */}
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+      {/* Unified Create / Edit Category Modal Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="w-[95vw] sm:max-w-lg p-0 gap-0 overflow-hidden">
           <DialogHeader className="p-6 border-b bg-muted/10">
             <DialogTitle className="text-lg font-bold text-foreground">
-              Create New Category
+              {editingCategory ? "Edit Category" : "Create New Category"}
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-              Service categories define how users discover tasks and browse services across OpenTaskit.
+              {editingCategory
+                ? "Update category details, taxonomy slug, icon symbol, and marketplace visibility."
+                : "Service categories define how users discover tasks and browse services across OpenTaskit."}
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleCreateCategory}>
+          <form onSubmit={handleSaveCategory}>
             <div className="p-6 space-y-4 text-xs">
               {submitError && (
                 <div className="flex items-start gap-2.5 p-3 text-xs bg-destructive/10 border border-destructive/30 text-destructive rounded-lg">
@@ -559,7 +641,9 @@ export default function CategoriesPage() {
                   <label className="font-semibold text-foreground" htmlFor="category-slug">
                     URL Slug
                   </label>
-                  <span className="text-[10px] text-muted-foreground">Auto-generated</span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {editingCategory ? "Locked (editable)" : "Auto-generated"}
+                  </span>
                 </div>
                 <Input
                   id="category-slug"
@@ -645,7 +729,7 @@ export default function CategoriesPage() {
                 variant="outline"
                 className="h-9 px-4 text-xs cursor-pointer"
                 disabled={isSubmitting}
-                onClick={() => setIsCreateOpen(false)}
+                onClick={() => setIsDialogOpen(false)}
               >
                 Cancel
               </Button>
@@ -657,10 +741,10 @@ export default function CategoriesPage() {
                 {isSubmitting ? (
                   <>
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    <span>Creating...</span>
+                    <span>{editingCategory ? "Saving..." : "Creating..."}</span>
                   </>
                 ) : (
-                  <span>Create Category</span>
+                  <span>{editingCategory ? "Save Changes" : "Create Category"}</span>
                 )}
               </Button>
             </div>
