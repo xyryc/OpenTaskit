@@ -1,4 +1,12 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -8,6 +16,7 @@ import { UsersService } from './users.service';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { FilterUsersDto } from './dto/filter-users.dto';
+import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 
 @ApiTags('Users')
 @ApiBearerAuth('JWT-auth')
@@ -61,5 +70,14 @@ export class UsersController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
+  }
+
+  // PATCH /api/v1/users/:id/status - Admin Suspend or Reactivate Account;
+  @ApiOperation({ summary: 'Update user account status (Admin only)' })
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
+  @Patch(':id/status')
+  updateStatus(@Param('id') id: string, @Body() dto: UpdateUserStatusDto) {
+    return this.usersService.updateStatus(id, dto);
   }
 }

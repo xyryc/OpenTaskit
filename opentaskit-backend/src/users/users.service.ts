@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { FilterUsersDto } from './dto/filter-users.dto';
 import { Prisma } from '../../generated/prisma/client';
+import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 
 @Injectable()
 export class UsersService {
@@ -31,34 +32,35 @@ export class UsersService {
       ];
     }
 
-    const [data, total, totalUsers, totalAdmins, totalSuspended] = await Promise.all([
-      this.prisma.user.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          fullName: true,
-          email: true,
-          phoneNumber: true,
-          role: true,
-          status: true,
-          createdAt: true,
-          updatedAt: true,
-          _count: {
-            select: {
-              tasks: true,
-              offers: true,
+    const [data, total, totalUsers, totalAdmins, totalSuspended] =
+      await Promise.all([
+        this.prisma.user.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            phoneNumber: true,
+            role: true,
+            status: true,
+            createdAt: true,
+            updatedAt: true,
+            _count: {
+              select: {
+                tasks: true,
+                offers: true,
+              },
             },
           },
-        },
-      }),
-      this.prisma.user.count({ where }),
-      this.prisma.user.count({ where: { role: 'USER' } }),
-      this.prisma.user.count({ where: { role: 'ADMIN' } }),
-      this.prisma.user.count({ where: { status: 'SUSPENDED' } }),
-    ]);
+        }),
+        this.prisma.user.count({ where }),
+        this.prisma.user.count({ where: { role: 'USER' } }),
+        this.prisma.user.count({ where: { role: 'ADMIN' } }),
+        this.prisma.user.count({ where: { status: 'SUSPENDED' } }),
+      ]);
 
     return {
       data,
@@ -139,5 +141,26 @@ export class UsersService {
     }
 
     return user;
+  }
+
+  // 3. Admin Update User Status (Suspend / Reactivate)
+  async updateStatus(id: string, dto: UpdateUserStatusDto) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+
+    return this.prisma.user.update({
+      where: { id },
+      data: { status: dto.status },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        role: true,
+        status: true,
+        updatedAt: true,
+      },
+    });
   }
 }
