@@ -9,13 +9,17 @@ export class UsersService {
 
   // 1. list all users
   async findAll(query: FilterUsersDto) {
-    const { search, role, page = 1, limit = 10 } = query;
+    const { search, role, status, page = 1, limit = 10 } = query;
     const skip = (page - 1) * limit;
 
     const where: Prisma.UserWhereInput = {};
 
     if (role) {
       where.role = role;
+    }
+
+    if (status) {
+      where.status = status;
     }
 
     if (search && search.trim()) {
@@ -27,7 +31,7 @@ export class UsersService {
       ];
     }
 
-    const [data, total, totalUsers, totalAdmins] = await Promise.all([
+    const [data, total, totalUsers, totalAdmins, totalSuspended] = await Promise.all([
       this.prisma.user.findMany({
         where,
         skip,
@@ -39,6 +43,7 @@ export class UsersService {
           email: true,
           phoneNumber: true,
           role: true,
+          status: true,
           createdAt: true,
           updatedAt: true,
           _count: {
@@ -52,6 +57,7 @@ export class UsersService {
       this.prisma.user.count({ where }),
       this.prisma.user.count({ where: { role: 'USER' } }),
       this.prisma.user.count({ where: { role: 'ADMIN' } }),
+      this.prisma.user.count({ where: { status: 'SUSPENDED' } }),
     ]);
 
     return {
@@ -64,6 +70,7 @@ export class UsersService {
         totalUsers: totalUsers + totalAdmins,
         totalRegularUsers: totalUsers,
         totalAdmins,
+        totalSuspended,
       },
     };
   }
@@ -78,6 +85,7 @@ export class UsersService {
         email: true,
         phoneNumber: true,
         role: true,
+        status: true,
         termsAcceptedAt: true,
         createdAt: true,
         updatedAt: true,

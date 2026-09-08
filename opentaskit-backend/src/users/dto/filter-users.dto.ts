@@ -1,6 +1,7 @@
 import { IsEnum, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { UserStatus } from './update-user-status.dto';
 
 export enum UserRole {
   USER = 'USER',
@@ -22,6 +23,14 @@ export class FilterUsersDto {
   @IsEnum(UserRole)
   @IsOptional()
   role?: UserRole;
+
+  @ApiPropertyOptional({
+    enum: UserStatus,
+    description: 'Filter by account status',
+  })
+  @IsEnum(UserStatus)
+  @IsOptional()
+  status?: UserStatus;
 
   @ApiPropertyOptional({ default: 1, minimum: 1 })
   @IsNumber()

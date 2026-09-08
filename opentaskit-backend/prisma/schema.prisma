@@ -14,13 +14,14 @@ datasource db {
 }
 
 model User {
-  id                 String   @id @default(uuid())
+  id                 String     @id @default(uuid())
   fullName           String
-  email              String   @unique
+  email              String     @unique
   phoneNumber        String
   password           String
-  role               Role     @default(USER)
-  termsAcceptedAt    DateTime @default(now())
+  role               Role       @default(USER)
+  status             UserStatus @default(ACTIVE)
+  termsAcceptedAt    DateTime   @default(now())
   hashedRefreshToken String?
 
   resetOtpHash      String?
@@ -124,6 +125,11 @@ enum OfferStatus {
 enum Role {
   USER
   ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
 }
 
 enum TaskStatus {
