@@ -15,6 +15,10 @@ const en: Dict = {
   'nav.activity': 'Activity',
   'nav.profile': 'Profile',
   'home.greeting': 'Good morning',
+  'home.greeting.morning': 'Good morning',
+  'home.greeting.afternoon': 'Good afternoon',
+  'home.greeting.evening': 'Good evening',
+  'home.greeting.night': 'Good night',
   'home.hero.title': 'Find someone to get it done.',
   'home.hero.sub': 'Post a task, compare real offers, hire with confidence.',
   'home.cta.post': 'Post a Task',
@@ -43,6 +47,10 @@ const si: Dict = {
   'nav.activity': 'ක්‍රියාකාරකම්',
   'nav.profile': 'ගිණුම',
   'home.greeting': 'සුබ උදෑසනක්',
+  'home.greeting.morning': 'සුබ උදෑසනක්',
+  'home.greeting.afternoon': 'සුබ දහවලක්',
+  'home.greeting.evening': 'සුබ සැන්දෑවක්',
+  'home.greeting.night': 'සුබ රාත්‍රියක්',
   'home.hero.title': 'ඔබේ වැඩ කරන්න හරි කෙනෙක් හොයාගන්න.',
   'home.hero.sub': 'කාර්යයක් යොදන්න, ලැබෙන මිල ගණන් සසඳන්න, විශ්වාසයෙන් බඳවා ගන්න.',
   'home.cta.post': 'කාර්යයක් යොදන්න',
@@ -71,6 +79,10 @@ const ta: Dict = {
   'nav.activity': 'செயல்பாடு',
   'nav.profile': 'சுயவிவரம்',
   'home.greeting': 'காலை வணக்கம்',
+  'home.greeting.morning': 'காலை வணக்கம்',
+  'home.greeting.afternoon': 'மதிய வணக்கம்',
+  'home.greeting.evening': 'மாலை வணக்கம்',
+  'home.greeting.night': 'இரவு வணக்கம்',
   'home.hero.title': 'வேலையை முடிக்க சரியான நபரைக் கண்டறியுங்கள்.',
   'home.hero.sub': 'பணியை இடுங்கள், விலைகளை ஒப்பிடுங்கள், நம்பிக்கையுடன் பணியமர்த்துங்கள்.',
   'home.cta.post': 'பணியை இடுங்கள்',
@@ -96,4 +108,13 @@ const dictionaries: Record<Language, Dict> = { en, si, ta };
 
 export function translate(language: Language, key: string): string {
   return dictionaries[language][key] ?? dictionaries.en[key] ?? key;
+}
+
+/** Picks the greeting translation key for the device's current local time. */
+export function greetingKey(date: Date = new Date()): string {
+  const hour = date.getHours();
+  if (hour >= 5 && hour < 12) return 'home.greeting.morning';
+  if (hour >= 12 && hour < 17) return 'home.greeting.afternoon';
+  if (hour >= 17 && hour < 21) return 'home.greeting.evening';
+  return 'home.greeting.night';
 }

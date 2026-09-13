@@ -33,6 +33,7 @@ export interface User {
   name: string;
   initials: string;
   tone: string;
+  avatarUrl?: string | null;
   headline: string;
   about: string;
   rating: number;

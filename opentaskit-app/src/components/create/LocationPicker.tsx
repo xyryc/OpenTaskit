@@ -143,11 +143,21 @@ export function LocationPicker({ open, onClose, onSelect }: LocationPickerProps)
       });
       choose(resolved, coords);
     } catch (err) {
-      console.error('Error detecting location:', err);
-      Alert.alert(
-        'Unable to Fetch Location',
-        'Could not determine your current position. Please make sure location services are turned on, or select an area manually.'
-      );
+      // Expected when GPS/location services are off or the fix times out -
+      // console.warn (not .error) so it doesn't surface as a fatal LogBox screen.
+      console.warn('Error detecting location:', err);
+      const message = err instanceof Error ? err.message : '';
+      if (/location services/i.test(message)) {
+        Alert.alert(
+          'Location Services Disabled',
+          'Turn on Location Services for this device in your system settings, then try again.'
+        );
+      } else {
+        Alert.alert(
+          'Unable to Fetch Location',
+          'Could not determine your current position. Please make sure location services are turned on, or select an area manually.'
+        );
+      }
     } finally {
       setIsLocating(false);
     }

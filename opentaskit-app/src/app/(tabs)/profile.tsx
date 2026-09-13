@@ -165,6 +165,7 @@ export default function ProfileScreen() {
                 ...me,
                 name: profile?.fullName ?? me.name,
                 initials: profile ? initialsOf(profile.fullName) : me.initials,
+                avatarUrl: profile?.avatarUrl ?? undefined,
               }}
               size="xl"
               showVerified

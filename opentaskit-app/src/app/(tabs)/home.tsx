@@ -19,8 +19,11 @@ import {
 } from "lucide-react-native";
 
 import { useApp } from "@/contexts/AppContext";
-import { useGetCategoriesQuery, useGetTasksQuery } from "@/store/api/apiSlice";
+import { useAppSelector } from "@/store";
+import { useGetCategoriesQuery, useGetMyProfileQuery, useGetTasksQuery } from "@/store/api/apiSlice";
 import { getCachedCategories, setCachedCategories } from "@/utils/categoryCache";
+import { greetingKey } from "@/utils/i18n";
+import { initialsOf } from "@/utils/format";
 import { recommendedTasks, reasonLabel } from "@/utils/recommend";
 import { mapApiTaskToTask } from "@/utils/taskFilters";
 import { Screen, SectionHeader } from "@/components/layout/Screen";
@@ -47,6 +50,11 @@ export default function HomeScreen() {
     currentLocation,
     requireAccount,
   } = useApp();
+
+  const guest = useAppSelector((state) => state.auth.guest);
+  const { data: profile } = useGetMyProfileQuery(undefined, { skip: guest });
+  const displayName = profile?.fullName ?? me.name;
+  const firstName = displayName.split(" ")[0];
 
   const {
     data: apiCategories,
@@ -129,12 +137,21 @@ export default function HomeScreen() {
       <View className="z-20 border-b border-ink-100 bg-white px-5 pb-3 pt-3">
         <View className="flex-row items-center gap-3">
           <Pressable onPress={() => router.push("/profile" as any)}>
-            <Avatar user={me} size="md" showVerified />
+            <Avatar
+              user={{
+                ...me,
+                name: displayName,
+                initials: profile ? initialsOf(profile.fullName) : me.initials,
+                avatarUrl: profile?.avatarUrl ?? undefined,
+              }}
+              size="md"
+              showVerified
+            />
           </Pressable>
 
           <View className="flex-1">
             <Text className="font-geist text-[12px] text-ink-500">
-              {t("home.greeting") || "Find tasks in"}
+              {guest ? t(greetingKey()) : `${t(greetingKey())}, ${firstName}`}
             </Text>
             <Pressable
               onPress={() => setLocationOpen(true)}

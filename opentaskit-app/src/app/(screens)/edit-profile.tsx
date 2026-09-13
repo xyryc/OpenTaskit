@@ -235,7 +235,7 @@ export default function EditProfileScreen() {
           <View className="gap-5 px-5 pb-8 pt-4" style={{ gap: 20 }}>
             {/* Avatar & Photo Action */}
             <View className="items-center py-2">
-              <Avatar user={{ ...me, name }} size="xl" />
+              <Avatar user={{ ...me, name, avatarUrl: profile?.avatarUrl ?? undefined }} size="xl" />
               <Pressable
                 onPress={handlePickAvatar}
                 hitSlop={10}

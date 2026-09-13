@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text } from 'react-native';
+import { Image } from 'expo-image';
 import { BadgeCheck } from 'lucide-react-native';
 import type { User } from '@/types';
 
@@ -22,7 +23,7 @@ const sizeTextClasses: Record<Size, string> = {
 };
 
 export interface AvatarProps {
-  user: Pick<User, 'name' | 'initials' | 'tone' | 'verified'>;
+  user: Pick<User, 'name' | 'initials' | 'tone' | 'verified'> & Partial<Pick<User, 'avatarUrl'>>;
   size?: Size;
   showVerified?: boolean;
   online?: boolean;
@@ -39,11 +40,19 @@ export function Avatar({
   return (
     <View className={`relative ${sizeBoxClasses[size]} ${className}`}>
       <View
-        className={`h-full w-full items-center justify-center rounded-full bg-brand-tint border border-white ${user.tone ?? 'bg-brand-tint'}`}
+        className={`h-full w-full items-center justify-center overflow-hidden rounded-full bg-brand-tint border border-white ${user.tone ?? 'bg-brand-tint'}`}
       >
-        <Text className={`font-geist-bold font-bold text-brand-dark ${sizeTextClasses[size]}`}>
-          {user.initials}
-        </Text>
+        {user.avatarUrl ? (
+          <Image
+            source={{ uri: user.avatarUrl }}
+            style={{ width: '100%', height: '100%' }}
+            contentFit="cover"
+          />
+        ) : (
+          <Text className={`font-geist-bold font-bold text-brand-dark ${sizeTextClasses[size]}`}>
+            {user.initials}
+          </Text>
+        )}
       </View>
 
       {showVerified && user.verified && (

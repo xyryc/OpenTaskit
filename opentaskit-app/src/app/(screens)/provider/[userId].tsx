@@ -59,6 +59,8 @@ export default function ProviderProfileScreen() {
   );
 
   const firstName = user.name.split(' ')[0] ?? 'Provider';
+  // Dummy until the backend has real KYC/identity verification - every profile shows verified for now.
+  const isVerified = true;
 
   return (
     <Screen tone="canvas" edges={['top']}>
@@ -72,7 +74,7 @@ export default function ProviderProfileScreen() {
           {/* Hero Identity Card */}
           <View className="rounded-3xl border border-ink-200 bg-white p-5 shadow-sm">
             <View className="flex-row items-start gap-4" style={{ gap: 14 }}>
-              <Avatar user={user} size="xl" showVerified />
+              <Avatar user={{ ...user, verified: isVerified }} size="xl" showVerified />
               <View className="flex-1 min-w-0">
                 <View className="flex-row items-center gap-1.5">
                   <Text
@@ -81,7 +83,7 @@ export default function ProviderProfileScreen() {
                   >
                     {user.name}
                   </Text>
-                  {user.verified && (
+                  {isVerified && (
                     <BadgeCheck size={18} color="#0094F7" />
                   )}
                 </View>
@@ -108,7 +110,7 @@ export default function ProviderProfileScreen() {
 
             {/* Badges / Chips Row */}
             <View className="mt-4 flex-row flex-wrap gap-2" style={{ gap: 8 }}>
-              <VerifiedPill verified={user.verified} />
+              <VerifiedPill verified={isVerified} />
               <Chip tone={user.available ? 'success' : 'neutral'}>
                 {user.available ? 'Available now' : 'Not accepting work'}
               </Chip>

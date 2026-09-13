@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import * as Location from 'expo-location';
 import { useAppSelector } from '@/store';
 import { useEffect } from 'react';
 import type {
@@ -151,8 +152,17 @@ export function AppProvider({ children }: {children: React.ReactNode;}) {
   useEffect(() => setGateIntent(null), [authed, guest]);
   const [available, setAvailable] = useState(true);
   const [kyc, setKyc] = useState<KycStatus>('verified');
-  const [locationPermission, setLocationPermission] = useState<LocationPermission>('granted');
+  const [locationPermission, setLocationPermission] = useState<LocationPermission>('unknown');
   const [currentLocation, setCurrentLocation] = useState('Kirulapone, Colombo 05');
+
+  // Sync with the real OS permission on launch, rather than assuming granted.
+  useEffect(() => {
+    Location.getForegroundPermissionsAsync()
+      .then(({ status }) => {
+        setLocationPermission(status === 'granted' ? 'granted' : 'denied');
+      })
+      .catch(() => setLocationPermission('denied'));
+  }, []);
   const [tasks, setTasks] = useState<Task[]>(seedTasks);
   const [offers, setOffers] = useState<Offer[]>(seedOffers);
   const [messages, setMessages] = useState<Message[]>(seedMessages);
