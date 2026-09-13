@@ -27,11 +27,17 @@ model User {
   resetOtpHash      String?
   resetOtpExpiresAt DateTime?
 
+  rating      Float @default(0)
+  reviewCount Int   @default(0)
+
   // relations
   tasks      Task[]
   savedTasks SavedTask[]
 
   offers Offer[]
+
+  reviewsGiven    Review[] @relation("ReviewsGiven")
+  reviewsReceived Review[] @relation("ReviewsReceived")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -79,8 +85,8 @@ model Task {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   savedBy SavedTask[]
-
-  offers Offer[]
+  offers  Offer[]
+  reviews Review[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -113,6 +119,27 @@ model Offer {
   updatedAt DateTime @updatedAt
 
   @@unique([taskId, userId])
+}
+
+model Review {
+  id     String   @id @default(uuid())
+  rating Int // 1 to 5                                                         
+  text   String   @db.Text
+  tags   String[] // e.g. ["On time", "Professional", "High quality"]               
+
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  fromUserId String
+  fromUser   User   @relation("ReviewsGiven", fields: [fromUserId], references: [id], onDelete: Cascade)
+
+  toUserId String
+  toUser   User   @relation("ReviewsReceived", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([taskId, fromUserId])
 }
 
 enum OfferStatus {
