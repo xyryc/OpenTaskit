@@ -5,6 +5,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -12,6 +13,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { DisputesService } from './disputes.service';
 import { CreateDisputeDto } from './dto/create-dispute.dto';
+import { FilterMyDisputesDto } from './dto/filter-my-disputes.dto';
 
 @ApiTags('Disputes')
 @ApiBearerAuth('JWT-auth')
@@ -44,5 +46,17 @@ export class DisputesController {
     @CurrentUser('role') userRole: string,
   ) {
     return this.disputesService.findByTask(taskId, userId, userRole);
+  }
+
+  // GET /api/v1/disputes/me - My disputes feed
+  @ApiOperation({
+    summary: "Get authenticated user's disputes (raised and received)",
+  })
+  @Get('disputes/me')
+  findMyDisputes(
+    @CurrentUser('id') userId: string,
+    @Query() query: FilterMyDisputesDto,
+  ) {
+    return this.disputesService.findMyDisputes(userId, query);
   }
 }

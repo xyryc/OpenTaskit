@@ -12,6 +12,7 @@ import {
   OfferStatus,
   TaskStatus,
 } from '../../generated/prisma/enums';
+import { FilterMyDisputesDto } from './dto/filter-my-disputes.dto';
 
 @Injectable()
 export class DisputesService {
@@ -163,5 +164,66 @@ export class DisputesService {
         },
       },
     });
+  }
+
+  // 3. Get disputes filed by or against the authenticated user
+  async findMyDisputes(userId: string, query: FilterMyDisputesDto) {
+    const { status, role = 'all', page = 1, limit = 10 } = query;
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+
+    if (role === 'raised') {
+      where.raisedById = userId;
+    } else if (role === 'received') {
+      where.againstUserId = userId;
+    } else {
+      where.OR = [{ raisedById: userId }, { againstUserId: userId }];
+    }
+
+    if (status) {
+      where.status = status;
+    }
+
+    const [disputes, total, openCount] = await Promise.all([
+      this.prisma.dispute.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          task: {
+            select: { id: true, title: true, status: true, budget: true },
+          },
+          raisedBy: {
+            select: { id: true, fullName: true, avatarUrl: true },
+          },
+          againstUser: {
+            select: { id: true, fullName: true, avatarUrl: true },
+          },
+          resolvedBy: {
+            select: { id: true, fullName: true },
+          },
+        },
+      }),
+      this.prisma.dispute.count({ where }),
+      this.prisma.dispute.count({
+        where: {
+          OR: [{ raisedById: userId }, { againstUserId: userId }],
+          status: { in: [DisputeStatus.OPEN, DisputeStatus.UNDER_REVIEW] },
+        },
+      }),
+    ]);
+
+    return {
+      data: disputes,
+      openCount,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+    };
   }
 }
