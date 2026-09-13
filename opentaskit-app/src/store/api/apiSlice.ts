@@ -12,6 +12,7 @@ import type {
   AuthResponse,
   AuthUser,
   CategoryItem,
+  CreateOfferPayload,
   CreateTaskPayload,
   FilterTasksQuery,
   ForgotPasswordPayload,
@@ -19,6 +20,7 @@ import type {
   LogoutPayload,
   MessageResponse,
   MyProfileResponse,
+  OfferItem,
   PaginatedTasksResponse,
   UpdateMyProfilePayload,
   RefreshPayload,
@@ -58,6 +60,7 @@ export function clearAuthStorage() {
 
 /** Persist synchronously before mutation success allows a screen to navigate. */
 function persistSession(response: AuthResponse): AuthResponse {
+  isHandlingForcedLogout = false;
   storage.set(ACCESS_TOKEN_KEY, response.accessToken);
   storage.set(REFRESH_TOKEN_KEY, response.refreshToken);
   if (response.user) {
@@ -80,8 +83,17 @@ const rawBaseQuery = fetchBaseQuery({
 let isRefreshing = false;
 let refreshPromise: Promise<string | null> | null = null;
 
+// Guards forceLogout against re-entrancy: resetApiState() below causes any
+// still-mounted subscribed query to refetch immediately: with the token
+// already cleared, that refetch 401s, which re-enters this same function via
+// refreshAccessToken. Without this flag that becomes an infinite loop of
+// resetApiState -> refetch -> 401 -> forceLogout -> resetApiState -> ...
+let isHandlingForcedLogout = false;
+
 /** Clears session state everywhere (storage, auth slice, RTK Query cache) and returns to welcome. */
 function forceLogout(api: { dispatch: (action: any) => void }) {
+  if (isHandlingForcedLogout) return;
+  isHandlingForcedLogout = true;
   clearAuthStorage();
   api.dispatch(signOut());
   api.dispatch(apiSlice.util.resetApiState());
@@ -112,6 +124,7 @@ export async function refreshAccessToken(api: { dispatch: (action: any) => void 
 
       if (response.ok) {
         const data = (await response.json()) as RefreshResponse;
+        isHandlingForcedLogout = false;
         storage.set(ACCESS_TOKEN_KEY, data.accessToken);
         storage.set(REFRESH_TOKEN_KEY, data.refreshToken);
         return data.accessToken;
@@ -174,7 +187,7 @@ const baseQueryWithReauth: BaseQueryFn<
 export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithReauth,
-  tagTypes: ["Category", "Task", "User", "SavedTask"],
+  tagTypes: ["Category", "Task", "User", "SavedTask", "Offer"],
   endpoints: (builder) => ({
     // Categories
     getCategories: builder.query<CategoryItem[], boolean | void>({
@@ -258,6 +271,19 @@ export const apiSlice = createApi({
         body,
       }),
       invalidatesTags: [{ type: 'Task', id: 'LIST' }],
+    }),
+
+    // Offers
+    createOffer: builder.mutation<OfferItem, { taskId: string } & CreateOfferPayload>({
+      query: ({ taskId, ...body }) => ({
+        url: `/tasks/${taskId}/offers`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (_result, _error, { taskId }) => [
+        { type: 'Task', id: taskId },
+        { type: 'Offer', id: `TASK_${taskId}` },
+      ],
     }),
 
     uploadImages: builder.mutation<{ message: string; urls: string[] }, FormData>({
@@ -383,6 +409,7 @@ export const {
   useGetTasksQuery,
   useGetTaskByIdQuery,
   useCreateTaskMutation,
+  useCreateOfferMutation,
   useUploadImagesMutation,
   useRegisterMutation,
   useLoginMutation,

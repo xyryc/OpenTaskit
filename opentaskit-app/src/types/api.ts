@@ -196,6 +196,31 @@ export interface PaginatedTasksResponse {
 
 
 
+export type OfferApiStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'WITHDRAWN';
+
+export interface OfferUserSummary {
+  id: string;
+  fullName: string;
+  phoneNumber?: string;
+}
+
+export interface OfferItem {
+  id: string;
+  taskId: string;
+  userId: string;
+  amount: number;
+  message: string;
+  status: OfferApiStatus;
+  createdAt: string;
+  updatedAt: string;
+  user?: OfferUserSummary;
+}
+
+export interface CreateOfferPayload {
+  amount: number;
+  message: string;
+}
+
 export interface ApiErrorResponse {
   status: number;
   error: string;

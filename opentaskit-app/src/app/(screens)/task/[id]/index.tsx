@@ -40,7 +40,8 @@ import {
 import { useApp } from '@/contexts/AppContext';
 import { useSavedTasks } from '@/hooks/useSavedTasks';
 import { useAppSelector } from '@/store';
-import { useGetTaskByIdQuery } from '@/store/api/apiSlice';
+import { useCreateOfferMutation, useGetTaskByIdQuery } from '@/store/api/apiSlice';
+import { getApiErrorMessage } from '@/utils/apiError';
 import { mapApiTaskToTask } from '@/utils/taskFilters';
 import { distance, money, scheduleLabel, timeAgo } from '@/utils/format';
 import { paymentMethodMeta } from '@/utils/payment';
@@ -54,13 +55,6 @@ import { BottomSheet, ConfirmDialog } from '@/components/ui/Overlay';
 import { CategoryBadge } from '@/components/CategoryIcon';
 import { LeafletMap } from '@/components/create/LeafletMap';
 import { resolveImageSource } from '@/utils/images';
-
-const ETA_PRESETS = [
-  'Today · 2-3 hrs',
-  'Tomorrow morning',
-  'This weekend',
-  'Flexible anytime',
-];
 
 export default function TaskDetailScreen() {
   const { id = '' } = useLocalSearchParams<{ id: string }>();
@@ -85,6 +79,7 @@ export default function TaskDetailScreen() {
     skip: !id,
   });
   const task = useMemo(() => (apiTask ? mapApiTaskToTask(apiTask) : undefined), [apiTask]);
+  const [createOffer] = useCreateOfferMutation();
 
   const [photoIndex, setPhotoIndex] = useState(0);
 
@@ -96,7 +91,6 @@ export default function TaskDetailScreen() {
 
   // Make offer form state
   const [offerPrice, setOfferPrice] = useState('');
-  const [offerEta, setOfferEta] = useState(ETA_PRESETS[0]);
   const [offerMessage, setOfferMessage] = useState('');
   const [offerError, setOfferError] = useState('');
 
@@ -219,7 +213,6 @@ export default function TaskDetailScreen() {
     if (existingOffer) {
       setOfferPrice(String(existingOffer.price));
       setOfferMessage(existingOffer.message || '');
-      setOfferEta(existingOffer.eta || 'Tomorrow afternoon');
     } else {
       setOfferPrice(String(task.budget));
       setOfferMessage('I saw your task and I am available to help. I bring my own tools and can get it done cleanly.');
@@ -228,26 +221,42 @@ export default function TaskDetailScreen() {
     setMakeOfferOpen(true);
   };
 
-  const handleSubmitOffer = () => {
+  const handleSubmitOffer = async () => {
     const num = Number(offerPrice);
     if (!num || num < 500) {
       setOfferError('Enter a valid offer price (minimum Rs 500)');
       return;
     }
 
-    submitOffer({
-      taskId: task.id,
-      price: num,
-      eta: offerEta,
-      message: offerMessage.trim(),
-    });
+    try {
+      await createOffer({
+        taskId: task.id,
+        amount: num,
+        message: offerMessage.trim(),
+      }).unwrap();
 
-    setMakeOfferOpen(false);
-    toast({
-      title: 'Offer submitted!',
-      description: `Your offer of ${money(num)} has been sent to ${posterName}.`,
-      variant: 'success',
-    });
+      // Not yet backed by a real "my offers for this task" query - kept as
+      // local-only state so the submitted-offer badge/edit/withdraw UI works.
+      submitOffer({
+        taskId: task.id,
+        price: num,
+        eta: '',
+        message: offerMessage.trim(),
+      });
+
+      setMakeOfferOpen(false);
+      toast({
+        title: 'Offer submitted!',
+        description: `Your offer of ${money(num)} has been sent to ${posterName}.`,
+        variant: 'success',
+      });
+    } catch (err) {
+      toast({
+        title: 'Could not submit offer',
+        description: getApiErrorMessage(err),
+        variant: 'error',
+      });
+    }
   };
 
   const handleScrollPhoto = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -700,22 +709,6 @@ export default function TaskDetailScreen() {
                 }}
               >
                 {money(amount)}
-              </SelectChip>
-            ))}
-          </View>
-
-          {/* Availability ETA */}
-          <Text className="mb-2 mt-5 text-[13px] font-geist-medium text-ink-700">
-            When can you do it?
-          </Text>
-          <View className="flex-row flex-wrap gap-2" style={{ gap: 8 }}>
-            {ETA_PRESETS.map((preset) => (
-              <SelectChip
-                key={preset}
-                selected={offerEta === preset}
-                onPress={() => setOfferEta(preset)}
-              >
-                {preset}
               </SelectChip>
             ))}
           </View>
