@@ -72,6 +72,24 @@ export class NotificationsService {
     });
   }
 
+  // 3. Mark all unread notifications as read for authenticated user
+  async markAllAsRead(userId: string) {
+    const result = await this.prisma.notification.updateMany({
+      where: {
+        userId,
+        isRead: false,
+      },
+      data: {
+        isRead: true,
+      },
+    });
+
+    return {
+      message: 'All notifications marked as read',
+      count: result.count,
+    };
+  }
+
   // Helper method to dispatch notifications from other backend services
   async createNotification(data: {
     userId: string;

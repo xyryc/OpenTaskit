@@ -37,4 +37,10 @@ export class NotificationsController {
   ) {
     return this.notificationsService.markAsRead(id, userId);
   }
+
+  @ApiOperation({ summary: 'Mark all unread notifications as read' })
+  @Patch('read-all')
+  markAllAsRead(@CurrentUser('id') userId: string) {
+    return this.notificationsService.markAllAsRead(userId);
+  }
 }
