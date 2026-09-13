@@ -4,6 +4,7 @@ import { FilterUsersDto } from './dto/filter-users.dto';
 import { Prisma } from '../../generated/prisma/client';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
+import { UpdateMyProfileDto } from './dto/update-my-profile.dto';
 
 @Injectable()
 export class UsersService {
@@ -244,5 +245,45 @@ export class UsersService {
         unreadNotifications,
       },
     };
+  }
+
+  // 6. Update authenticated user's profile
+  async updateMyProfile(userId: string, dto: UpdateMyProfileDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(dto.fullName !== undefined && { fullName: dto.fullName }),
+        ...(dto.phoneNumber !== undefined && { phoneNumber: dto.phoneNumber }),
+        ...(dto.avatarUrl !== undefined && { avatarUrl: dto.avatarUrl }),
+        ...(dto.headline !== undefined && { headline: dto.headline }),
+        ...(dto.bio !== undefined && { bio: dto.bio }),
+        ...(dto.location !== undefined && { location: dto.location }),
+        ...(dto.skills !== undefined && { skills: dto.skills }),
+      },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        phoneNumber: true,
+        role: true,
+        status: true,
+        avatarUrl: true,
+        headline: true,
+        bio: true,
+        location: true,
+        skills: true,
+        rating: true,
+        reviewCount: true,
+        updatedAt: true,
+      },
+    });
   }
 }

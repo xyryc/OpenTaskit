@@ -18,6 +18,7 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 import { FilterUsersDto } from './dto/filter-users.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
+import { UpdateMyProfileDto } from './dto/update-my-profile.dto';
 
 @ApiTags('Users')
 @ApiBearerAuth('JWT-auth')
@@ -56,6 +57,16 @@ export class UsersController {
   @Get('me')
   getMyProfile(@CurrentUser('id') userId: string) {
     return this.usersService.getMyProfile(userId);
+  }
+
+  // PATCH /api/v1/users/me - Update authenticated user profile
+  @ApiOperation({ summary: 'Update authenticated user profile' })
+  @Patch('me')
+  updateMyProfile(
+    @CurrentUser('id') userId: string,
+    @Body() dto: UpdateMyProfileDto,
+  ) {
+    return this.usersService.updateMyProfile(userId, dto);
   }
 
   // GET /api/v1/users - Admin User Directory with Search & Pagination;
