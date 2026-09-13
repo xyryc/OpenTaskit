@@ -6,12 +6,14 @@ import {
   UseGuards,
   ParseUUIDPipe,
   Get,
+  Query,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ReviewsService } from './reviews.service';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { FilterReviewsDto } from './dto/filter-reviews.dto';
 
 @ApiTags('Reviews')
 @Controller()
@@ -34,5 +36,29 @@ export class ReviewsController {
   @Get('tasks/:taskId/reviews')
   findByTask(@Param('taskId', ParseUUIDPipe) taskId: string) {
     return this.reviewsService.findByTask(taskId);
+  }
+
+  @ApiOperation({
+    summary: 'Get reviews received by a user with rating metrics',
+  })
+  @Get('users/:userId/reviews')
+  findByUser(
+    @Param('userId', ParseUUIDPipe) userId: string,
+    @Query() query: FilterReviewsDto,
+  ) {
+    return this.reviewsService.findByUser(userId, query);
+  }
+
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Get reviews received and given by authenticated user',
+  })
+  @UseGuards(JwtAuthGuard)
+  @Get('reviews/me')
+  findMyReviews(
+    @CurrentUser('id') userId: string,
+    @Query('type') type?: 'all' | 'received' | 'given',
+  ) {
+    return this.reviewsService.findMyReviews(userId, type);
   }
 }

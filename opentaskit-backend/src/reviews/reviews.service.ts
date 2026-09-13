@@ -8,6 +8,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { TaskStatus, OfferStatus } from '../../generated/prisma/enums';
+import { FilterReviewsDto } from './dto/filter-reviews.dto';
 
 @Injectable()
 export class ReviewsService {
@@ -147,5 +148,124 @@ export class ReviewsService {
         },
       },
     });
+  }
+
+  // 3. Get reviews received by a specific user with rating metrics
+  async findByUser(userId: string, query: FilterReviewsDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, fullName: true, rating: true, reviewCount: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const skip = (page - 1) * limit;
+
+    const [reviews, total, allReviews] = await Promise.all([
+      this.prisma.review.findMany({
+        where: { toUserId: userId },
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          fromUser: {
+            select: { id: true, fullName: true },
+          },
+          task: {
+            select: { id: true, title: true },
+          },
+        },
+      }),
+      this.prisma.review.count({
+        where: { toUserId: userId },
+      }),
+      this.prisma.review.findMany({
+        where: { toUserId: userId },
+        select: { rating: true, tags: true },
+      }),
+    ]);
+
+    // 5-star distribution breakdown
+    const distribution: Record<number, number> = {
+      5: 0,
+      4: 0,
+      3: 0,
+      2: 0,
+      1: 0,
+    };
+    const tagCounts: Record<string, number> = {};
+
+    for (const r of allReviews) {
+      if (r.rating >= 1 && r.rating <= 5) {
+        distribution[r.rating] = (distribution[r.rating] || 0) + 1;
+      }
+      for (const tag of r.tags) {
+        tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+      }
+    }
+
+    const topTags = Object.entries(tagCounts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([tag, count]) => ({ tag, count }));
+
+    return {
+      user: {
+        id: user.id,
+        fullName: user.fullName,
+        averageRating: user.rating,
+        totalReviews: user.reviewCount,
+      },
+      distribution,
+      topTags,
+      reviews,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+    };
+  }
+
+  // 4. Get reviews received and given by authenticated user
+  async findMyReviews(
+    userId: string,
+    type: 'all' | 'received' | 'given' = 'all',
+  ) {
+    const promises: [Promise<any[]>, Promise<any[]>] = [
+      type !== 'given'
+        ? this.prisma.review.findMany({
+            where: { toUserId: userId },
+            orderBy: { createdAt: 'desc' },
+            include: {
+              fromUser: { select: { id: true, fullName: true } },
+              task: { select: { id: true, title: true } },
+            },
+          })
+        : Promise.resolve([]),
+      type !== 'received'
+        ? this.prisma.review.findMany({
+            where: { fromUserId: userId },
+            orderBy: { createdAt: 'desc' },
+            include: {
+              toUser: { select: { id: true, fullName: true } },
+              task: { select: { id: true, title: true } },
+            },
+          })
+        : Promise.resolve([]),
+    ];
+
+    const [received, given] = await Promise.all(promises);
+
+    return {
+      received,
+      given,
+      totalReceived: received.length,
+      totalGiven: given.length,
+    };
   }
 }
