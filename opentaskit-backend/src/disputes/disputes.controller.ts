@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -17,6 +18,7 @@ import { FilterMyDisputesDto } from './dto/filter-my-disputes.dto';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { FilterAdminDisputesDto } from './dto/filter-admin-disputes.dto';
+import { ResolveDisputeDto } from './dto/resolve-dispute.dto';
 
 @ApiTags('Disputes')
 @ApiBearerAuth('JWT-auth')
@@ -72,5 +74,18 @@ export class DisputesController {
   @Get('admin/disputes')
   findAllAdmin(@Query() query: FilterAdminDisputesDto) {
     return this.disputesService.findAllAdmin(query);
+  }
+
+  // PATCH /api/v1/admin/disputes/:id/resolve - Admin resolve dispute
+  @ApiOperation({ summary: 'Resolve a dispute and issue verdict (Admin only)' })
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
+  @Patch('admin/disputes/:id/resolve')
+  resolve(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser('id') adminId: string,
+    @Body() dto: ResolveDisputeDto,
+  ) {
+    return this.disputesService.resolve(id, adminId, dto);
   }
 }

@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateDisputeDto } from './dto/create-dispute.dto';
 import {
+  DisputeResolution,
   DisputeStatus,
   NotificationType,
   OfferStatus,
@@ -14,6 +15,7 @@ import {
 } from '../../generated/prisma/enums';
 import { FilterMyDisputesDto } from './dto/filter-my-disputes.dto';
 import { FilterAdminDisputesDto } from './dto/filter-admin-disputes.dto';
+import { ResolveDisputeDto } from './dto/resolve-dispute.dto';
 
 @Injectable()
 export class DisputesService {
@@ -310,5 +312,110 @@ export class DisputesService {
         totalPages: Math.ceil(total / limit) || 1,
       },
     };
+  }
+
+  // 5. Admin resolve dispute and issue verdict
+  async resolve(id: string, adminId: string, dto: ResolveDisputeDto) {
+    const dispute = await this.prisma.dispute.findUnique({
+      where: { id },
+      include: {
+        task: true,
+      },
+    });
+
+    if (!dispute) {
+      throw new NotFoundException('Dispute not found');
+    }
+
+    if (
+      dispute.status === DisputeStatus.RESOLVED ||
+      dispute.status === DisputeStatus.DISMISSED
+    ) {
+      throw new BadRequestException(
+        `This dispute has already been finalized with status: ${dispute.status}`,
+      );
+    }
+
+    // Determine target task status according to verdict
+    let targetTaskStatus: TaskStatus;
+    if (
+      dto.resolution === DisputeResolution.REFUND_POSTER ||
+      dto.resolution === DisputeResolution.CANCELLED_NO_PENALTY
+    ) {
+      targetTaskStatus = TaskStatus.CANCELLED;
+    } else if (
+      dto.resolution === DisputeResolution.PAY_TASKER ||
+      dto.resolution === DisputeResolution.SPLIT_PAYMENT
+    ) {
+      targetTaskStatus = TaskStatus.COMPLETED;
+    } else {
+      // If DISMISSED, restore task to ASSIGNED
+      targetTaskStatus = TaskStatus.ASSIGNED;
+    }
+
+    const finalDisputeStatus =
+      dto.resolution === DisputeResolution.DISMISSED
+        ? DisputeStatus.DISMISSED
+        : DisputeStatus.RESOLVED;
+
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Update dispute record
+      const updatedDispute = await tx.dispute.update({
+        where: { id },
+        data: {
+          status: finalDisputeStatus,
+          resolution: dto.resolution,
+          resolutionNotes: dto.resolutionNotes,
+          resolvedById: adminId,
+          resolvedAt: new Date(),
+        },
+        include: {
+          task: {
+            select: { id: true, title: true, status: true, budget: true },
+          },
+          raisedBy: {
+            select: { id: true, fullName: true, email: true },
+          },
+          againstUser: {
+            select: { id: true, fullName: true, email: true },
+          },
+          resolvedBy: {
+            select: { id: true, fullName: true },
+          },
+        },
+      });
+
+      // 2. Unfreeze task status
+      await tx.task.update({
+        where: { id: dispute.taskId },
+        data: { status: targetTaskStatus },
+      });
+
+      // 3. Notify Filer
+      await tx.notification.create({
+        data: {
+          userId: dispute.raisedById,
+          type: NotificationType.DISPUTE,
+          title: 'Dispute Resolved',
+          body: `The dispute on task "${dispute.task.title}" has been concluded. Verdict: ${dto.resolution}.`,
+          taskId: dispute.taskId,
+          actionUrl: `/tasks/${dispute.taskId}/disputes`,
+        },
+      });
+
+      // 4. Notify Respondent
+      await tx.notification.create({
+        data: {
+          userId: dispute.againstUserId,
+          type: NotificationType.DISPUTE,
+          title: 'Dispute Resolved',
+          body: `The dispute on task "${dispute.task.title}" has been concluded. Verdict: ${dto.resolution}.`,
+          taskId: dispute.taskId,
+          actionUrl: `/tasks/${dispute.taskId}/disputes`,
+        },
+      });
+
+      return updatedDispute;
+    });
   }
 }
