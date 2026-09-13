@@ -7,6 +7,7 @@ import {
 } from "@reduxjs/toolkit/query/react";
 import { createMMKV } from "react-native-mmkv";
 import { router } from "expo-router";
+import { signOut } from "../slices/authActions";
 import type {
   AuthResponse,
   AuthUser,
@@ -77,14 +78,20 @@ const rawBaseQuery = fetchBaseQuery({
 let isRefreshing = false;
 let refreshPromise: Promise<string | null> | null = null;
 
+/** Clears session state everywhere (storage, auth slice, RTK Query cache) and returns to welcome. */
+function forceLogout(api: { dispatch: (action: any) => void }) {
+  clearAuthStorage();
+  api.dispatch(signOut());
+  api.dispatch(apiSlice.util.resetApiState());
+  try {
+    router.replace("/(screens)/welcome");
+  } catch {}
+}
+
 export async function refreshAccessToken(api: { dispatch: (action: any) => void }): Promise<string | null> {
   const refreshToken = getRefreshToken();
   if (!refreshToken) {
-    clearAuthStorage();
-    api.dispatch({ type: "auth/signOut" });
-    try {
-      router.replace("/(screens)/welcome");
-    } catch {}
+    forceLogout(api);
     return null;
   }
 
@@ -107,19 +114,11 @@ export async function refreshAccessToken(api: { dispatch: (action: any) => void 
         storage.set(REFRESH_TOKEN_KEY, data.refreshToken);
         return data.accessToken;
       } else {
-        clearAuthStorage();
-        api.dispatch({ type: "auth/signOut" });
-        try {
-          router.replace("/(screens)/welcome");
-        } catch {}
+        forceLogout(api);
         return null;
       }
     } catch {
-      clearAuthStorage();
-      api.dispatch({ type: "auth/signOut" });
-      try {
-        router.replace("/(screens)/welcome");
-      } catch {}
+      forceLogout(api);
       return null;
     } finally {
       isRefreshing = false;
