@@ -13,6 +13,7 @@ import { TaskStatus, OfferStatus } from '../../generated/prisma/enums';
 export class ReviewsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  // 1. Post a review
   async create(taskId: string, currentUserId: string, dto: CreateReviewDto) {
     // 1. Fetch task with its accepted offer
     const task = await this.prisma.task.findUnique({
@@ -115,6 +116,36 @@ export class ReviewsService {
       });
 
       return review;
+    });
+  }
+
+  // 2. Get all reviews for a specific task
+  async findByTask(taskId: string) {
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    return this.prisma.review.findMany({
+      where: { taskId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        fromUser: {
+          select: {
+            id: true,
+            fullName: true,
+          },
+        },
+        toUser: {
+          select: {
+            id: true,
+            fullName: true,
+          },
+        },
+      },
     });
   }
 }

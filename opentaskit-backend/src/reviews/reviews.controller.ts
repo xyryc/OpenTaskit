@@ -5,6 +5,7 @@ import {
   Param,
   UseGuards,
   ParseUUIDPipe,
+  Get,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ReviewsService } from './reviews.service';
@@ -27,5 +28,11 @@ export class ReviewsController {
     @Body() dto: CreateReviewDto,
   ) {
     return this.reviewsService.create(taskId, userId, dto);
+  }
+
+  @ApiOperation({ summary: 'Get all reviews attached to a specific task' })
+  @Get('tasks/:taskId/reviews')
+  findByTask(@Param('taskId', ParseUUIDPipe) taskId: string) {
+    return this.reviewsService.findByTask(taskId);
   }
 }
