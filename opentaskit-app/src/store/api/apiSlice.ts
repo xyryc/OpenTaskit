@@ -28,6 +28,7 @@ import type {
   RegisterPayload,
   ResetPasswordPayload,
   TaskItem,
+  UpdateOfferResponse,
   VerifyOtpPayload,
 } from '@/types';
 
@@ -286,6 +287,22 @@ export const apiSlice = createApi({
       ],
     }),
 
+    getOffersForTask: builder.query<OfferItem[], string>({
+      query: (taskId) => `/tasks/${taskId}/offers`,
+      providesTags: (result, _error, taskId) =>
+        result
+          ? [
+              ...result.map(({ id }) => ({ type: 'Offer' as const, id })),
+              { type: 'Offer' as const, id: `TASK_${taskId}` },
+            ]
+          : [{ type: 'Offer' as const, id: `TASK_${taskId}` }],
+    }),
+
+    updateOffer: builder.mutation<UpdateOfferResponse, { offerId: string } & CreateOfferPayload>({
+      query: ({ offerId, ...body }) => ({ url: `/offers/${offerId}`, method: 'PATCH', body }),
+      invalidatesTags: (_result, _error, { offerId }) => [{ type: 'Offer', id: offerId }],
+    }),
+
     uploadImages: builder.mutation<{ message: string; urls: string[] }, FormData>({
       async queryFn(formData, api) {
         const executeUpload = (token: string | null): Promise<any> => {
@@ -410,6 +427,8 @@ export const {
   useGetTaskByIdQuery,
   useCreateTaskMutation,
   useCreateOfferMutation,
+  useGetOffersForTaskQuery,
+  useUpdateOfferMutation,
   useUploadImagesMutation,
   useRegisterMutation,
   useLoginMutation,

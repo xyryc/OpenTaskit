@@ -221,6 +221,15 @@ export interface CreateOfferPayload {
   message: string;
 }
 
+export interface UpdateOfferResponse {
+  id: string;
+  taskId: string;
+  amount: number;
+  message: string;
+  status: OfferApiStatus;
+  updatedAt: string;
+}
+
 export interface ApiErrorResponse {
   status: number;
   error: string;

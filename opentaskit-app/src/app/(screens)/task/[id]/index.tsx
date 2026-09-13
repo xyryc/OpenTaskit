@@ -40,7 +40,12 @@ import {
 import { useApp } from '@/contexts/AppContext';
 import { useSavedTasks } from '@/hooks/useSavedTasks';
 import { useAppSelector } from '@/store';
-import { useCreateOfferMutation, useGetTaskByIdQuery } from '@/store/api/apiSlice';
+import {
+  useCreateOfferMutation,
+  useGetOffersForTaskQuery,
+  useGetTaskByIdQuery,
+  useUpdateOfferMutation,
+} from '@/store/api/apiSlice';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { mapApiTaskToTask } from '@/utils/taskFilters';
 import { distance, money, scheduleLabel, timeAgo } from '@/utils/format';
@@ -80,6 +85,12 @@ export default function TaskDetailScreen() {
   });
   const task = useMemo(() => (apiTask ? mapApiTaskToTask(apiTask) : undefined), [apiTask]);
   const [createOffer] = useCreateOfferMutation();
+  const [updateOffer] = useUpdateOfferMutation();
+  const { data: taskOffers } = useGetOffersForTaskQuery(task?.id ?? '', { skip: !task?.id });
+  const myRealOffer = useMemo(
+    () => taskOffers?.find((o) => o.userId === authUser?.id && o.status === 'PENDING'),
+    [taskOffers, authUser?.id],
+  );
 
   const [photoIndex, setPhotoIndex] = useState(0);
 
@@ -210,7 +221,10 @@ export default function TaskDetailScreen() {
 
   const handleOpenEditOffer = () => {
     if (!requireAccount('offer')) return;
-    if (existingOffer) {
+    if (myRealOffer) {
+      setOfferPrice(String(myRealOffer.amount));
+      setOfferMessage(myRealOffer.message || '');
+    } else if (existingOffer) {
       setOfferPrice(String(existingOffer.price));
       setOfferMessage(existingOffer.message || '');
     } else {
@@ -228,15 +242,25 @@ export default function TaskDetailScreen() {
       return;
     }
 
-    try {
-      await createOffer({
-        taskId: task.id,
-        amount: num,
-        message: offerMessage.trim(),
-      }).unwrap();
+    const isEditing = !!myRealOffer;
 
-      // Not yet backed by a real "my offers for this task" query - kept as
-      // local-only state so the submitted-offer badge/edit/withdraw UI works.
+    try {
+      if (isEditing) {
+        await updateOffer({
+          offerId: myRealOffer.id,
+          amount: num,
+          message: offerMessage.trim(),
+        }).unwrap();
+      } else {
+        await createOffer({
+          taskId: task.id,
+          amount: num,
+          message: offerMessage.trim(),
+        }).unwrap();
+      }
+
+      // The submitted-offer badge/withdraw UI below is still driven by this
+      // local mock state until that flow is wired to the real API too.
       submitOffer({
         taskId: task.id,
         price: num,
@@ -246,13 +270,15 @@ export default function TaskDetailScreen() {
 
       setMakeOfferOpen(false);
       toast({
-        title: 'Offer submitted!',
-        description: `Your offer of ${money(num)} has been sent to ${posterName}.`,
+        title: isEditing ? 'Offer updated!' : 'Offer submitted!',
+        description: isEditing
+          ? `Your offer is now ${money(num)}.`
+          : `Your offer of ${money(num)} has been sent to ${posterName}.`,
         variant: 'success',
       });
     } catch (err) {
       toast({
-        title: 'Could not submit offer',
+        title: isEditing ? 'Could not update offer' : 'Could not submit offer',
         description: getApiErrorMessage(err),
         variant: 'error',
       });
