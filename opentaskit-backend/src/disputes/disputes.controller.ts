@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   Param,
   ParseUUIDPipe,
   Post,
@@ -30,5 +31,18 @@ export class DisputesController {
     @Body() dto: CreateDisputeDto,
   ) {
     return this.disputesService.create(taskId, userId, dto);
+  }
+
+  // GET /api/v1/tasks/:taskId/disputes - Get dispute details for a task
+  @ApiOperation({
+    summary: 'Get dispute details and status for a specific task',
+  })
+  @Get('tasks/:taskId/disputes')
+  findByTask(
+    @Param('taskId', ParseUUIDPipe) taskId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: string,
+  ) {
+    return this.disputesService.findByTask(taskId, userId, userRole);
   }
 }

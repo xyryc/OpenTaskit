@@ -117,4 +117,51 @@ export class DisputesService {
       return dispute;
     });
   }
+
+  // 2. Get dispute details for a specific task
+  async findByTask(taskId: string, userId: string, userRole: string) {
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      include: {
+        offers: {
+          where: { status: OfferStatus.ACCEPTED },
+        },
+      },
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    const acceptedOffer = task.offers[0];
+    const isPoster = task.userId === userId;
+    const isTasker = acceptedOffer && acceptedOffer.userId === userId;
+    const isAdmin = userRole === 'ADMIN';
+
+    // Only poster, assigned tasker, or admin can view disputes for this task
+    if (!isPoster && !isTasker && !isAdmin) {
+      throw new ForbiddenException(
+        'You are not authorized to view dispute details for this task',
+      );
+    }
+
+    return this.prisma.dispute.findMany({
+      where: { taskId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        task: {
+          select: { id: true, title: true, status: true, budget: true },
+        },
+        raisedBy: {
+          select: { id: true, fullName: true, avatarUrl: true },
+        },
+        againstUser: {
+          select: { id: true, fullName: true, avatarUrl: true },
+        },
+        resolvedBy: {
+          select: { id: true, fullName: true },
+        },
+      },
+    });
+  }
 }
