@@ -13,6 +13,7 @@ import {
   TaskStatus,
 } from '../../generated/prisma/enums';
 import { FilterMyDisputesDto } from './dto/filter-my-disputes.dto';
+import { FilterAdminDisputesDto } from './dto/filter-admin-disputes.dto';
 
 @Injectable()
 export class DisputesService {
@@ -218,6 +219,90 @@ export class DisputesService {
     return {
       data: disputes,
       openCount,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+    };
+  }
+
+  // 4. Admin list and search disputes across the platform
+  async findAllAdmin(query: FilterAdminDisputesDto) {
+    const { search, status, reason, page = 1, limit = 10 } = query;
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+
+    if (status) {
+      where.status = status;
+    }
+
+    if (reason) {
+      where.reason = reason;
+    }
+
+    if (search) {
+      where.OR = [
+        { description: { contains: search, mode: 'insensitive' } },
+        { task: { title: { contains: search, mode: 'insensitive' } } },
+        { raisedBy: { fullName: { contains: search, mode: 'insensitive' } } },
+        {
+          againstUser: { fullName: { contains: search, mode: 'insensitive' } },
+        },
+      ];
+    }
+
+    const [disputes, total, openCount, underReviewCount, resolvedCount] =
+      await Promise.all([
+        this.prisma.dispute.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            task: {
+              select: { id: true, title: true, status: true, budget: true },
+            },
+            raisedBy: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+                avatarUrl: true,
+              },
+            },
+            againstUser: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+                avatarUrl: true,
+              },
+            },
+            resolvedBy: {
+              select: { id: true, fullName: true },
+            },
+          },
+        }),
+        this.prisma.dispute.count({ where }),
+        this.prisma.dispute.count({ where: { status: DisputeStatus.OPEN } }),
+        this.prisma.dispute.count({
+          where: { status: DisputeStatus.UNDER_REVIEW },
+        }),
+        this.prisma.dispute.count({
+          where: { status: DisputeStatus.RESOLVED },
+        }),
+      ]);
+
+    return {
+      data: disputes,
+      metrics: {
+        openCount,
+        underReviewCount,
+        resolvedCount,
+      },
       pagination: {
         page,
         limit,

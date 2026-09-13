@@ -14,6 +14,9 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { DisputesService } from './disputes.service';
 import { CreateDisputeDto } from './dto/create-dispute.dto';
 import { FilterMyDisputesDto } from './dto/filter-my-disputes.dto';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { FilterAdminDisputesDto } from './dto/filter-admin-disputes.dto';
 
 @ApiTags('Disputes')
 @ApiBearerAuth('JWT-auth')
@@ -58,5 +61,16 @@ export class DisputesController {
     @Query() query: FilterMyDisputesDto,
   ) {
     return this.disputesService.findMyDisputes(userId, query);
+  }
+
+  // GET /api/v1/admin/disputes - Admin dispute moderation queue
+  @ApiOperation({
+    summary: 'List and filter all disputes platform-wide (Admin only)',
+  })
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
+  @Get('admin/disputes')
+  findAllAdmin(@Query() query: FilterAdminDisputesDto) {
+    return this.disputesService.findAllAdmin(query);
   }
 }
