@@ -90,6 +90,32 @@ export class NotificationsService {
     };
   }
 
+  // 4. Delete / Dismiss a single notification
+  async remove(notificationId: string, userId: string) {
+    const notification = await this.prisma.notification.findUnique({
+      where: { id: notificationId },
+    });
+
+    if (!notification) {
+      throw new NotFoundException('Notification not found');
+    }
+
+    if (notification.userId !== userId) {
+      throw new ForbiddenException(
+        'You do not have permission to delete this notification',
+      );
+    }
+
+    await this.prisma.notification.delete({
+      where: { id: notificationId },
+    });
+
+    return {
+      message: 'Notification deleted successfully',
+      id: notificationId,
+    };
+  }
+
   // Helper method to dispatch notifications from other backend services
   async createNotification(data: {
     userId: string;

@@ -6,6 +6,7 @@ import {
   Query,
   UseGuards,
   ParseUUIDPipe,
+  Delete,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { NotificationsService } from './notifications.service';
@@ -42,5 +43,14 @@ export class NotificationsController {
   @Patch('read-all')
   markAllAsRead(@CurrentUser('id') userId: string) {
     return this.notificationsService.markAllAsRead(userId);
+  }
+
+  @ApiOperation({ summary: 'Delete or dismiss a notification' })
+  @Delete(':id')
+  remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.notificationsService.remove(id, userId);
   }
 }
