@@ -6,12 +6,20 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOfferDto } from './dto/create-offer.dto';
-import { OfferStatus, TaskStatus } from '../../generated/prisma/enums';
+import {
+  NotificationType,
+  OfferStatus,
+  TaskStatus,
+} from '../../generated/prisma/enums';
 import { UpdateOfferDto } from './dto/update-offer.dto';
+import { NotificationsService } from 'src/notifications/notifications.service';
 
 @Injectable()
 export class OffersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   // 1. Submit an offer on a task
   async create(taskId: string, userId: string, dto: CreateOfferDto) {
@@ -39,7 +47,7 @@ export class OffersService {
     }
 
     // Save or update tasker's offer
-    return this.prisma.offer.upsert({
+    const offer = await this.prisma.offer.upsert({
       where: { taskId_userId: { taskId, userId } },
       create: {
         taskId,
@@ -57,6 +65,22 @@ export class OffersService {
         user: { select: { id: true, fullName: true, phoneNumber: true } },
       },
     });
+
+    // 🔔 Notify the Task Poster of the new offer
+    try {
+      await this.notificationsService.createNotification({
+        userId: task.userId, // The task poster
+        type: NotificationType.OFFER,
+        title: 'New offer on your task',
+        body: `${offer.user.fullName} sent an offer of Rs ${dto.amount.toLocaleString()} on "${task.title}".`,
+        taskId: task.id,
+        actionUrl: `/task/${task.id}/offers`,
+      });
+    } catch (err) {
+      console.error('Failed to dispatch offer notification:', err);
+    }
+
+    return offer;
   }
 
   // 2. Fetch all offers for a specific task
@@ -109,7 +133,7 @@ export class OffersService {
     }
 
     // Atomic transaction: Accept chosen offer, reject others, assign task
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       // 1. Mark this offer as ACCEPTED
       const acceptedOffer = await tx.offer.update({
         where: { id: offerId },
@@ -136,6 +160,22 @@ export class OffersService {
         offer: acceptedOffer,
       };
     });
+
+    // 🔔 Notify the Tasker that their offer was accepted
+    try {
+      await this.notificationsService.createNotification({
+        userId: offer.userId, // The tasker
+        type: NotificationType.TASK,
+        title: 'Your offer was accepted!',
+        body: `Congratulations! Your offer of Rs ${offer.amount.toLocaleString()} on "${offer.task.title}" was accepted.`,
+        taskId: offer.taskId,
+        actionUrl: `/job/${offer.taskId}`,
+      });
+    } catch (err) {
+      console.error('Failed to dispatch accept notification:', err);
+    }
+
+    return result;
   }
 
   // 4. Tasker withdraws an offer

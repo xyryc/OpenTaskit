@@ -1,7 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { FilterNotificationsDto } from './dto/filter-notifications.dto';
 import { NotificationType } from '../../generated/prisma/enums';
+import { Prisma } from '../../generated/prisma/client';
 
 @Injectable()
 export class NotificationsService {
@@ -13,7 +18,7 @@ export class NotificationsService {
     const limit = query.limit || 20;
     const skip = (page - 1) * limit;
 
-    const whereClause: any = { userId };
+    const whereClause: Prisma.NotificationWhereInput = { userId };
     if (query.unreadOnly) {
       whereClause.isRead = false;
     }
@@ -45,7 +50,29 @@ export class NotificationsService {
     };
   }
 
-  // Helper method to dispatch notifications from any service in the backend
+  // 2. Mark a single notification as read
+  async markAsRead(notificationId: string, userId: string) {
+    const notification = await this.prisma.notification.findUnique({
+      where: { id: notificationId },
+    });
+
+    if (!notification) {
+      throw new NotFoundException('Notification not found');
+    }
+
+    if (notification.userId !== userId) {
+      throw new ForbiddenException(
+        'You do not have permission to modify this notification',
+      );
+    }
+
+    return this.prisma.notification.update({
+      where: { id: notificationId },
+      data: { isRead: true },
+    });
+  }
+
+  // Helper method to dispatch notifications from other backend services
   async createNotification(data: {
     userId: string;
     type: NotificationType;

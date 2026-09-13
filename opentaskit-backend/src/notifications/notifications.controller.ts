@@ -1,4 +1,12 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Patch,
+  Param,
+  Query,
+  UseGuards,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { NotificationsService } from './notifications.service';
 import { FilterNotificationsDto } from './dto/filter-notifications.dto';
@@ -19,5 +27,14 @@ export class NotificationsController {
     @Query() query: FilterNotificationsDto,
   ) {
     return this.notificationsService.findAll(userId, query);
+  }
+
+  @ApiOperation({ summary: 'Mark a specific notification as read' })
+  @Patch(':id/read')
+  markAsRead(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.notificationsService.markAsRead(id, userId);
   }
 }

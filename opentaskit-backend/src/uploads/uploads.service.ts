@@ -31,7 +31,9 @@ export class UploadsService {
         secure: true,
       });
       this.isConfigured = true;
-      this.logger.log(`Cloudinary client initialized for cloud: "${cloudName}"`);
+      this.logger.log(
+        `Cloudinary client initialized for cloud: "${cloudName}"`,
+      );
     } else {
       this.logger.error(
         'Cloudinary credentials are not properly configured in .env. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET.',
