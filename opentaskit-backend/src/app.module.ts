@@ -14,6 +14,7 @@ import { OffersModule } from './offers/offers.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { DisputesModule } from './disputes/disputes.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     ReviewsModule,
     NotificationsModule,
     UploadsModule,
+    DisputesModule,
   ],
   controllers: [AppController],
   providers: [

@@ -37,12 +37,15 @@ model User {
   reviewCount Int   @default(0)
 
   // relations
-  tasks           Task[]
-  savedTasks      SavedTask[]
-  offers          Offer[]
-  reviewsGiven    Review[]       @relation("ReviewsGiven")
-  reviewsReceived Review[]       @relation("ReviewsReceived")
-  notifications   Notification[]
+  tasks            Task[]
+  savedTasks       SavedTask[]
+  offers           Offer[]
+  reviewsGiven     Review[]       @relation("ReviewsGiven")
+  reviewsReceived  Review[]       @relation("ReviewsReceived")
+  notifications    Notification[]
+  disputesRaised   Dispute[]      @relation("DisputesRaised")
+  disputesAgainst  Dispute[]      @relation("DisputesAgainst")
+  disputesResolved Dispute[]      @relation("DisputesResolved")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -89,9 +92,10 @@ model Task {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  savedBy SavedTask[]
-  offers  Offer[]
-  reviews Review[]
+  savedBy  SavedTask[]
+  offers   Offer[]
+  reviews  Review[]
+  disputes Dispute[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -167,12 +171,68 @@ model Notification {
   @@index([userId, isRead])
 }
 
+model Dispute {
+  id              String             @id @default(uuid())
+  reason          DisputeReason
+  description     String             @db.Text
+  evidenceUrls    String[]           @default([])
+  status          DisputeStatus      @default(OPEN)
+  resolution      DisputeResolution?
+  resolutionNotes String?            @db.Text
+
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  raisedById String
+  raisedBy   User   @relation("DisputesRaised", fields: [raisedById], references: [id], onDelete: Cascade)
+
+  againstUserId String
+  againstUser   User   @relation("DisputesAgainst", fields: [againstUserId], references: [id], onDelete: Cascade)
+
+  resolvedById String?
+  resolvedBy   User?     @relation("DisputesResolved", fields: [resolvedById], references: [id])
+  resolvedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([taskId])
+  @@index([raisedById])
+  @@index([againstUserId])
+  @@index([status])
+}
+
+enum DisputeReason {
+  WORK_UNSATISFACTORY
+  TASKER_NO_SHOW
+  POSTER_UNRESPONSIVE
+  PAYMENT_ISSUE
+  HARASSMENT
+  OTHER
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  DISMISSED
+}
+
+enum DisputeResolution {
+  REFUND_POSTER
+  PAY_TASKER
+  SPLIT_PAYMENT
+  CANCELLED_NO_PENALTY
+  DISMISSED
+}
+
 enum NotificationType {
   OFFER
   TASK
   MESSAGE
   REVIEW
   PAYMENT
+  DISPUTE
   SYSTEM
 }
 
@@ -198,6 +258,7 @@ enum TaskStatus {
   ASSIGNED
   COMPLETED
   CANCELLED
+  DISPUTED
 }
 
 enum LocationType {
