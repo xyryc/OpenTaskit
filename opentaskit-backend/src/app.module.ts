@@ -13,6 +13,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { OffersModule } from './offers/offers.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { ReviewsModule } from './reviews/reviews.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { ReviewsModule } from './reviews/reviews.module';
     UsersModule,
     OffersModule,
     ReviewsModule,
+    NotificationsModule,
     UploadsModule,
   ],
   controllers: [AppController],
