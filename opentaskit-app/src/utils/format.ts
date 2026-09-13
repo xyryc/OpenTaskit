@@ -90,6 +90,10 @@ export function scheduleLabel(schedule?: {
 }
 
 
+export function monthYear(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+}
+
 export function initialsOf(name: string): string {
   return name.
   split(' ').

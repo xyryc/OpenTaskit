@@ -18,7 +18,9 @@ import type {
   LoginPayload,
   LogoutPayload,
   MessageResponse,
+  MyProfileResponse,
   PaginatedTasksResponse,
+  UpdateMyProfilePayload,
   RefreshPayload,
   RefreshResponse,
   RegisterPayload,
@@ -129,6 +131,24 @@ export async function refreshAccessToken(api: { dispatch: (action: any) => void 
   return refreshPromise;
 }
 
+// Public auth endpoints: a 401 from these means "invalid credentials" or
+// "invalid/expired refresh token", never "access token expired" - so they
+// must never trigger the reauth-and-retry flow below.
+const PUBLIC_AUTH_PATHS = [
+  "/auth/login",
+  "/auth/register",
+  "/auth/refresh",
+  "/auth/logout",
+  "/auth/forgot-password",
+  "/auth/verify-otp",
+  "/auth/reset-password",
+];
+
+function isPublicAuthRequest(args: string | FetchArgs): boolean {
+  const url = typeof args === "string" ? args : args.url;
+  return PUBLIC_AUTH_PATHS.some((path) => url.includes(path));
+}
+
 const baseQueryWithReauth: BaseQueryFn<
   string | FetchArgs,
   unknown,
@@ -136,8 +156,11 @@ const baseQueryWithReauth: BaseQueryFn<
 > = async (args, api, extraOptions) => {
   let result = await rawBaseQuery(args, api, extraOptions);
 
-  // If request returned 401 Unauthorized, attempt token refresh
-  if (result.error && result.error.status === 401) {
+  // If request returned 401 Unauthorized, attempt token refresh - unless the
+  // request itself was to a public auth endpoint (e.g. a login attempt with
+  // the wrong password), where a 401 must be surfaced as-is, not treated as
+  // an expired session.
+  if (result.error && result.error.status === 401 && !isPublicAuthRequest(args)) {
     const newToken = await refreshAccessToken(api);
     if (newToken) {
       // Retry the original request with the fresh token
@@ -196,6 +219,17 @@ export const apiSlice = createApi({
 
     verifyOtp: builder.mutation<MessageResponse, VerifyOtpPayload>({
       query: (body) => ({ url: "/auth/verify-otp", method: "POST", body }),
+    }),
+
+    // User Profile
+    getMyProfile: builder.query<MyProfileResponse, void>({
+      query: () => "/users/me",
+      providesTags: [{ type: "User", id: "ME" }],
+    }),
+
+    updateMyProfile: builder.mutation<MyProfileResponse, UpdateMyProfilePayload>({
+      query: (body) => ({ url: "/users/me", method: "PATCH", body }),
+      invalidatesTags: [{ type: "User", id: "ME" }],
     }),
 
     // Tasks Marketplace
@@ -357,6 +391,8 @@ export const {
   useForgotPasswordMutation,
   useVerifyOtpMutation,
   useResetPasswordMutation,
+  useGetMyProfileQuery,
+  useUpdateMyProfileMutation,
   useGetSavedTasksQuery,
   useSaveTaskMutation,
   useUnsaveTaskMutation,

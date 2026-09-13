@@ -6,6 +6,41 @@ export interface AuthUser {
   role: string;
 }
 
+export interface MyProfileStats {
+  tasksPosted: number;
+  offersSubmitted: number;
+  tasksCompleted: number;
+  unreadNotifications: number;
+}
+
+export interface UpdateMyProfilePayload {
+  fullName?: string;
+  phoneNumber?: string;
+  avatarUrl?: string;
+  headline?: string;
+  bio?: string;
+  location?: string;
+  skills?: string[];
+}
+
+export interface MyProfileResponse {
+  id: string;
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  role: string;
+  status: string;
+  avatarUrl: string | null;
+  headline: string | null;
+  bio: string | null;
+  location: string | null;
+  skills: string[];
+  rating: number;
+  reviewCount: number;
+  createdAt: string;
+  stats: MyProfileStats;
+}
+
 export interface AuthResponse {
   message: string;
   accessToken: string;

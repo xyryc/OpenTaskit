@@ -26,7 +26,7 @@ import {
 
 import { useApp } from '@/contexts/AppContext';
 import { ME } from '@/data/users';
-import { money } from '@/utils/format';
+import { initialsOf, money, monthYear } from '@/utils/format';
 import { Screen, SectionHeader } from '@/components/layout/Screen';
 import { Avatar, VerifiedPill } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
@@ -38,6 +38,7 @@ import { CardBackgroundPattern } from '@/components/ui/CardBackgroundPattern';
 import { ProviderAvailabilityCard } from '@/components/provider/ProviderAvailabilityCard';
 import { useAuthActions } from '@/hooks/useAuthActions';
 import { useAppSelector } from '@/store';
+import { useGetMyProfileQuery } from '@/store/api/apiSlice';
 import { useSavedTasks } from '@/hooks/useSavedTasks';
 
 export default function ProfileScreen() {
@@ -48,12 +49,13 @@ export default function ProfileScreen() {
     me,
     kyc,
     wallet,
-    unreadNotifications,
     unreadMessages,
     available,
     toggleAvailable,
     toast,
   } = useApp();
+
+  const { data: profile } = useGetMyProfileQuery(undefined, { skip: guest });
 
   const [logoutOpen, setLogoutOpen] = useState(false);
   const { signOut, isLoggingOut: logoutLoading } = useAuthActions();
@@ -158,22 +160,30 @@ export default function ProfileScreen() {
         {/* Profile Identity Card */}
         <View className="border-b border-ink-100 bg-white px-5 pb-5 pt-6">
           <View className="flex-row items-start gap-4" style={{ gap: 14 }}>
-            <Avatar user={me} size="xl" showVerified />
+            <Avatar
+              user={{
+                ...me,
+                name: profile?.fullName ?? me.name,
+                initials: profile ? initialsOf(profile.fullName) : me.initials,
+              }}
+              size="xl"
+              showVerified
+            />
             <View className="flex-1 min-w-0">
               <Text
                 numberOfLines={1}
                 className="text-[20px] font-geist-semibold tracking-[-0.03em] text-ink"
               >
-                {user?.fullName}
+                {profile?.fullName ?? user?.fullName}
               </Text>
               <Text
                 numberOfLines={1}
                 className="mt-0.5 font-geist text-[13px] text-ink-500"
               >
-                {me.headline}
+                {profile?.headline || me.headline}
               </Text>
               <View className="mt-1.5 flex-row flex-wrap items-center gap-2" style={{ gap: 8 }}>
-                <StarRating value={me.rating} count={me.reviewCount} />
+                <StarRating value={profile?.rating ?? me.rating} count={profile?.reviewCount ?? me.reviewCount} />
                 <VerifiedPill verified={me.verified} />
               </View>
             </View>
@@ -188,7 +198,8 @@ export default function ProfileScreen() {
           </View>
 
           <Text className="mt-3 font-geist text-[12.5px] text-ink-500">
-            {me.location} · member since {me.memberSince}
+            {profile?.location || me.location} · member since{' '}
+            {profile ? monthYear(profile.createdAt) : me.memberSince}
           </Text>
 
           {/* Public Profile View Shortcut */}
@@ -274,8 +285,8 @@ export default function ProfileScreen() {
             <Tile
               icon={<Bell size={18} color="#0072C4" />}
               label="Alerts"
-              note={`${unreadNotifications}`}
-              onPress={() => toast({ title: 'Notifications', description: `You have ${unreadNotifications} unread notification(s).`, variant: 'info' })}
+              note={`${profile?.stats.unreadNotifications ?? 0}`}
+              onPress={() => toast({ title: 'Notifications', description: `You have ${profile?.stats.unreadNotifications ?? 0} unread notification(s).`, variant: 'info' })}
             />
             <Tile
               icon={<MessageCircle size={18} color="#0072C4" />}
@@ -293,7 +304,7 @@ export default function ProfileScreen() {
             <SectionHeader title="Trust & performance" />
             <TrustStats
               stats={[
-                { label: 'Completed', value: `${me.completedJobs} jobs` },
+                { label: 'Completed', value: `${profile?.stats.tasksCompleted ?? me.completedJobs} jobs` },
                 { label: 'Success rate', value: `${me.successRate}%` },
                 { label: 'Response rate', value: `${me.responseRate}%` },
                 { label: 'Experience', value: `${me.experienceYears} yrs` },

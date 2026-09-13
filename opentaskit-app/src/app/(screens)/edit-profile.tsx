@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -23,6 +23,7 @@ import {
 } from 'lucide-react-native';
 
 import { useApp } from '@/contexts/AppContext';
+import { getApiErrorMessage } from '@/utils/apiError';
 import { money } from '@/utils/format';
 import { resolveImageSource } from '@/utils/images';
 import { Screen, ScreenHeader } from '@/components/layout/Screen';
@@ -31,12 +32,15 @@ import { TextField, TextArea } from '@/components/ui/Input';
 import { Avatar } from '@/components/ui/Avatar';
 import { Chip } from '@/components/ui/Chip';
 import { BottomSheet } from '@/components/ui/Overlay';
+import { useGetMyProfileQuery, useUpdateMyProfileMutation } from '@/store/api/apiSlice';
 import type { PortfolioItem } from '@/types';
 
 export default function EditProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { me, updateMe, toast } = useApp();
+  const { data: profile } = useGetMyProfileQuery();
+  const [updateMyProfile, { isLoading: saving }] = useUpdateMyProfileMutation();
 
   const [name, setName] = useState(me.name);
   const [headline, setHeadline] = useState(me.headline);
@@ -45,6 +49,19 @@ export default function EditProfileScreen() {
   const [newSkill, setNewSkill] = useState('');
   const [services, setServices] = useState(me.services);
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>(me.portfolio);
+
+  // Seed the editable fields from the real profile once it loads, without
+  // clobbering fields the API doesn't support (services/portfolio stay mock-only).
+  const seededFromApiRef = useRef(false);
+  useEffect(() => {
+    if (profile && !seededFromApiRef.current) {
+      seededFromApiRef.current = true;
+      setName(profile.fullName);
+      setHeadline(profile.headline ?? '');
+      setAbout(profile.bio ?? '');
+      setSkills(profile.skills ?? []);
+    }
+  }, [profile]);
 
   // New Service Modal
   const [serviceModalOpen, setServiceModalOpen] = useState(false);
@@ -58,7 +75,6 @@ export default function EditProfileScreen() {
   const [portfolioTitle, setPortfolioTitle] = useState('');
   const [portfolioError, setPortfolioError] = useState('');
 
-  const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handlePickAvatar = async () => {
@@ -165,7 +181,7 @@ export default function EditProfileScreen() {
     setPortfolio((prev) => prev.filter((p) => p.id !== idToRemove));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const next: Record<string, string> = {};
     if (name.trim().length < 3) next.name = 'Enter your full name (at least 3 characters)';
     if (about.trim().length < 30) next.about = 'Tell people a little more about your work (at least 30 characters)';
@@ -173,8 +189,15 @@ export default function EditProfileScreen() {
     setErrors(next);
     if (Object.keys(next).length > 0) return;
 
-    setSaving(true);
-    setTimeout(() => {
+    try {
+      await updateMyProfile({
+        fullName: name.trim(),
+        headline: headline.trim(),
+        bio: about.trim(),
+        skills,
+      }).unwrap();
+
+      // Not yet supported by the API - kept as local-only state for now.
       updateMe({
         name: name.trim(),
         headline: headline.trim(),
@@ -183,10 +206,15 @@ export default function EditProfileScreen() {
         services,
         portfolio,
       });
-      setSaving(false);
       toast({ title: 'Profile updated', variant: 'success' });
       router.back();
-    }, 700);
+    } catch (err) {
+      toast({
+        title: 'Could not save changes',
+        description: getApiErrorMessage(err),
+        variant: 'error',
+      });
+    }
   };
 
   return (
