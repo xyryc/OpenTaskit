@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Bookmark, Clock, MapPin, Users } from 'lucide-react-native';
+import { Bookmark, Clock, MapPin, Star, Users } from 'lucide-react-native';
 import type { Task } from '@/types';
 import { useApp } from '@/contexts/AppContext';
 import { distance, money, scheduleLabel, timeAgo } from '@/utils/format';
@@ -22,6 +22,9 @@ export interface TaskCardProps {
   mine?: boolean;
   footer?: React.ReactNode;
   onClick?: () => void;
+  /** Optional poster rating badge (not part of the task itself, e.g. a placeholder pending a real profile lookup). */
+  posterRating?: number;
+  posterReviewCount?: number;
 }
 
 export function TaskCard({
@@ -33,6 +36,8 @@ export function TaskCard({
   mine,
   footer,
   onClick,
+  posterRating,
+  posterReviewCount,
 }: TaskCardProps) {
   const router = useRouter();
   const { toast } = useApp();
@@ -258,9 +263,18 @@ export function TaskCard({
           ) : (
             <View className="flex-1 flex-row items-center gap-2 min-w-0">
               <Avatar user={posterAvatarUser} size="xs" />
-              <Text numberOfLines={1} className="text-[12.5px] font-geist-semibold font-semibold text-ink flex-1">
+              <Text numberOfLines={1} className="text-[12.5px] font-geist-semibold font-semibold text-ink shrink">
                 {posterName}
               </Text>
+              {typeof posterRating === 'number' && (
+                <View className="flex-row items-center gap-0.5 shrink-0">
+                  <Star size={11} color="#F5A623" fill="#F5A623" />
+                  <Text className="font-geist text-[11.5px] text-ink-500">
+                    {posterRating.toFixed(1)}
+                    {typeof posterReviewCount === 'number' ? ` (${posterReviewCount})` : ''}
+                  </Text>
+                </View>
+              )}
             </View>
           )}
 

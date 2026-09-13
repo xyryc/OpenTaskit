@@ -4,6 +4,7 @@ import {
   Text,
   ScrollView,
   Pressable,
+  RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -47,12 +48,27 @@ export default function DiscoverScreen() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | undefined>();
 
-  const { data: tasksData, isLoading: tasksLoading } = useGetTasksQuery({
+  const {
+    data: tasksData,
+    isLoading: tasksLoading,
+    refetch: refetchTasks,
+  } = useGetTasksQuery({
     search: query.trim() || undefined,
     categoryId: filters.categoryIds[0] || undefined,
     minBudget: filters.budgetMin > 0 ? filters.budgetMin : undefined,
     maxBudget: filters.budgetMax < 30000 ? filters.budgetMax : undefined,
   });
+
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refetchTasks();
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const liveTasks = useMemo(() => {
     return tasksData?.data ? tasksData.data.map(mapApiTaskToTask) : [];
@@ -159,8 +175,19 @@ export default function DiscoverScreen() {
       {view === 'list' ? (
         <ScrollView
           className="flex-1"
-          contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 20) + 16 }}
+          contentContainerStyle={{
+            paddingBottom: Math.max(insets.bottom, 20) + 16,
+            flexGrow: 1,
+          }}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor="#0094F7"
+              colors={['#0094F7']}
+            />
+          }
         >
           <View className="px-5 pt-4">
             {tasksLoading ? (

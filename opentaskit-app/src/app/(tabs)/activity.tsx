@@ -14,14 +14,17 @@ import {
 import { useApp } from '@/contexts/AppContext';
 import { ME } from '@/data/users';
 import { DELETION_PENALTY_RATE, deletionPenaltyFor, money } from '@/utils/format';
-import type { Task, TaskStatus } from '@/types';
+import { mapApiTaskToTask } from '@/utils/taskFilters';
+import type { MyOfferItem, Task, TaskStatus } from '@/types';
 import { Screen } from '@/components/layout/Screen';
 import { TabBar } from '@/components/ui/Segmented';
 import { Chip, SelectChip, StatusChip } from '@/components/ui/Chip';
-import { EmptyState } from '@/components/ui/Feedback';
+import { EmptyState, TaskCardSkeleton } from '@/components/ui/Feedback';
 import { ConfirmDialog } from '@/components/ui/Overlay';
 import { TaskCard } from '@/components/task/TaskCard';
 import { CategoryBadge } from '@/components/CategoryIcon';
+import { useAppSelector } from '@/store';
+import { useGetMyOffersQuery, useGetTaskByIdQuery } from '@/store/api/apiSlice';
 
 type Tab = 'requests' | 'offers' | 'jobs';
 
@@ -44,12 +47,11 @@ export default function ActivityScreen() {
   const { savedCount } = useSavedTasks();
   const {
     tasks,
-    offers,
     unreadMessages,
-    taskById,
     deleteTask,
     requireAccount,
   } = useApp();
+  const guest = useAppSelector((state) => state.auth.guest);
 
   const [tab, setTab] = useState<Tab>(params.tab || 'requests');
   const [status, setStatus] = useState<TaskStatus | 'all'>('all');
@@ -62,12 +64,10 @@ export default function ActivityScreen() {
    * Once an offer is accepted it is a job, not an offer — accepted offers are
    * only shown under Jobs, so a piece of work never appears in two places.
    */
+  const { data: apiMyOffers } = useGetMyOffersQuery(undefined, { skip: guest });
   const myOffers = useMemo(
-    () =>
-      offers.filter(
-        (offer) => offer.providerId === ME && offer.status !== 'accepted'
-      ),
-    [offers]
+    () => (apiMyOffers ?? []).filter((offer) => offer.status !== 'ACCEPTED'),
+    [apiMyOffers]
   );
 
   const filtered = (list: Task[]) =>
@@ -131,7 +131,7 @@ export default function ActivityScreen() {
               {
                 value: 'offers',
                 label: 'Offers',
-                count: myOffers.filter((o) => o.status === 'pending').length,
+                count: myOffers.filter((o) => o.status === 'PENDING').length,
               },
               { value: 'jobs', label: 'Jobs', count: myJobs.length },
             ]}
@@ -236,42 +236,9 @@ export default function ActivityScreen() {
         {tab === 'offers' && (
           myOffers.length > 0 ? (
             <View className="gap-3">
-              {myOffers.map((offer) => {
-                const task = taskById(offer.taskId);
-                if (!task) return null;
-                return (
-                  <TaskCard
-                    key={offer.id}
-                    task={task}
-                    badge={
-                      <Chip
-                        tone={
-                          offer.status === 'pending'
-                            ? 'warning'
-                            : offer.status === 'rejected'
-                            ? 'danger'
-                            : 'neutral'
-                        }
-                      >
-                        {offer.status === 'pending'
-                          ? 'Pending'
-                          : offer.status === 'rejected'
-                          ? 'Declined'
-                          : 'Withdrawn'}
-                      </Chip>
-                    }
-                    footer={
-                      <View className="font-geist flex-row items-center justify-between text-[12px]">
-                        <Text className="font-geist text-[12px] text-ink-500">Your offer</Text>
-                        <Text className="text-[14px] font-geist-semibold font-semibold text-ink">
-                          {money(offer.price)}
-                        </Text>
-                      </View>
-                    }
-                    onClick={() => router.push(`/task/${task.id}` as any)}
-                  />
-                );
-              })}
+              {myOffers.map((offer) => (
+                <MyOfferCard key={offer.id} offer={offer} />
+              ))}
             </View>
           ) : (
             <EmptyState
@@ -369,5 +336,42 @@ export default function ActivityScreen() {
         icon={<Trash2 size={20} color="#C7382F" />}
       />
     </Screen>
+  );
+}
+
+const offerStatusMeta: Record<MyOfferItem['status'], { label: string; tone: 'warning' | 'success' | 'danger' | 'neutral' }> = {
+  PENDING: { label: 'Pending', tone: 'warning' },
+  ACCEPTED: { label: 'Accepted', tone: 'success' },
+  REJECTED: { label: 'Declined', tone: 'danger' },
+  WITHDRAWN: { label: 'Withdrawn', tone: 'neutral' },
+};
+
+function MyOfferCard({ offer }: { offer: MyOfferItem }) {
+  const router = useRouter();
+  const { data: apiTask } = useGetTaskByIdQuery(offer.task.id);
+  const task = useMemo(() => (apiTask ? mapApiTaskToTask(apiTask) : undefined), [apiTask]);
+
+  if (!task) {
+    return <TaskCardSkeleton />;
+  }
+
+  const meta = offerStatusMeta[offer.status];
+
+  return (
+    <TaskCard
+      task={task}
+      hideRequester={false}
+      // Poster rating isn't returned by any offers/tasks endpoint yet - placeholder until a real profile lookup is wired in, same as the dummy distance already baked into mapApiTaskToTask.
+      posterRating={4.8}
+      posterReviewCount={24}
+      badge={<Chip tone={meta.tone}>{meta.label}</Chip>}
+      footer={
+        <View className="flex-row items-center justify-between">
+          <Text className="font-geist text-[12px] text-ink-500">Your offer</Text>
+          <Text className="text-[14px] font-geist-semibold text-ink">{money(offer.amount)}</Text>
+        </View>
+      }
+      onClick={() => router.push(`/task/${offer.task.id}` as any)}
+    />
   );
 }

@@ -27,6 +27,7 @@ import type {
   RefreshResponse,
   RegisterPayload,
   ResetPasswordPayload,
+  MyOfferItem,
   TaskItem,
   UpdateOfferResponse,
   VerifyOtpPayload,
@@ -284,6 +285,7 @@ export const apiSlice = createApi({
       invalidatesTags: (_result, _error, { taskId }) => [
         { type: 'Task', id: taskId },
         { type: 'Offer', id: `TASK_${taskId}` },
+        { type: 'Offer', id: 'MY_LIST' },
       ],
     }),
 
@@ -298,9 +300,23 @@ export const apiSlice = createApi({
           : [{ type: 'Offer' as const, id: `TASK_${taskId}` }],
     }),
 
+    getMyOffers: builder.query<MyOfferItem[], void>({
+      query: () => '/users/me/offers',
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map(({ id }) => ({ type: 'Offer' as const, id })),
+              { type: 'Offer' as const, id: 'MY_LIST' },
+            ]
+          : [{ type: 'Offer' as const, id: 'MY_LIST' }],
+    }),
+
     updateOffer: builder.mutation<UpdateOfferResponse, { offerId: string } & CreateOfferPayload>({
       query: ({ offerId, ...body }) => ({ url: `/offers/${offerId}`, method: 'PATCH', body }),
-      invalidatesTags: (_result, _error, { offerId }) => [{ type: 'Offer', id: offerId }],
+      invalidatesTags: (_result, _error, { offerId }) => [
+        { type: 'Offer', id: offerId },
+        { type: 'Offer', id: 'MY_LIST' },
+      ],
     }),
 
     withdrawOffer: builder.mutation<{ message: string; offerId: string }, { offerId: string; taskId: string }>({
@@ -308,6 +324,7 @@ export const apiSlice = createApi({
       invalidatesTags: (_result, _error, { offerId, taskId }) => [
         { type: 'Offer', id: offerId },
         { type: 'Offer', id: `TASK_${taskId}` },
+        { type: 'Offer', id: 'MY_LIST' },
         { type: 'Task', id: taskId },
       ],
     }),
@@ -437,6 +454,7 @@ export const {
   useCreateTaskMutation,
   useCreateOfferMutation,
   useGetOffersForTaskQuery,
+  useGetMyOffersQuery,
   useUpdateOfferMutation,
   useWithdrawOfferMutation,
   useUploadImagesMutation,

@@ -221,6 +221,25 @@ export interface CreateOfferPayload {
   message: string;
 }
 
+export interface MyOfferTaskSummary {
+  id: string;
+  title: string;
+  budget: number;
+  status: TaskApiStatus;
+  address?: string | null;
+  locationType: LocationApiType;
+}
+
+export interface MyOfferItem {
+  id: string;
+  taskId: string;
+  amount: number;
+  message: string;
+  status: OfferApiStatus;
+  createdAt: string;
+  task: MyOfferTaskSummary;
+}
+
 export interface UpdateOfferResponse {
   id: string;
   taskId: string;
