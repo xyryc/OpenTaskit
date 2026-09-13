@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Query,
   UseGuards,
@@ -67,6 +68,13 @@ export class UsersController {
     @Body() dto: UpdateMyProfileDto,
   ) {
     return this.usersService.updateMyProfile(userId, dto);
+  }
+
+  // GET /api/v1/users/:id/profile - Public Profile Card
+  @ApiOperation({ summary: 'Get public user profile card by ID' })
+  @Get(':id/profile')
+  getPublicProfile(@Param('id', ParseUUIDPipe) id: string) {
+    return this.usersService.getPublicProfile(id);
   }
 
   // GET /api/v1/users - Admin User Directory with Search & Pagination;

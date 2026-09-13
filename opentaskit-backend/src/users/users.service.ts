@@ -286,4 +286,79 @@ export class UsersService {
       },
     });
   }
+
+  // 7. Get public user profile by ID (for tasker/poster profile cards)
+  async getPublicProfile(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        fullName: true,
+        avatarUrl: true,
+        headline: true,
+        bio: true,
+        location: true,
+        skills: true,
+        rating: true,
+        reviewCount: true,
+        createdAt: true,
+        status: true,
+      },
+    });
+
+    if (!user || user.status !== 'ACTIVE') {
+      throw new NotFoundException('User profile not found or inactive');
+    }
+
+    // Aggregate public stats & top 3 recent reviews
+    const [tasksCompleted, tasksPosted, recentReviews] = await Promise.all([
+      this.prisma.task.count({
+        where: {
+          OR: [
+            { userId: id, status: 'COMPLETED' },
+            {
+              offers: {
+                some: { userId: id, status: 'ACCEPTED' },
+              },
+              status: 'COMPLETED',
+            },
+          ],
+        },
+      }),
+      this.prisma.task.count({
+        where: { userId: id },
+      }),
+      this.prisma.review.findMany({
+        where: { toUserId: id },
+        take: 3,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          rating: true,
+          text: true,
+          tags: true,
+          createdAt: true,
+          fromUser: {
+            select: {
+              id: true,
+              fullName: true,
+              avatarUrl: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    const { status: _status, ...publicData } = user;
+
+    return {
+      ...publicData,
+      memberSince: user.createdAt,
+      stats: {
+        tasksCompleted,
+        tasksPosted,
+      },
+      recentReviews,
+    };
+  }
 }
