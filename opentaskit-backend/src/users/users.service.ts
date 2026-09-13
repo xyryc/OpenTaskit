@@ -185,4 +185,64 @@ export class UsersService {
       },
     });
   }
+
+  // 5. Get full authenticated profile with activity stats
+  async getMyProfile(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        phoneNumber: true,
+        role: true,
+        status: true,
+        avatarUrl: true,
+        headline: true,
+        bio: true,
+        location: true,
+        skills: true,
+        rating: true,
+        reviewCount: true,
+        createdAt: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Aggregate user activity statistics
+    const [tasksPosted, offersSubmitted, tasksCompleted, unreadNotifications] =
+      await Promise.all([
+        this.prisma.task.count({ where: { userId } }),
+        this.prisma.offer.count({ where: { userId } }),
+        this.prisma.task.count({
+          where: {
+            OR: [
+              { userId, status: 'COMPLETED' },
+              {
+                offers: {
+                  some: { userId, status: 'ACCEPTED' },
+                },
+                status: 'COMPLETED',
+              },
+            ],
+          },
+        }),
+        this.prisma.notification.count({
+          where: { userId, isRead: false },
+        }),
+      ]);
+
+    return {
+      ...user,
+      stats: {
+        tasksPosted,
+        offersSubmitted,
+        tasksCompleted,
+        unreadNotifications,
+      },
+    };
+  }
 }

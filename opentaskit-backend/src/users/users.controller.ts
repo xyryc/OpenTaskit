@@ -51,6 +51,13 @@ export class UsersController {
     return this.offersService.findMyOffers(userId);
   }
 
+  // GET /api/v1/users/me - Full authenticated profile with statistics
+  @ApiOperation({ summary: 'Get full authenticated user profile and stats' })
+  @Get('me')
+  getMyProfile(@CurrentUser('id') userId: string) {
+    return this.usersService.getMyProfile(userId);
+  }
+
   // GET /api/v1/users - Admin User Directory with Search & Pagination;
   @ApiOperation({
     summary: 'List and search users with pagination (Admin only)',

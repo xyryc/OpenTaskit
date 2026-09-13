@@ -27,15 +27,19 @@ model User {
   resetOtpHash      String?
   resetOtpExpiresAt DateTime?
 
+  avatarUrl String?
+  headline  String?
+  bio       String?
+  location  String?
+  skills    String[] @default([])
+
   rating      Float @default(0)
   reviewCount Int   @default(0)
 
   // relations
-  tasks      Task[]
-  savedTasks SavedTask[]
-
-  offers Offer[]
-
+  tasks           Task[]
+  savedTasks      SavedTask[]
+  offers          Offer[]
   reviewsGiven    Review[]       @relation("ReviewsGiven")
   reviewsReceived Review[]       @relation("ReviewsReceived")
   notifications   Notification[]
