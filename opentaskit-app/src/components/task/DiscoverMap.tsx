@@ -24,9 +24,11 @@ export function DiscoverMap({
 
   // Convert tasks to geo markers centered around Colombo (6.9271, 79.8612)
   const mapTasks = tasks.map((t) => {
-    // pin.x is 0-100, pin.y is 0-100
-    const lat = 6.950 - ((t.pin?.y ?? 50) / 100) * 0.05;
-    const lng = 79.840 + ((t.pin?.x ?? 50) / 100) * 0.05;
+    // Use the task's real coordinates when available; otherwise fall back to
+    // projecting the stylized pin.x/pin.y (0-100) onto the Colombo area.
+    const hasRealCoords = typeof t.latitude === 'number' && typeof t.longitude === 'number';
+    const lat = hasRealCoords ? t.latitude! : 6.950 - ((t.pin?.y ?? 50) / 100) * 0.05;
+    const lng = hasRealCoords ? t.longitude! : 79.840 + ((t.pin?.x ?? 50) / 100) * 0.05;
     return {
       id: t.id,
       title: t.title,

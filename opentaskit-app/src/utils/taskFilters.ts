@@ -132,7 +132,10 @@ export function mapApiTaskToTask(item: import('@/types/api').TaskItem): Task {
     flexibleBudget: item.isBudgetFlexible ?? false,
     location: item.address || (item.locationType === 'REMOTE' ? 'Remote' : 'In Person'),
     distanceKm: item.locationType === 'REMOTE' ? 0 : 2.5,
-    pin: { x: item.latitude ?? 52, y: item.longitude ?? 36 },
+    latitude: item.latitude ?? undefined,
+    longitude: item.longitude ?? undefined,
+    // Fallback stylized-minimap position, only used when real coordinates are absent
+    pin: { x: 52, y: 36 },
     schedule: {
       type: scheduleTypeMap[item.timeType] || 'asap',
       date: item.scheduledDate ? item.scheduledDate.slice(0, 10) : undefined,

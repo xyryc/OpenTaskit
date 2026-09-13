@@ -18,15 +18,15 @@ import { SegmentedControl } from '@/components/ui/Segmented';
 import { LeafletMap, Coordinates } from './LeafletMap';
 
 const DEFAULT_AREAS = [
-  'Kirulapone, Colombo 05',
-  'Havelock Town, Colombo 05',
-  'Ward Place, Colombo 07',
-  'Wellawatte, Colombo 06',
-  'Nugegoda, Western Province',
-  'Rajagiriya, Western Province',
-  'Battaramulla, Western Province',
-  'Dehiwala, Western Province',
-  'Mount Lavinia, Western Province',
+  { label: 'Kirulapone, Colombo 05', lat: 6.8836, lng: 79.8747 },
+  { label: 'Havelock Town, Colombo 05', lat: 6.887, lng: 79.863 },
+  { label: 'Ward Place, Colombo 07', lat: 6.9101, lng: 79.8656 },
+  { label: 'Wellawatte, Colombo 06', lat: 6.8767, lng: 79.8608 },
+  { label: 'Nugegoda, Western Province', lat: 6.8649, lng: 79.8997 },
+  { label: 'Rajagiriya, Western Province', lat: 6.9092, lng: 79.8917 },
+  { label: 'Battaramulla, Western Province', lat: 6.8985, lng: 79.9186 },
+  { label: 'Dehiwala, Western Province', lat: 6.8513, lng: 79.8653 },
+  { label: 'Mount Lavinia, Western Province', lat: 6.8389, lng: 79.8653 },
 ];
 
 export interface SearchResultItem {
@@ -41,7 +41,7 @@ export interface SearchResultItem {
 export interface LocationPickerProps {
   open: boolean;
   onClose: () => void;
-  onSelect: (location: string) => void;
+  onSelect: (location: string, coords?: { lat: number; lng: number }) => void;
 }
 
 export function LocationPicker({ open, onClose, onSelect }: LocationPickerProps) {
@@ -71,8 +71,8 @@ export function LocationPicker({ open, onClose, onSelect }: LocationPickerProps)
   const geocodeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const choose = useCallback(
-    (loc: string) => {
-      onSelect(loc);
+    (loc: string, coords?: { lat: number; lng: number }) => {
+      onSelect(loc, coords);
       onClose();
     },
     [onSelect, onClose]
@@ -141,7 +141,7 @@ export function LocationPicker({ open, onClose, onSelect }: LocationPickerProps)
         description: resolved,
         variant: 'success',
       });
-      choose(resolved);
+      choose(resolved, coords);
     } catch (err) {
       console.error('Error detecting location:', err);
       Alert.alert(
@@ -215,14 +215,14 @@ export function LocationPicker({ open, onClose, onSelect }: LocationPickerProps)
         console.error('Nominatim search error:', err);
         // Fallback to filtering default areas
         const localMatches = DEFAULT_AREAS.filter((a) =>
-          a.toLowerCase().includes(query.toLowerCase())
+          a.label.toLowerCase().includes(query.toLowerCase())
         ).map((a, idx) => ({
           id: `local-${idx}`,
-          primaryText: a.split(',')[0],
-          secondaryText: a.split(',').slice(1).join(',').trim() || 'Sri Lanka',
-          fullAddress: a,
-          lat: 6.9271,
-          lng: 79.8612,
+          primaryText: a.label.split(',')[0],
+          secondaryText: a.label.split(',').slice(1).join(',').trim() || 'Sri Lanka',
+          fullAddress: a.label,
+          lat: a.lat,
+          lng: a.lng,
         }));
         setSearchResults(localMatches);
       } finally {
@@ -364,7 +364,7 @@ export function LocationPicker({ open, onClose, onSelect }: LocationPickerProps)
                   {searchResults.map((item) => (
                     <Pressable
                       key={item.id}
-                      onPress={() => choose(item.fullAddress)}
+                      onPress={() => choose(item.fullAddress, { lat: item.lat, lng: item.lng })}
                       className="flex-row items-center gap-3 py-3.5 active:bg-ink-100/60 rounded-xl px-1"
                     >
                       <View className="h-8 w-8 items-center justify-center rounded-lg bg-ink-100">
@@ -395,13 +395,13 @@ export function LocationPicker({ open, onClose, onSelect }: LocationPickerProps)
                 </Text>
                 {DEFAULT_AREAS.map((area) => (
                   <Pressable
-                    key={area}
-                    onPress={() => choose(area)}
+                    key={area.label}
+                    onPress={() => choose(area.label, { lat: area.lat, lng: area.lng })}
                     className="flex-row items-center gap-3 py-3.5 active:bg-ink-100/60 rounded-xl px-1"
                   >
                     <MapPin size={17} color="#8A959B" />
                     <Text className="flex-1 font-geist text-[14px] text-ink">
-                      {area}
+                      {area.label}
                     </Text>
                   </Pressable>
                 ))}
@@ -447,7 +447,7 @@ export function LocationPicker({ open, onClose, onSelect }: LocationPickerProps)
               full
               variant="brand"
               disabled={isResolvingMap}
-              onPress={() => choose(resolvedMapLocation)}
+              onPress={() => choose(resolvedMapLocation, mapCoords)}
             >
               Use this location
             </Button>

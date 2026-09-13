@@ -466,7 +466,14 @@ export default function TaskDetailScreen() {
               Location
             </Text>
             <View className="mt-2.5 overflow-hidden rounded-3xl border border-ink-200 bg-white">
-              <LeafletMap height={144} />
+              <LeafletMap
+                height={144}
+                initialCenter={
+                  typeof task.latitude === 'number' && typeof task.longitude === 'number'
+                    ? { lat: task.latitude, lng: task.longitude }
+                    : undefined
+                }
+              />
               <View className="flex-row items-center gap-2 bg-white px-4 py-3 border-t border-ink-100">
                 <MapPin size={16} color="#0094F7" />
                 <Text

@@ -91,6 +91,8 @@ export interface Task {
   flexibleBudget: boolean;
   location: string;
   distanceKm: number;
+  latitude?: number;
+  longitude?: number;
   pin: { x: number; y: number };
   schedule: Schedule;
   /** Selected by the poster before posting so taskers know how they will be paid. */

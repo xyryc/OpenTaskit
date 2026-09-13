@@ -125,6 +125,7 @@ export default function CreateTaskScreen() {
   const [location, setLocation] = useState(
     currentLocation === 'Location off' ? '' : currentLocation
   );
+  const [locationCoords, setLocationCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [budget, setBudget] = useState('');
   const [flexible, setFlexible] = useState(true);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | ''>('');
@@ -286,8 +287,8 @@ export default function CreateTaskScreen() {
         images: finalImages.length > 0 ? finalImages : undefined,
         locationType: isRemote ? 'REMOTE' : 'IN_PERSON',
         address: isRemote ? undefined : location.trim(),
-        latitude: 6.9016,
-        longitude: 79.8542,
+        latitude: isRemote ? undefined : locationCoords?.lat,
+        longitude: isRemote ? undefined : locationCoords?.lng,
         budget: Number(budget),
         isBudgetFlexible: flexible,
         paymentMethod: paymentMap[paymentMethod] || 'CASH',
@@ -1144,8 +1145,9 @@ export default function CreateTaskScreen() {
       <LocationPicker
         open={locationOpen}
         onClose={() => setLocationOpen(false)}
-        onSelect={(selectedLoc) => {
+        onSelect={(selectedLoc, coords) => {
           setLocation(selectedLoc);
+          setLocationCoords(coords ?? null);
           if (errors.location) {
             setErrors((prev) => ({ ...prev, location: '' }));
           }

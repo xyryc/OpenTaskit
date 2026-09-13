@@ -49,6 +49,7 @@ export class AuthService {
     const refreshTokenPayload = {
       sub: userId,
       email,
+      rememberMe,
       tokenId: crypto.randomUUID(),
     };
 
@@ -186,6 +187,10 @@ export class AuthService {
       throw new ForbiddenException('Access denied');
     }
 
+    if (user.status !== 'ACTIVE') {
+      throw new ForbiddenException('Account is deactivated');
+    }
+
     // 3. Compare incoming pre-hashed refresh token with database hash
     const incomingTokenHash = this.hashToken(dto.refreshToken);
     const isTokenMatch = await bcrypt.compare(
@@ -197,8 +202,14 @@ export class AuthService {
       throw new ForbiddenException('Access denied');
     }
 
-    // 4. Token Rotation: Issue a fresh pair of tokens
-    const tokens = await this.generateTokens(user.id, user.email, false);
+    // 4. Token Rotation: Issue a fresh pair of tokens, preserving the
+    // original rememberMe preference so "remember me" sessions don't
+    // get silently downgraded to a 1-day refresh token on rotation
+    const tokens = await this.generateTokens(
+      user.id,
+      user.email,
+      payload.rememberMe ?? false,
+    );
     await this.updateHashedRefreshToken(user.id, tokens.refreshToken);
 
     return {
