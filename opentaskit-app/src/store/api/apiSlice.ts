@@ -303,6 +303,15 @@ export const apiSlice = createApi({
       invalidatesTags: (_result, _error, { offerId }) => [{ type: 'Offer', id: offerId }],
     }),
 
+    withdrawOffer: builder.mutation<{ message: string; offerId: string }, { offerId: string; taskId: string }>({
+      query: ({ offerId }) => ({ url: `/offers/${offerId}`, method: 'DELETE' }),
+      invalidatesTags: (_result, _error, { offerId, taskId }) => [
+        { type: 'Offer', id: offerId },
+        { type: 'Offer', id: `TASK_${taskId}` },
+        { type: 'Task', id: taskId },
+      ],
+    }),
+
     uploadImages: builder.mutation<{ message: string; urls: string[] }, FormData>({
       async queryFn(formData, api) {
         const executeUpload = (token: string | null): Promise<any> => {
@@ -429,6 +438,7 @@ export const {
   useCreateOfferMutation,
   useGetOffersForTaskQuery,
   useUpdateOfferMutation,
+  useWithdrawOfferMutation,
   useUploadImagesMutation,
   useRegisterMutation,
   useLoginMutation,

@@ -45,6 +45,7 @@ import {
   useGetOffersForTaskQuery,
   useGetTaskByIdQuery,
   useUpdateOfferMutation,
+  useWithdrawOfferMutation,
 } from '@/store/api/apiSlice';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { mapApiTaskToTask } from '@/utils/taskFilters';
@@ -86,6 +87,7 @@ export default function TaskDetailScreen() {
   const task = useMemo(() => (apiTask ? mapApiTaskToTask(apiTask) : undefined), [apiTask]);
   const [createOffer] = useCreateOfferMutation();
   const [updateOffer] = useUpdateOfferMutation();
+  const [withdrawOfferApi] = useWithdrawOfferMutation();
   const { data: taskOffers } = useGetOffersForTaskQuery(task?.id ?? '', { skip: !task?.id });
   const myRealOffer = useMemo(
     () => taskOffers?.find((o) => o.userId === authUser?.id && o.status === 'PENDING'),
@@ -861,10 +863,21 @@ export default function TaskDetailScreen() {
       <ConfirmDialog
         open={confirmWithdraw}
         onClose={() => setConfirmWithdraw(false)}
-        onConfirm={() => {
-          if (existingOffer) {
-            withdrawOffer(existingOffer.id);
+        onConfirm={async () => {
+          try {
+            if (myRealOffer) {
+              await withdrawOfferApi({ offerId: myRealOffer.id, taskId: task.id }).unwrap();
+            }
+            if (existingOffer) {
+              withdrawOffer(existingOffer.id);
+            }
             toast({ title: 'Offer withdrawn', variant: 'info' });
+          } catch (err) {
+            toast({
+              title: 'Could not withdraw offer',
+              description: getApiErrorMessage(err),
+              variant: 'error',
+            });
           }
         }}
         title="Withdraw your offer?"
