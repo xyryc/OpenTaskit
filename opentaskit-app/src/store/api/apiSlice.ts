@@ -6,6 +6,7 @@ import {
   type FetchBaseQueryError,
 } from "@reduxjs/toolkit/query/react";
 import { createMMKV } from "react-native-mmkv";
+import { router } from "expo-router";
 import type {
   AuthResponse,
   AuthUser,
@@ -72,6 +73,63 @@ const rawBaseQuery = fetchBaseQuery({
   },
 });
 
+// Mutex to serialize refresh requests across concurrent calls
+let isRefreshing = false;
+let refreshPromise: Promise<string | null> | null = null;
+
+export async function refreshAccessToken(api: { dispatch: (action: any) => void }): Promise<string | null> {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) {
+    clearAuthStorage();
+    api.dispatch({ type: "auth/signOut" });
+    try {
+      router.replace("/(screens)/welcome");
+    } catch {}
+    return null;
+  }
+
+  if (isRefreshing && refreshPromise) {
+    return refreshPromise;
+  }
+
+  isRefreshing = true;
+  refreshPromise = (async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken }),
+      });
+
+      if (response.ok) {
+        const data = (await response.json()) as RefreshResponse;
+        storage.set(ACCESS_TOKEN_KEY, data.accessToken);
+        storage.set(REFRESH_TOKEN_KEY, data.refreshToken);
+        return data.accessToken;
+      } else {
+        clearAuthStorage();
+        api.dispatch({ type: "auth/signOut" });
+        try {
+          router.replace("/(screens)/welcome");
+        } catch {}
+        return null;
+      }
+    } catch {
+      clearAuthStorage();
+      api.dispatch({ type: "auth/signOut" });
+      try {
+        router.replace("/(screens)/welcome");
+      } catch {}
+      return null;
+    } finally {
+      isRefreshing = false;
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
+
 const baseQueryWithReauth: BaseQueryFn<
   string | FetchArgs,
   unknown,
@@ -81,29 +139,10 @@ const baseQueryWithReauth: BaseQueryFn<
 
   // If request returned 401 Unauthorized, attempt token refresh
   if (result.error && result.error.status === 401) {
-    const refreshToken = getRefreshToken();
-    if (refreshToken) {
-      const refreshResult = await rawBaseQuery(
-        {
-          url: "/auth/refresh",
-          method: "POST",
-          body: { refreshToken },
-        },
-        api,
-        extraOptions,
-      );
-
-      if (refreshResult.data) {
-        const refreshData = refreshResult.data as RefreshResponse;
-        storage.set(ACCESS_TOKEN_KEY, refreshData.accessToken);
-        storage.set(REFRESH_TOKEN_KEY, refreshData.refreshToken);
-        // Retry the original request with the fresh token
-        result = await rawBaseQuery(args, api, extraOptions);
-      } else {
-        // Refresh token failed or expired: clear session & sign out
-        clearAuthStorage();
-        api.dispatch({ type: "auth/signOut" });
-      }
+    const newToken = await refreshAccessToken(api);
+    if (newToken) {
+      // Retry the original request with the fresh token
+      result = await rawBaseQuery(args, api, extraOptions);
     }
   }
 
@@ -189,70 +228,85 @@ export const apiSlice = createApi({
     }),
 
     uploadImages: builder.mutation<{ message: string; urls: string[] }, FormData>({
-      async queryFn(formData) {
-        return new Promise((resolve) => {
-          const xhr = new XMLHttpRequest();
-          xhr.open("POST", `${API_BASE_URL}/uploads`);
-          xhr.timeout = 60000; // 60s timeout for image upload
+      async queryFn(formData, api) {
+        const executeUpload = (token: string | null): Promise<any> => {
+          return new Promise((resolve) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open("POST", `${API_BASE_URL}/uploads`);
+            xhr.timeout = 60000; // 60s timeout for image upload
 
-          const token = storage.getString(ACCESS_TOKEN_KEY);
-          if (token) {
-            xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-          }
-
-          xhr.onload = () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              try {
-                const data = JSON.parse(xhr.responseText);
-                resolve({ data });
-              } catch {
-                resolve({
-                  error: {
-                    status: "CUSTOM_ERROR" as const,
-                    error: "Failed to parse upload response",
-                  },
-                });
-              }
-            } else {
-              try {
-                const errorData = JSON.parse(xhr.responseText);
-                resolve({
-                  error: {
-                    status: xhr.status,
-                    data: errorData,
-                  },
-                });
-              } catch {
-                resolve({
-                  error: {
-                    status: xhr.status,
-                    data: xhr.responseText,
-                  },
-                });
-              }
+            if (token) {
+              xhr.setRequestHeader("Authorization", `Bearer ${token}`);
             }
-          };
 
-          xhr.onerror = () => {
-            resolve({
-              error: {
-                status: "FETCH_ERROR" as const,
-                error: "Network error occurred while uploading photos",
-              },
-            });
-          };
+            xhr.onload = () => {
+              if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                  const data = JSON.parse(xhr.responseText);
+                  resolve({ data });
+                } catch {
+                  resolve({
+                    error: {
+                      status: "CUSTOM_ERROR" as const,
+                      error: "Failed to parse upload response",
+                    },
+                  });
+                }
+              } else {
+                try {
+                  const errorData = JSON.parse(xhr.responseText);
+                  resolve({
+                    error: {
+                      status: xhr.status,
+                      data: errorData,
+                    },
+                  });
+                } catch {
+                  resolve({
+                    error: {
+                      status: xhr.status,
+                      data: xhr.responseText,
+                    },
+                  });
+                }
+              }
+            };
 
-          xhr.ontimeout = () => {
-            resolve({
-              error: {
-                status: "TIMEOUT_ERROR" as const,
-                error: "Image upload timed out. Please try again.",
-              },
-            });
-          };
+            xhr.onerror = () => {
+              resolve({
+                error: {
+                  status: "FETCH_ERROR" as const,
+                  error: "Network error occurred while uploading photos",
+                },
+              });
+            };
 
-          xhr.send(formData);
-        });
+            xhr.ontimeout = () => {
+              resolve({
+                error: {
+                  status: "TIMEOUT_ERROR" as const,
+                  error: "Image upload timed out. Please try again.",
+                },
+              });
+            };
+
+            xhr.send(formData);
+          });
+        };
+
+        // 1. Initial attempt with current access token
+        const currentToken = storage.getString(ACCESS_TOKEN_KEY) || null;
+        let res = await executeUpload(currentToken);
+
+        // 2. If 401 Unauthorized, automatically refresh tokens and retry!
+        if (res.error && res.error.status === 401) {
+          const newToken = await refreshAccessToken(api);
+          if (newToken) {
+            res = await executeUpload(newToken);
+          }
+        }
+
+        return res;
       },
     }),
 
