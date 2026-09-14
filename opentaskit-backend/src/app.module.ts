@@ -15,6 +15,7 @@ import { UploadsModule } from './uploads/uploads.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { DisputesModule } from './disputes/disputes.module';
+import { KycModule } from './kyc/kyc.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { DisputesModule } from './disputes/disputes.module';
     PrismaModule,
     MailModule,
     AuthModule,
+    KycModule,
     CategoriesModule,
     TasksModule,
     UsersModule,

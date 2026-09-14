@@ -36,19 +36,50 @@ model User {
   rating      Float @default(0)
   reviewCount Int   @default(0)
 
+  isVerified Boolean @default(false)
+
   // relations
+  kycVerifications KycVerification[] @relation("UserKyc")
+  adminKycReviews  KycVerification[] @relation("AdminKycReviews")
   tasks            Task[]
   savedTasks       SavedTask[]
   offers           Offer[]
-  reviewsGiven     Review[]       @relation("ReviewsGiven")
-  reviewsReceived  Review[]       @relation("ReviewsReceived")
+  reviewsGiven     Review[]          @relation("ReviewsGiven")
+  reviewsReceived  Review[]          @relation("ReviewsReceived")
   notifications    Notification[]
-  disputesRaised   Dispute[]      @relation("DisputesRaised")
-  disputesAgainst  Dispute[]      @relation("DisputesAgainst")
-  disputesResolved Dispute[]      @relation("DisputesResolved")
+  disputesRaised   Dispute[]         @relation("DisputesRaised")
+  disputesAgainst  Dispute[]         @relation("DisputesAgainst")
+  disputesResolved Dispute[]         @relation("DisputesResolved")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model KycVerification {
+  id              String          @id @default(uuid())
+  documentType    KycDocumentType
+  idNumber        String
+  fullName        String?
+  dob             String?
+  frontPhotoUrl   String
+  backPhotoUrl    String?
+  selfieUrl       String?
+  status          KycStatus       @default(PENDING)
+  rejectionReason String?         @db.Text
+  reviewNotes     String?         @db.Text
+
+  userId String
+  user   User   @relation("UserKyc", fields: [userId], references: [id], onDelete: Cascade)
+
+  reviewedById String?
+  reviewedBy   User?     @relation("AdminKycReviews", fields: [reviewedById], references: [id])
+  reviewedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
 }
 
 model Category {
@@ -200,6 +231,18 @@ model Dispute {
   @@index([raisedById])
   @@index([againstUserId])
   @@index([status])
+}
+
+enum KycDocumentType {
+  NIC
+  DRIVING_LICENSE
+  PASSPORT
+}
+
+enum KycStatus {
+  PENDING
+  VERIFIED
+  REJECTED
 }
 
 enum DisputeReason {
