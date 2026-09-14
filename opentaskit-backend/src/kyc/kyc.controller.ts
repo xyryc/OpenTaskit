@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   Post,
   UploadedFiles,
   UseGuards,
@@ -80,5 +81,11 @@ export class KycController {
     },
   ) {
     return this.kycService.submit(userId, dto, files);
+  }
+
+  @ApiOperation({ summary: 'Get current user identity verification status' })
+  @Get('me')
+  getMyKyc(@CurrentUser('id') userId: string) {
+    return this.kycService.getMyKyc(userId);
   }
 }

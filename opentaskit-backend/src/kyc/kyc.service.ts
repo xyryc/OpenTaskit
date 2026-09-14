@@ -106,4 +106,42 @@ export class KycService {
 
     return verification;
   }
+
+  async getMyKyc(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, isVerified: true },
+    });
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    const latestVerification = await this.prisma.kycVerification.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        documentType: true,
+        idNumber: true,
+        fullName: true,
+        dob: true,
+        frontPhotoUrl: true,
+        backPhotoUrl: true,
+        selfieUrl: true,
+        status: true,
+        rejectionReason: true,
+        reviewNotes: true,
+        reviewedAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    return {
+      isVerified: user.isVerified,
+      status: latestVerification ? latestVerification.status : 'NONE',
+      verification: latestVerification || null,
+    };
+  }
 }
