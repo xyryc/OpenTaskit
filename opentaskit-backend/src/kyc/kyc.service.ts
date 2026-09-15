@@ -3,6 +3,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SubmitKycDto } from './dto/submit-kyc.dto';
 import { KycStatus } from '../../generated/prisma/enums';
 import { UploadsService } from '../uploads/uploads.service';
+import { Prisma } from 'generated/prisma/client';
+import { FilterAdminKycDto } from './dto/filter-admin-kyc.dto';
 
 export interface KycUploadFiles {
   frontPhoto?: Express.Multer.File[];
@@ -142,6 +144,83 @@ export class KycService {
       isVerified: user.isVerified,
       status: latestVerification ? latestVerification.status : 'NONE',
       verification: latestVerification || null,
+    };
+  }
+
+  async findAllAdmin(query: FilterAdminKycDto) {
+    const { status, search, page = 1, limit = 10 } = query;
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.KycVerificationWhereInput = {};
+
+    if (status) {
+      where.status = status;
+    }
+
+    if (search && search.trim()) {
+      const term = search.trim();
+      where.OR = [
+        { idNumber: { contains: term, mode: 'insensitive' } },
+        { fullName: { contains: term, mode: 'insensitive' } },
+        { user: { fullName: { contains: term, mode: 'insensitive' } } },
+        { user: { email: { contains: term, mode: 'insensitive' } } },
+        { user: { phoneNumber: { contains: term } } },
+      ];
+    }
+
+    const [data, total, pendingCount, verifiedCount, rejectedCount] =
+      await Promise.all([
+        this.prisma.kycVerification.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+                phoneNumber: true,
+                avatarUrl: true,
+                isVerified: true,
+              },
+            },
+            reviewedBy: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+              },
+            },
+          },
+        }),
+        this.prisma.kycVerification.count({ where }),
+        this.prisma.kycVerification.count({
+          where: { status: KycStatus.PENDING },
+        }),
+        this.prisma.kycVerification.count({
+          where: { status: KycStatus.VERIFIED },
+        }),
+        this.prisma.kycVerification.count({
+          where: { status: KycStatus.REJECTED },
+        }),
+      ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+      counts: {
+        pending: pendingCount,
+        verified: verifiedCount,
+        rejected: rejectedCount,
+        total: pendingCount + verifiedCount + rejectedCount,
+      },
     };
   }
 }

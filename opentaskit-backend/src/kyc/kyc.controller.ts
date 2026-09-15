@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Post,
+  Query,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
@@ -19,11 +20,14 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { KycService } from './kyc.service';
 import { SubmitKycDto } from './dto/submit-kyc.dto';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { FilterAdminKycDto } from './dto/filter-admin-kyc.dto';
 
 @ApiTags('KYC & Verification')
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard)
-@Controller('kyc')
+@Controller()
 export class KycController {
   constructor(private readonly kycService: KycService) {}
 
@@ -62,7 +66,7 @@ export class KycController {
       },
     },
   })
-  @Post('submit')
+  @Post('kyc/submit')
   @UseInterceptors(
     FileFieldsInterceptor([
       { name: 'frontPhoto', maxCount: 1 },
@@ -84,8 +88,16 @@ export class KycController {
   }
 
   @ApiOperation({ summary: 'Get current user identity verification status' })
-  @Get('me')
+  @Get('kyc/me')
   getMyKyc(@CurrentUser('id') userId: string) {
     return this.kycService.getMyKyc(userId);
+  }
+
+  @ApiOperation({ summary: 'Admin identity verification queue (Admin only)' })
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
+  @Get('admin/kyc')
+  findAllAdmin(@Query() query: FilterAdminKycDto) {
+    return this.kycService.findAllAdmin(query);
   }
 }
