@@ -1,10 +1,15 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { SubmitKycDto } from './dto/submit-kyc.dto';
 import { KycStatus } from '../../generated/prisma/enums';
 import { UploadsService } from '../uploads/uploads.service';
 import { Prisma } from 'generated/prisma/client';
 import { FilterAdminKycDto } from './dto/filter-admin-kyc.dto';
+import { ReviewKycDto } from './dto/review-kyc.dto';
 
 export interface KycUploadFiles {
   frontPhoto?: Express.Multer.File[];
@@ -222,5 +227,76 @@ export class KycService {
         total: pendingCount + verifiedCount + rejectedCount,
       },
     };
+  }
+
+  async review(id: string, adminId: string, dto: ReviewKycDto) {
+    const verification = await this.prisma.kycVerification.findUnique({
+      where: { id },
+      include: { user: true },
+    });
+
+    if (!verification) {
+      throw new NotFoundException(
+        `KYC verification record with ID ${id} not found`,
+      );
+    }
+
+    if (dto.status === KycStatus.REJECTED && !dto.rejectionReason?.trim()) {
+      throw new BadRequestException(
+        'Please provide a rejectionReason when rejecting a verification.',
+      );
+    }
+
+    const isVerified = dto.status === KycStatus.VERIFIED;
+
+    // Run in a transaction: update KYC record, update User isVerified, and notify user
+    const [updatedVerification] = await this.prisma.$transaction([
+      this.prisma.kycVerification.update({
+        where: { id },
+        data: {
+          status: dto.status,
+          rejectionReason: isVerified ? null : dto.rejectionReason?.trim(),
+          reviewNotes: dto.reviewNotes?.trim(),
+          reviewedById: adminId,
+          reviewedAt: new Date(),
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              phoneNumber: true,
+              avatarUrl: true,
+              isVerified: true,
+            },
+          },
+          reviewedBy: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+            },
+          },
+        },
+      }),
+      this.prisma.user.update({
+        where: { id: verification.userId },
+        data: { isVerified },
+      }),
+      this.prisma.notification.create({
+        data: {
+          userId: verification.userId,
+          type: 'SYSTEM',
+          title: isVerified ? 'Identity Verified! 🎉' : 'Verification Update',
+          body: isVerified
+            ? 'Your identity documents have been approved. Your verified badge is now active on your profile.'
+            : `Your identity verification was not approved: ${dto.rejectionReason}. Please review and resubmit.`,
+          actionUrl: '/(screens)/kyc',
+        },
+      }),
+    ]);
+
+    return updatedVerification;
   }
 }

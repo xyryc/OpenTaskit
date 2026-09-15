@@ -2,6 +2,9 @@ import {
   Body,
   Controller,
   Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
   Post,
   Query,
   UploadedFiles,
@@ -23,6 +26,7 @@ import { SubmitKycDto } from './dto/submit-kyc.dto';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { FilterAdminKycDto } from './dto/filter-admin-kyc.dto';
+import { ReviewKycDto } from './dto/review-kyc.dto';
 
 @ApiTags('KYC & Verification')
 @ApiBearerAuth('JWT-auth')
@@ -99,5 +103,19 @@ export class KycController {
   @Get('admin/kyc')
   findAllAdmin(@Query() query: FilterAdminKycDto) {
     return this.kycService.findAllAdmin(query);
+  }
+
+  @ApiOperation({
+    summary: 'Approve or reject a KYC verification (Admin only)',
+  })
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
+  @Patch('admin/kyc/:id/review')
+  review(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser('id') adminId: string,
+    @Body() dto: ReviewKycDto,
+  ) {
+    return this.kycService.review(id, adminId, dto);
   }
 }
