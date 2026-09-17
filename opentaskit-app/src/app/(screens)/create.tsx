@@ -14,12 +14,14 @@ import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import {
+  ArrowRight,
   Banknote,
   CalendarClock,
   CalendarDays,
   Camera,
   Check,
   ChevronLeft,
+  Clock,
   CreditCard,
   Lock,
   MapPin,
@@ -47,6 +49,7 @@ import { CategoryBadge, CategoryIcon } from '@/components/CategoryIcon';
 import { PhotoPicker } from '@/components/create/PhotoPicker';
 import { LocationPicker } from '@/components/create/LocationPicker';
 import { DatePickerSheet } from '@/components/create/DatePickerSheet';
+import { TimePickerSheet } from '@/components/create/TimePickerSheet';
 import { PAYMENT_METHODS, paymentMethodMeta, walletCovers } from '@/utils/payment';
 import { money, scheduleDateLabel, startOfToday } from '@/utils/format';
 import type { PaymentMethod, ScheduleType } from '@/types';
@@ -77,6 +80,7 @@ function quickDates(): { label: string; date: Date }[] {
 }
 
 const TIME_OPTIONS = [
+  'Any time of day',
   'Morning (8am – 12pm)',
   'Afternoon (12pm – 5pm)',
   'Evening (5pm – 8pm)',
@@ -135,7 +139,14 @@ export default function CreateTaskScreen() {
   const [scheduleType, setScheduleType] = useState<ScheduleType>('date');
   const [selectedDate, setSelectedDate] = useState<Date>(() => quickDates()[1].date);
   const [date, setDate] = useState<string>(() => quickDates()[1].label);
-  const [time, setTime] = useState('Morning (8am – 12pm)');
+  const [time, setTime] = useState('Any time of day');
+  const [isCustomTime, setIsCustomTime] = useState(false);
+  const [startTime, setStartTime] = useState('09:00 AM');
+  const [endTime, setEndTime] = useState('01:00 PM');
+  const [timePickerOpen, setTimePickerOpen] = useState(false);
+  const [timePickerTab, setTimePickerTab] = useState<'start' | 'end'>('start');
+
+  const effectiveTime = isCustomTime ? `${startTime} – ${endTime}` : time;
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [photoOpen, setPhotoOpen] = useState(false);
@@ -295,7 +306,7 @@ export default function CreateTaskScreen() {
         timeType: timeTypeMap[scheduleType] || 'ASAP',
         scheduledDate:
           scheduleType === 'date' && selectedDate ? selectedDate.toISOString() : undefined,
-        scheduledTime: scheduleType === 'date' ? time : undefined,
+        scheduledTime: scheduleType === 'date' ? effectiveTime : undefined,
       };
 
       const result = await createTaskApi(payload).unwrap();
@@ -975,13 +986,87 @@ export default function CreateTaskScreen() {
                         {TIME_OPTIONS.map((option) => (
                           <SelectChip
                             key={option}
-                            selected={time === option}
-                            onPress={() => setTime(option)}
+                            selected={!isCustomTime && time === option}
+                            onPress={() => {
+                              setIsCustomTime(false);
+                              setTime(option);
+                            }}
                           >
                             {option}
                           </SelectChip>
                         ))}
+                        <SelectChip
+                          selected={isCustomTime}
+                          onPress={() => {
+                            setIsCustomTime(true);
+                            setTimePickerTab('start');
+                            setTimePickerOpen(true);
+                          }}
+                        >
+                          {isCustomTime
+                            ? `Specific time · ${startTime} – ${endTime}`
+                            : 'Specific time'}
+                        </SelectChip>
                       </View>
+
+                      {/* When custom time is selected, show time range card */}
+                      {isCustomTime && (
+                        <View className="mt-3 rounded-2xl border border-brand/30 bg-brand-tint/25 p-3.5">
+                          <View className="flex-row items-center justify-between mb-2">
+                            <View className="flex-row items-center gap-1.5" style={{ gap: 6 }}>
+                              <Clock size={15} color="#0072C4" />
+                              <Text className="text-[13px] font-geist-semibold text-brand-dark">
+                                Specific time window
+                              </Text>
+                            </View>
+                            <Pressable
+                              onPress={() => {
+                                setTimePickerTab('start');
+                                setTimePickerOpen(true);
+                              }}
+                              hitSlop={8}
+                            >
+                              <Text className="text-[12.5px] font-geist-medium text-brand">
+                                Change
+                              </Text>
+                            </Pressable>
+                          </View>
+
+                          <View className="flex-row items-center gap-3">
+                            <Pressable
+                              onPress={() => {
+                                setTimePickerTab('start');
+                                setTimePickerOpen(true);
+                              }}
+                              className="flex-1 rounded-xl border border-ink-200 bg-white p-2.5 active:bg-ink-100"
+                            >
+                              <Text className="text-[11px] font-geist text-ink-400">
+                                Start time
+                              </Text>
+                              <Text className="mt-0.5 text-[14px] font-geist-semibold text-ink">
+                                {startTime}
+                              </Text>
+                            </Pressable>
+
+                            <ArrowRight size={16} color="#8A959B" />
+
+                            <Pressable
+                              onPress={() => {
+                                setTimePickerTab('end');
+                                setTimePickerOpen(true);
+                              }}
+                              className="flex-1 rounded-xl border border-ink-200 bg-white p-2.5 active:bg-ink-100"
+                            >
+                              <Text className="text-[11px] font-geist text-ink-400">
+                                End time
+                              </Text>
+                              <Text className="mt-0.5 text-[14px] font-geist-semibold text-ink">
+                                {endTime}
+                              </Text>
+                            </Pressable>
+                          </View>
+                        </View>
+                      )}
                     </View>
                   </View>
                 )}
@@ -1042,7 +1127,7 @@ export default function CreateTaskScreen() {
                             ? 'As soon as possible'
                             : scheduleType === 'flexible'
                             ? 'Flexible'
-                            : `${date} · ${time}`
+                            : `${date} · ${effectiveTime}`
                         }
                       />
                       <ReviewRow
@@ -1162,6 +1247,20 @@ export default function CreateTaskScreen() {
         onSelect={(label, d) => {
           setDate(label);
           setSelectedDate(d);
+        }}
+      />
+
+      {/* Time Picker Modal */}
+      <TimePickerSheet
+        open={timePickerOpen}
+        onClose={() => setTimePickerOpen(false)}
+        startTime={startTime}
+        endTime={endTime}
+        initialTab={timePickerTab}
+        onConfirm={(start, end) => {
+          setStartTime(start);
+          setEndTime(end);
+          setIsCustomTime(true);
         }}
       />
 

@@ -4,26 +4,19 @@ import { useAppSelector } from '@/store';
 import { Redirect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
-import { ArrowLeftRight, BadgeCheck, Compass, Star } from 'lucide-react-native';
+import { ArrowLeftRight, BadgeCheck, Star } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 
-import { useAuthActions } from '@/hooks/useAuthActions';
 import { BrandLockup } from '@/components/brand/BrandMark';
 import { Button } from '@/components/ui/Button';
 
 export default function WelcomeScreen() {
   const router = useRouter();
   const authed = useAppSelector((state) => state.auth.authed);
-  const { continueAsGuest } = useAuthActions();
 
   if (authed) {
     return <Redirect href="/(tabs)/home" />;
   }
-
-  const browseAsGuest = () => {
-    continueAsGuest();
-    router.replace('/(tabs)/home');
-  };
 
   return (
     <SafeAreaView className="flex-1 bg-white" edges={['top', 'bottom']}>
@@ -120,16 +113,6 @@ export default function WelcomeScreen() {
           onPress={() => router.push('/login' as any)}
         >
           Log in
-        </Button>
-
-        <Button
-          full
-          size="lg"
-          variant="ghost"
-          icon={<Compass size={18} color="#2B3A41" />}
-          onPress={browseAsGuest}
-        >
-          Continue as guest
         </Button>
 
         <Text className="font-geist mt-1 text-center text-[11.5px] text-ink-400">

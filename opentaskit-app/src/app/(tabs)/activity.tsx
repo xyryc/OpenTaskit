@@ -13,7 +13,7 @@ import {
 
 import { useApp } from '@/contexts/AppContext';
 import { ME } from '@/data/users';
-import { DELETION_PENALTY_RATE, deletionPenaltyFor, money } from '@/utils/format';
+import { DELETION_PENALTY_RATE, deletionPenaltyFor, money, scheduleLabel } from '@/utils/format';
 import { mapApiTaskToTask } from '@/utils/taskFilters';
 import type { MyOfferItem, Task, TaskStatus } from '@/types';
 import { Screen } from '@/components/layout/Screen';
@@ -173,13 +173,13 @@ export default function ActivityScreen() {
         <View className="mt-3">
           <TabBar
             tabs={[
-              { value: 'requests', label: 'Requests', count: myRequests.length },
+              { value: 'requests', label: 'Hiring', count: myRequests.length },
               {
                 value: 'offers',
-                label: 'Offers',
+                label: 'My bids',
                 count: myOffers.filter((o) => o.status === 'PENDING').length,
               },
-              { value: 'jobs', label: 'Jobs', count: myJobs.length },
+              { value: 'jobs', label: 'Assigned', count: myJobs.length },
             ]}
             value={tab}
             onChange={(val) => {
@@ -299,7 +299,7 @@ export default function ActivityScreen() {
           ) : (
             <EmptyState
               icon={<Send size={32} color="#0094F7" />}
-              title="No offers sent yet"
+              title="No bids sent yet"
               message="Browse tasks nearby and send your price. You keep control until the requester accepts."
               actionLabel="Find tasks"
               onAction={() => router.push('/discover' as any)}
@@ -339,7 +339,7 @@ export default function ActivityScreen() {
                         {task.title}
                       </Text>
                       <Text className="font-geist mt-1 text-[12.5px] text-ink-500">
-                        {task.schedule.date ?? 'Flexible'} · {task.location}
+                        {scheduleLabel(task.schedule)} · {task.location}
                       </Text>
                     </View>
                     <Text className="shrink-0 text-[16px] font-geist-semibold font-semibold tracking-tight text-ink">
@@ -352,7 +352,7 @@ export default function ActivityScreen() {
                     <View className="flex-row items-center gap-1.5">
                       <Briefcase size={14} color="#0094F7" />
                       <Text className="text-[12.5px] font-geist-medium font-medium text-brand">
-                        Open job
+                        View task
                       </Text>
                     </View>
                   </View>
@@ -362,8 +362,8 @@ export default function ActivityScreen() {
           ) : (
             <EmptyState
               icon={<Briefcase size={32} color="#0094F7" />}
-              title="No upcoming jobs"
-              message="Jobs you win appear here with their schedule, chat and completion steps."
+              title="No assigned tasks"
+              message="Tasks assigned to you appear here with their schedule, chat and completion steps."
               actionLabel="Find tasks"
               onAction={() => router.push('/discover' as any)}
             />

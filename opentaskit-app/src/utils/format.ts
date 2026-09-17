@@ -64,18 +64,29 @@ export function scheduleLabel(schedule?: {
 
   if (!schedule.date) return 'ASAP';
 
-  const d = new Date(schedule.date);
+  // Avoid UTC midnight timezone rollbacks on "YYYY-MM-DD"
+  let d: Date;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(schedule.date)) {
+    const [y, m, day] = schedule.date.split('-').map(Number);
+    d = new Date(y, m - 1, day);
+  } else {
+    d = new Date(schedule.date);
+  }
+
   const formattedDate = isNaN(d.getTime())
     ? schedule.date
-    : d.toLocaleDateString('en-GB', {
-        weekday: 'short',
-        day: 'numeric',
-        month: 'short',
-      }).replace(/^(\w{3}) /, '$1, ');
+    : d
+        .toLocaleDateString('en-GB', {
+          weekday: 'short',
+          day: 'numeric',
+          month: 'short',
+        })
+        .replace(/^(\w{3}) /, '$1, ');
 
   if (schedule.time) {
     let timeStr = schedule.time;
-    const match = schedule.time.match(/^(\d{1,2}):(\d{2})/);
+    // Only convert if it's raw 24-hr time like "14:00" or "14:30" (not already containing AM/PM or range)
+    const match = schedule.time.match(/^(\d{1,2}):(\d{2})$/);
     if (match) {
       let hours = parseInt(match[1], 10);
       const mins = match[2];
