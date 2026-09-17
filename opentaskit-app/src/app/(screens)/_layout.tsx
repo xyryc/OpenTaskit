@@ -36,6 +36,7 @@ export default function ScreensLayout() {
       <Stack.Screen name="task/[id]/index" />
       <Stack.Screen name="task/[id]/offers" />
       <Stack.Screen name="task/[id]/compare" />
+      <Stack.Screen name="task/[id]/edit" />
       <Stack.Screen name="dispute/new/[taskId]" />
       <Stack.Screen name="dispute/[taskId]" />
       <Stack.Screen name="review/[taskId]" />

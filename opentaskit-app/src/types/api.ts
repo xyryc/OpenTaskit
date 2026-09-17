@@ -37,6 +37,7 @@ export interface MyProfileResponse {
   skills: string[];
   rating: number;
   reviewCount: number;
+  isVerified: boolean;
   createdAt: string;
   stats: MyProfileStats;
 }
@@ -131,6 +132,8 @@ export interface TaskUserSummary {
   id: string;
   fullName: string;
   phoneNumber?: string;
+  avatarUrl?: string | null;
+  isVerified?: boolean;
   createdAt?: string;
 }
 
@@ -182,6 +185,24 @@ export interface CreateTaskPayload {
   timeType?: TimeApiType;
   scheduledDate?: string;
   scheduledTime?: string;
+}
+
+export interface UpdateTaskPayload {
+  title?: string;
+  details?: string;
+  categoryId?: string;
+  images?: string[];
+  locationType?: LocationApiType;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  budget?: number;
+  isBudgetFlexible?: boolean;
+  paymentMethod?: PaymentApiMethod;
+  timeType?: TimeApiType;
+  scheduledDate?: string;
+  scheduledTime?: string;
+  status?: TaskApiStatus;
 }
 
 export interface PaginatedTasksResponse {
@@ -253,6 +274,7 @@ export interface MyOfferTaskSummary {
   status: TaskApiStatus;
   address?: string | null;
   locationType: LocationApiType;
+  user?: TaskUserSummary;
 }
 
 export interface MyOfferItem {

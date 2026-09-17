@@ -122,6 +122,8 @@ export function mapApiTaskToTask(item: import('@/types/api').TaskItem): Task {
           id: item.user.id,
           fullName: item.user.fullName,
           phoneNumber: item.user.phoneNumber,
+          avatarUrl: item.user.avatarUrl,
+          isVerified: item.user.isVerified,
           createdAt: item.user.createdAt,
         }
       : undefined,

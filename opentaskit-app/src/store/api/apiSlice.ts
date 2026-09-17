@@ -27,6 +27,7 @@ import type {
   PaginatedTasksResponse,
   RejectOfferResponse,
   UpdateMyProfilePayload,
+  UpdateTaskPayload,
   RefreshPayload,
   RefreshResponse,
   RegisterPayload,
@@ -277,6 +278,19 @@ export const apiSlice = createApi({
         body,
       }),
       invalidatesTags: [
+        { type: 'Task', id: 'LIST' },
+        { type: 'Task', id: 'MY_POSTED' },
+      ],
+    }),
+
+    updateTask: builder.mutation<TaskItem, { taskId: string } & UpdateTaskPayload>({
+      query: ({ taskId, ...body }) => ({
+        url: `/tasks/${taskId}`,
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: (_result, _error, { taskId }) => [
+        { type: 'Task', id: taskId },
         { type: 'Task', id: 'LIST' },
         { type: 'Task', id: 'MY_POSTED' },
       ],
@@ -562,6 +576,7 @@ export const {
   useGetMyPostedTasksQuery,
   useGetMyAssignedTasksQuery,
   useCreateTaskMutation,
+  useUpdateTaskMutation,
   useDeleteTaskMutation,
   useCompleteTaskMutation,
   useCancelTaskMutation,

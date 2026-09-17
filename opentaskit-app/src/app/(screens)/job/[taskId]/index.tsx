@@ -160,6 +160,8 @@ export default function JobDetailScreen() {
             id: (task as any).user.id,
             name: (task as any).user.fullName || fallbackOther.name,
             phoneNumber: (task as any).user.phoneNumber || '',
+            avatarUrl: (task as any).user.avatarUrl || fallbackOther.avatarUrl,
+            verified: (task as any).user.isVerified ?? fallbackOther.verified,
           }
         : fallbackOther)
     : (acceptedOffer?.user

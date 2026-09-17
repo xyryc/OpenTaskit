@@ -83,6 +83,8 @@ export interface Task {
     id: string;
     fullName: string;
     phoneNumber?: string;
+    avatarUrl?: string | null;
+    isVerified?: boolean;
     createdAt?: string;
   };
   offersCount?: number;

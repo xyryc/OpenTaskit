@@ -229,6 +229,14 @@ export class OffersService {
             status: true,
             address: true,
             locationType: true,
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                avatarUrl: true,
+                isVerified: true,
+              },
+            },
           },
         },
       },

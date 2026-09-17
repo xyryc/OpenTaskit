@@ -205,6 +205,7 @@ export class UsersService {
         skills: true,
         rating: true,
         reviewCount: true,
+        isVerified: true,
         createdAt: true,
       },
     });

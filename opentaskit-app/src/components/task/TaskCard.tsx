@@ -60,7 +60,8 @@ export function TaskCard({
     name: posterName,
     initials: posterInitials,
     tone: 'bg-brand-tint text-brand-dark',
-    verified: false,
+    avatarUrl: task.user?.avatarUrl || undefined,
+    verified: !!task.user?.isVerified,
   };
 
   const handleOpen = () => {
@@ -158,7 +159,7 @@ export function TaskCard({
                 </Text>
               ) : (
                 <View className="flex-row items-center gap-1.5 min-w-0">
-                  <Avatar user={posterAvatarUser} size="xs" />
+                  <Avatar user={posterAvatarUser} size="xs" showVerified />
                   <Text numberOfLines={1} className="font-geist text-[11.5px] text-ink-500 max-w-[90px]">
                     {posterName.split(' ')[0]}
                   </Text>
@@ -262,7 +263,7 @@ export function TaskCard({
             </View>
           ) : (
             <View className="flex-1 flex-row items-center gap-2 min-w-0">
-              <Avatar user={posterAvatarUser} size="xs" />
+              <Avatar user={posterAvatarUser} size="xs" showVerified />
               <Text numberOfLines={1} className="text-[12.5px] font-geist-semibold font-semibold text-ink shrink">
                 {posterName}
               </Text>

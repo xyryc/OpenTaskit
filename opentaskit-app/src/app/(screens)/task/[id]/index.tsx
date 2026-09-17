@@ -44,6 +44,7 @@ import {
   useCreateOfferMutation,
   useGetOffersForTaskQuery,
   useGetTaskByIdQuery,
+  useGetMyProfileQuery,
   useUpdateOfferMutation,
   useWithdrawOfferMutation,
   useCancelTaskMutation,
@@ -84,6 +85,7 @@ export default function TaskDetailScreen() {
   const { data: apiTask, isLoading: loading, isError: taskError } = useGetTaskByIdQuery(id, {
     skip: !id,
   });
+  const { data: myProfile } = useGetMyProfileQuery(undefined, { skip: !authUser?.id });
   const task = useMemo(() => (apiTask ? mapApiTaskToTask(apiTask) : undefined), [apiTask]);
   const [createOffer] = useCreateOfferMutation();
   const [updateOffer] = useUpdateOfferMutation();
@@ -182,7 +184,18 @@ export default function TaskDetailScreen() {
   const categoryIcon = task.category?.icon;
   const payment = paymentMethodMeta(task.paymentMethod);
 
-  const posterName = task.user?.fullName || 'Requester';
+  const posterName = mine
+    ? (myProfile?.fullName || task.user?.fullName || authUser?.fullName || 'You')
+    : (task.user?.fullName || 'Requester');
+
+  const posterAvatarUrl = mine
+    ? (myProfile?.avatarUrl || task.user?.avatarUrl || undefined)
+    : (task.user?.avatarUrl || undefined);
+
+  const posterVerified = mine
+    ? !!myProfile?.isVerified
+    : !!task.user?.isVerified;
+
   const posterInitials =
     posterName
       .split(' ')
@@ -191,14 +204,21 @@ export default function TaskDetailScreen() {
       .join('')
       .slice(0, 2)
       .toUpperCase() || 'U';
+
   const posterAvatarUser = {
     name: posterName,
     initials: posterInitials,
     tone: 'bg-brand-tint text-brand-dark',
-    verified: false,
+    avatarUrl: posterAvatarUrl,
+    verified: posterVerified,
   };
-  const memberSince = task.user?.createdAt
-    ? new Date(task.user.createdAt).toLocaleDateString('en-US', {
+
+  const posterCreatedAt = mine
+    ? (myProfile?.createdAt || task.user?.createdAt)
+    : task.user?.createdAt;
+
+  const memberSince = posterCreatedAt
+    ? new Date(posterCreatedAt).toLocaleDateString('en-US', {
         month: 'short',
         year: 'numeric',
       })
@@ -539,7 +559,7 @@ export default function TaskDetailScreen() {
               className="mt-2.5 flex-row items-center gap-3 rounded-3xl border border-ink-200 bg-white p-4"
               style={{ gap: 12 }}
             >
-              <Avatar user={posterAvatarUser} size="lg" />
+              <Avatar user={posterAvatarUser} size="lg" showVerified />
               <View className="flex-1 min-w-0">
                 <Text
                   numberOfLines={1}
@@ -809,6 +829,24 @@ export default function TaskDetailScreen() {
               Open chat
             </Text>
           </Pressable>
+
+          {mine && (task.status === 'posted' || task.status === 'receiving_offers') && (
+            <Pressable
+              onPress={() => {
+                setMoreOpen(false);
+                router.push({
+                  pathname: '/(screens)/task/[id]/edit',
+                  params: { id: task.id },
+                } as any);
+              }}
+              className="flex-row items-center gap-3 py-3.5 px-2 active:bg-ink-100 rounded-2xl"
+            >
+              <Pencil size={18} color="#0094F7" />
+              <Text className="font-geist-medium text-[15px] text-ink">
+                Edit task
+              </Text>
+            </Pressable>
+          )}
 
           {mine ? (
             <Pressable

@@ -33,7 +33,15 @@ export class TasksService {
       },
       include: {
         category: { select: { id: true, name: true, slug: true, icon: true } },
-        user: { select: { id: true, fullName: true, phoneNumber: true } },
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            phoneNumber: true,
+            avatarUrl: true,
+            isVerified: true,
+          },
+        },
       },
     });
   }
@@ -86,7 +94,14 @@ export class TasksService {
           category: {
             select: { id: true, name: true, slug: true, icon: true },
           },
-          user: { select: { id: true, fullName: true } },
+          user: {
+            select: {
+              id: true,
+              fullName: true,
+              avatarUrl: true,
+              isVerified: true,
+            },
+          },
           _count: {
             select: { offers: true },
           },
@@ -113,7 +128,13 @@ export class TasksService {
           select: { id: true, name: true, slug: true, icon: true },
         },
         user: {
-          select: { id: true, fullName: true, phoneNumber: true },
+          select: {
+            id: true,
+            fullName: true,
+            phoneNumber: true,
+            avatarUrl: true,
+            isVerified: true,
+          },
         },
         _count: {
           select: { offers: true },
@@ -139,7 +160,13 @@ export class TasksService {
           select: { id: true, name: true, slug: true, icon: true },
         },
         user: {
-          select: { id: true, fullName: true, phoneNumber: true },
+          select: {
+            id: true,
+            fullName: true,
+            phoneNumber: true,
+            avatarUrl: true,
+            isVerified: true,
+          },
         },
         offers: {
           where: {
@@ -173,6 +200,8 @@ export class TasksService {
             id: true,
             fullName: true,
             phoneNumber: true,
+            avatarUrl: true,
+            isVerified: true,
             createdAt: true,
           },
         },
@@ -223,7 +252,13 @@ export class TasksService {
           select: { id: true, name: true, slug: true, icon: true },
         },
         user: {
-          select: { id: true, fullName: true, phoneNumber: true },
+          select: {
+            id: true,
+            fullName: true,
+            phoneNumber: true,
+            avatarUrl: true,
+            isVerified: true,
+          },
         },
       },
     });
@@ -364,7 +399,13 @@ export class TasksService {
           select: { id: true, name: true, slug: true, icon: true },
         },
         user: {
-          select: { id: true, fullName: true, phoneNumber: true },
+          select: {
+            id: true,
+            fullName: true,
+            phoneNumber: true,
+            avatarUrl: true,
+            isVerified: true,
+          },
         },
       },
     });

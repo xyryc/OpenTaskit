@@ -7,6 +7,7 @@ import {
   Briefcase,
   FileText,
   MessageCircle,
+  Pencil,
   Send,
   Trash2,
 } from 'lucide-react-native';
@@ -242,23 +243,35 @@ export default function ActivityScreen() {
                             )}`
                           : 'Free to delete — nobody assigned yet'}
                       </Text>
-                      <Pressable
-                        onPress={() => setPendingDelete(task)}
-                        hitSlop={8}
-                        className="flex-row items-center gap-1.5 rounded-full"
-                        style={{
-                          borderColor: 'rgba(199, 56, 47, 0.35)',
-                          borderWidth: 1,
-                          paddingHorizontal: 12,
-                          paddingVertical: 6,
-                          backgroundColor: 'rgba(199, 56, 47, 0.05)',
-                        }}
-                      >
-                        <Trash2 size={13} color="#C7382F" />
-                        <Text className="text-[12.5px] font-geist-medium font-medium text-danger">
-                          Delete
-                        </Text>
-                      </Pressable>
+                      <View className="flex-row items-center gap-2">
+                        {(task.status === 'posted' || task.status === 'receiving_offers') && (
+                          <Pressable
+                            onPress={() =>
+                              router.push({
+                                pathname: '/(screens)/task/[id]/edit',
+                                params: { id: task.id },
+                              } as any)
+                            }
+                            hitSlop={8}
+                            className="flex-row items-center gap-1.5 rounded-full border border-brand/30 bg-brand-tint/40 px-3 py-1.5"
+                          >
+                            <Pencil size={13} color="#0094F7" />
+                            <Text className="text-[12.5px] font-geist-medium font-medium text-brand">
+                              Edit
+                            </Text>
+                          </Pressable>
+                        )}
+                        <Pressable
+                          onPress={() => setPendingDelete(task)}
+                          hitSlop={8}
+                          className="flex-row items-center gap-1.5 rounded-full border border-danger/30 bg-danger/5 px-3 py-1.5"
+                        >
+                          <Trash2 size={13} color="#C7382F" />
+                          <Text className="text-[12.5px] font-geist-medium font-medium text-danger">
+                            Delete
+                          </Text>
+                        </Pressable>
+                      </View>
                     </View>
                   }
                   onClick={() => router.push(`/task/${task.id}` as any)}
@@ -407,7 +420,37 @@ const offerStatusMeta: Record<MyOfferItem['status'], { label: string; tone: 'war
 function MyOfferCard({ offer }: { offer: MyOfferItem }) {
   const router = useRouter();
   const { data: apiTask } = useGetTaskByIdQuery(offer.task.id);
-  const task = useMemo(() => (apiTask ? mapApiTaskToTask(apiTask) : undefined), [apiTask]);
+  const task = useMemo(() => {
+    if (apiTask) return mapApiTaskToTask(apiTask);
+    if (offer.task) {
+      return {
+        id: offer.task.id,
+        title: offer.task.title,
+        categoryId: '',
+        budget: offer.task.budget,
+        flexibleBudget: false,
+        location: offer.task.address || (offer.task.locationType === 'REMOTE' ? 'Remote' : 'In Person'),
+        distanceKm: offer.task.locationType === 'REMOTE' ? 0 : 2.5,
+        pin: { x: 50, y: 50 },
+        schedule: { type: 'asap' as const },
+        paymentMethod: 'cash' as const,
+        postedAt: offer.createdAt,
+        status: (offer.task.status?.toLowerCase() as any) || 'posted',
+        requesterId: offer.task.user?.id || '',
+        description: '',
+        images: [],
+        user: offer.task.user
+          ? {
+              id: offer.task.user.id,
+              fullName: offer.task.user.fullName,
+              avatarUrl: offer.task.user.avatarUrl,
+              isVerified: offer.task.user.isVerified,
+            }
+          : undefined,
+      } as Task;
+    }
+    return undefined;
+  }, [apiTask, offer]);
 
   if (!task) {
     return <TaskCardSkeleton />;
