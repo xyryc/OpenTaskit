@@ -12,7 +12,9 @@ import type {
   AcceptOfferResponse,
   AuthResponse,
   AuthUser,
+  CancelTaskResponse,
   CategoryItem,
+  CompleteTaskResponse,
   CreateOfferPayload,
   CreateTaskPayload,
   FilterTasksQuery,
@@ -315,6 +317,36 @@ export const apiSlice = createApi({
       ],
     }),
 
+    completeTask: builder.mutation<CompleteTaskResponse, string>({
+      query: (taskId) => ({
+        url: `/tasks/${taskId}/complete`,
+        method: 'POST',
+      }),
+      invalidatesTags: (_result, _error, taskId) => [
+        { type: 'Task', id: taskId },
+        { type: 'Task', id: 'LIST' },
+        { type: 'Task', id: 'MY_POSTED' },
+        { type: 'Task', id: 'MY_ASSIGNED' },
+        { type: 'Offer', id: `TASK_${taskId}` },
+        { type: 'Offer', id: 'MY_LIST' },
+      ],
+    }),
+
+    cancelTask: builder.mutation<CancelTaskResponse, string>({
+      query: (taskId) => ({
+        url: `/tasks/${taskId}/cancel`,
+        method: 'POST',
+      }),
+      invalidatesTags: (_result, _error, taskId) => [
+        { type: 'Task', id: taskId },
+        { type: 'Task', id: 'LIST' },
+        { type: 'Task', id: 'MY_POSTED' },
+        { type: 'Task', id: 'MY_ASSIGNED' },
+        { type: 'Offer', id: `TASK_${taskId}` },
+        { type: 'Offer', id: 'MY_LIST' },
+      ],
+    }),
+
     // Offers
     createOffer: builder.mutation<OfferItem, { taskId: string } & CreateOfferPayload>({
       query: ({ taskId, ...body }) => ({
@@ -531,6 +563,8 @@ export const {
   useGetMyAssignedTasksQuery,
   useCreateTaskMutation,
   useDeleteTaskMutation,
+  useCompleteTaskMutation,
+  useCancelTaskMutation,
   useCreateOfferMutation,
   useGetOffersForTaskQuery,
   useGetMyOffersQuery,

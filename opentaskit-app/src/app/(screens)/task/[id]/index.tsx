@@ -46,6 +46,7 @@ import {
   useGetTaskByIdQuery,
   useUpdateOfferMutation,
   useWithdrawOfferMutation,
+  useCancelTaskMutation,
 } from '@/store/api/apiSlice';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { mapApiTaskToTask } from '@/utils/taskFilters';
@@ -73,7 +74,6 @@ export default function TaskDetailScreen() {
   const {
     myOffer,
     toast,
-    cancelTask,
     withdrawOffer,
     submitOffer,
     requireAccount,
@@ -87,6 +87,7 @@ export default function TaskDetailScreen() {
   const task = useMemo(() => (apiTask ? mapApiTaskToTask(apiTask) : undefined), [apiTask]);
   const [createOffer] = useCreateOfferMutation();
   const [updateOffer] = useUpdateOfferMutation();
+  const [cancelTaskApi, { isLoading: isCancelling }] = useCancelTaskMutation();
   const [withdrawOfferApi] = useWithdrawOfferMutation();
   const { data: taskOffers } = useGetOffersForTaskQuery(task?.id ?? '', { skip: !task?.id });
   const myRealOffer = useMemo(
@@ -847,14 +848,23 @@ export default function TaskDetailScreen() {
       <ConfirmDialog
         open={confirmCancel}
         onClose={() => setConfirmCancel(false)}
-        onConfirm={() => {
-          cancelTask(task.id);
-          toast({ title: 'Task cancelled', variant: 'info' });
-          router.replace('/(tabs)/activity');
+        onConfirm={async () => {
+          if (!task) return;
+          try {
+            await cancelTaskApi(task.id).unwrap();
+            toast({ title: 'Task cancelled', variant: 'info' });
+            router.replace('/(tabs)/activity');
+          } catch (err) {
+            toast({
+              title: 'Failed to cancel task',
+              description: getApiErrorMessage(err),
+              variant: 'error',
+            });
+          }
         }}
         title="Cancel this task?"
         message="Offers you have received will be withdrawn and the task will no longer be visible to anyone."
-        confirmLabel="Cancel task"
+        confirmLabel={isCancelling ? 'Cancelling...' : 'Cancel task'}
         cancelLabel="Keep task"
         tone="danger"
       />

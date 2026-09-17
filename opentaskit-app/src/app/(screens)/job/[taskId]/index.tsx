@@ -18,9 +18,9 @@ import {
   MapPin,
   MessageCircle,
   Phone,
-  PlayCircle,
   Star,
   Wallet2,
+  X,
 } from 'lucide-react-native';
 
 import { useApp } from '@/contexts/AppContext';
@@ -40,7 +40,13 @@ import { StarRating } from '@/components/ui/Rating';
 import { ConfirmDialog } from '@/components/ui/Overlay';
 import { EmptyState, TaskCardSkeleton } from '@/components/ui/Feedback';
 import { useAppSelector } from '@/store';
-import { useGetTaskByIdQuery, useGetOffersForTaskQuery } from '@/store/api/apiSlice';
+import {
+  useGetTaskByIdQuery,
+  useGetOffersForTaskQuery,
+  useCompleteTaskMutation,
+  useCancelTaskMutation,
+} from '@/store/api/apiSlice';
+import { getApiErrorMessage } from '@/utils/apiError';
 import { mapApiTaskToTask } from '@/utils/taskFilters';
 
 const STEPS = [
@@ -52,6 +58,7 @@ const STEPS = [
 ];
 
 function getStepIndex(status: string, paid?: boolean, reviewed?: boolean): number {
+  if (status === 'cancelled') return 0;
   if (reviewed) return 5;
   if (paid || status === 'completed') return 4;
   if (status === 'awaiting_completion') return 3;
@@ -67,14 +74,15 @@ export default function JobDetailScreen() {
   const {
     taskById,
     userById,
-    startJob,
-    markCompleted,
     disputeForTask,
     toast,
   } = useApp();
 
-  const [confirmStart, setConfirmStart] = useState(false);
+  const [completeTaskApi, { isLoading: isCompleting }] = useCompleteTaskMutation();
+  const [cancelTaskApi, { isLoading: isCancelling }] = useCancelTaskMutation();
+
   const [confirmComplete, setConfirmComplete] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
 
   const { data: apiTaskData, isLoading: isTaskLoading } = useGetTaskByIdQuery(taskId, { skip: !taskId });
   const { data: taskOffers } = useGetOffersForTaskQuery(taskId, { skip: !taskId });
@@ -85,9 +93,59 @@ export default function JobDetailScreen() {
   );
 
   const acceptedOffer = taskOffers?.find((o) => o.status === 'ACCEPTED');
+  const isOwner = !!(
+    authUser?.id &&
+    ((task as any)?.userId === authUser.id ||
+      task?.requesterId === authUser.id ||
+      apiTaskData?.userId === authUser.id)
+  );
+  const isAdmin = authUser?.role === 'ADMIN';
+  const canCancel =
+    (isOwner || isAdmin) &&
+    task?.status !== 'completed' &&
+    task?.status !== 'cancelled';
+
   const isProvider = authUser?.id
     ? (acceptedOffer ? acceptedOffer.userId === authUser.id : task?.assignedProviderId === ME)
     : task?.assignedProviderId === ME;
+
+  const handleConfirmComplete = async () => {
+    if (!task) return;
+    try {
+      await completeTaskApi(task.id).unwrap();
+      setConfirmComplete(false);
+      toast({
+        title: 'Task completed',
+        description: 'The task has been marked as completed successfully.',
+        variant: 'success',
+      });
+    } catch (err) {
+      toast({
+        title: 'Failed to complete task',
+        description: getApiErrorMessage(err),
+        variant: 'error',
+      });
+    }
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!task) return;
+    try {
+      await cancelTaskApi(task.id).unwrap();
+      setConfirmCancel(false);
+      toast({
+        title: 'Task cancelled',
+        description: 'The task has been cancelled and active offers withdrawn.',
+        variant: 'info',
+      });
+    } catch (err) {
+      toast({
+        title: 'Failed to cancel task',
+        description: getApiErrorMessage(err),
+        variant: 'error',
+      });
+    }
+  };
 
   const fallbackOther = userById(
     isProvider
@@ -163,6 +221,26 @@ export default function JobDetailScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View className="gap-5 px-5 pb-8 pt-4" style={{ gap: 20 }}>
+          {/* Cancelled Banner */}
+          {task.status === 'cancelled' && (
+            <View
+              className="flex-row items-center gap-3 rounded-3xl border border-danger/30 bg-danger/10 p-4"
+              style={{ gap: 12 }}
+            >
+              <View className="h-10 w-10 items-center justify-center rounded-2xl bg-white shadow-sm">
+                <AlertTriangle size={18} color="#C7382F" />
+              </View>
+              <View className="flex-1 min-w-0">
+                <Text className="text-[14px] font-geist-semibold text-danger">
+                  Task Cancelled
+                </Text>
+                <Text className="text-[12.5px] font-geist text-ink-600">
+                  This task was cancelled and offers were withdrawn.
+                </Text>
+              </View>
+            </View>
+          )}
+
           {/* Card: Price & Progress Stepper */}
           <View className="rounded-3xl border border-ink-200 bg-white p-5 shadow-sm">
             <View className="flex-row items-start justify-between gap-3">
@@ -238,8 +316,8 @@ export default function JobDetailScreen() {
                         <Text className="mt-0.5 font-geist text-[12px] text-ink-500">
                           {task.status === 'assigned' &&
                             (isProvider
-                              ? 'Start the job when you arrive.'
-                              : 'Waiting for your provider to start.')}
+                              ? 'Work on the task and mark complete when finished.'
+                              : 'Waiting for your provider to finish work.')}
                           {task.status === 'in_progress' &&
                             (isProvider
                               ? 'Mark complete when the work is done.'
@@ -249,7 +327,9 @@ export default function JobDetailScreen() {
                               ? 'Waiting for confirmation from the requester.'
                               : 'Confirm the work is done to release payment.')}
                           {task.status === 'completed' &&
-                            'Payment settled. Leave a review to close it out.'}
+                            'Task completed. Leave a review to close it out.'}
+                          {task.status === 'cancelled' &&
+                            'This task has been cancelled.'}
                           {task.status === 'disputed' &&
                             'A dispute is open on this job.'}
                         </Text>
@@ -416,6 +496,19 @@ export default function JobDetailScreen() {
                 </Text>
               </Pressable>
             )}
+          {/* Cancel Task Button (Owner or Admin) */}
+          {canCancel && (
+            <Pressable
+              onPress={() => setConfirmCancel(true)}
+              className="flex-row items-center justify-center gap-2 rounded-2xl border border-danger/20 bg-danger/5 py-3.5 active:bg-danger/10"
+              style={{ gap: 8 }}
+            >
+              <X size={16} color="#C7382F" />
+              <Text className="font-geist-medium text-[13.5px] text-danger">
+                Cancel this task
+              </Text>
+            </Pressable>
+          )}
         </View>
       </ScrollView>
 
@@ -424,29 +517,49 @@ export default function JobDetailScreen() {
         className="shrink-0 border-t border-ink-100 bg-white px-5 pt-3"
         style={{ paddingBottom: Math.max(insets.bottom, 16) + 4 }}
       >
+        {task.status === 'cancelled' && (
+          <Button
+            full
+            size="lg"
+            variant="outline"
+            onPress={() => router.replace('/(tabs)/activity')}
+          >
+            Back to activity
+          </Button>
+        )}
+
         {task.status === 'assigned' &&
           (isProvider ? (
             <Button
               full
               size="lg"
               variant="brand"
-              icon={<PlayCircle size={18} color="#FFFFFF" />}
-              onPress={() => setConfirmStart(true)}
+              icon={<CheckCircle2 size={18} color="#FFFFFF" />}
+              loading={isCompleting}
+              onPress={() => setConfirmComplete(true)}
             >
-              Start job
+              Mark as completed
             </Button>
           ) : (
             <View className="flex-row gap-2.5" style={{ gap: 10 }}>
+              {canCancel && (
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="flex-1"
+                  onPress={() => setConfirmCancel(true)}
+                >
+                  Cancel task
+                </Button>
+              )}
               <Button
-                variant="outline"
                 size="lg"
+                variant="brand"
                 className="flex-1"
-                onPress={() => router.push(`/chat/${task.id}` as any)}
+                loading={isCompleting}
+                onPress={() => setConfirmComplete(true)}
               >
-                Message
-              </Button>
-              <Button size="lg" className="flex-1" disabled>
-                Waiting to start
+                Mark completed
               </Button>
             </View>
           ))}
@@ -457,30 +570,30 @@ export default function JobDetailScreen() {
               full
               size="lg"
               variant="brand"
+              icon={<CheckCircle2 size={18} color="#FFFFFF" />}
+              loading={isCompleting}
               onPress={() => setConfirmComplete(true)}
             >
               Mark as completed
             </Button>
           ) : (
             <View className="flex-row gap-2.5" style={{ gap: 10 }}>
-              <Button
-                variant="outline"
-                size="lg"
-                className="flex-1"
-                onPress={() => router.push(`/chat/${task.id}` as any)}
-              >
-                Message
-              </Button>
+              {canCancel && (
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="flex-1"
+                  onPress={() => setConfirmCancel(true)}
+                >
+                  Cancel task
+                </Button>
+              )}
               <Button
                 size="lg"
                 variant="brand"
                 className="flex-1"
-                onPress={() =>
-                  router.push({
-                    pathname: '/(screens)/job/[taskId]/payment',
-                    params: { taskId: task.id },
-                  } as any)
-                }
+                loading={isCompleting}
+                onPress={() => setConfirmComplete(true)}
               >
                 Confirm completion
               </Button>
@@ -497,14 +610,10 @@ export default function JobDetailScreen() {
               full
               size="lg"
               variant="brand"
-              onPress={() =>
-                router.push({
-                  pathname: '/(screens)/job/[taskId]/payment',
-                  params: { taskId: task.id },
-                } as any)
-              }
+              loading={isCompleting}
+              onPress={() => setConfirmComplete(true)}
             >
-              Confirm completion & pay
+              Confirm completion
             </Button>
           ))}
 
@@ -552,24 +661,30 @@ export default function JobDetailScreen() {
         )}
       </View>
 
-      {/* Confirm Start Dialog */}
-      <ConfirmDialog
-        open={confirmStart}
-        onClose={() => setConfirmStart(false)}
-        onConfirm={() => startJob(task.id)}
-        title="Start this job?"
-        message="The requester is notified that you have started. Keep them updated in chat as you work."
-        confirmLabel="Start job"
-      />
-
       {/* Confirm Complete Dialog */}
       <ConfirmDialog
         open={confirmComplete}
         onClose={() => setConfirmComplete(false)}
-        onConfirm={() => markCompleted(task.id)}
-        title="Mark work as completed?"
-        message="The requester will be asked to confirm and settle payment. Make sure everything agreed is finished."
-        confirmLabel="Mark completed"
+        onConfirm={handleConfirmComplete}
+        title={isProvider ? 'Mark work as completed?' : 'Mark task completed?'}
+        message={
+          isProvider
+            ? 'The task will be marked as completed. Make sure all agreed deliverables are finished.'
+            : 'Confirm that the work is finished. This marks the task as completed.'
+        }
+        confirmLabel={isCompleting ? 'Completing...' : 'Mark completed'}
+      />
+
+      {/* Confirm Cancel Dialog */}
+      <ConfirmDialog
+        open={confirmCancel}
+        onClose={() => setConfirmCancel(false)}
+        onConfirm={handleConfirmCancel}
+        title="Cancel this task?"
+        message="Are you sure you want to cancel this task? Active offers will be withdrawn and the task will be cancelled."
+        confirmLabel={isCancelling ? 'Cancelling...' : 'Cancel task'}
+        cancelLabel="Keep task"
+        tone="danger"
       />
     </Screen>
   );

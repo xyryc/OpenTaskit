@@ -231,6 +231,16 @@ export interface RejectOfferResponse {
   offer: OfferItem;
 }
 
+export interface CompleteTaskResponse {
+  message: string;
+  task: TaskItem;
+}
+
+export interface CancelTaskResponse {
+  message: string;
+  task: TaskItem;
+}
+
 export interface CreateOfferPayload {
   amount: number;
   message: string;

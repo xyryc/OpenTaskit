@@ -26,6 +26,9 @@ import type { PaymentMethod } from '@/types';
 import { Screen, ScreenHeader } from '@/components/layout/Screen';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/Overlay';
+import { useGetTaskByIdQuery, useCompleteTaskMutation } from '@/store/api/apiSlice';
+import { mapApiTaskToTask } from '@/utils/taskFilters';
+import { getApiErrorMessage } from '@/utils/apiError';
 
 export default function PaymentConfirmScreen() {
   const { taskId = '' } = useLocalSearchParams<{ taskId: string }>();
@@ -36,7 +39,13 @@ export default function PaymentConfirmScreen() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [done, setDone] = useState(false);
 
-  const task = taskById(taskId);
+  const { data: apiTaskData, isLoading: isTaskLoading } = useGetTaskByIdQuery(taskId, { skip: !taskId });
+  const [completeTaskApi, { isLoading: isCompleting }] = useCompleteTaskMutation();
+
+  const task = React.useMemo(
+    () => (apiTaskData ? mapApiTaskToTask(apiTaskData) : taskById(taskId)),
+    [apiTaskData, taskById, taskId]
+  );
   if (!task) {
     return (
       <Screen tone="canvas" edges={['top']}>
@@ -258,6 +267,7 @@ export default function PaymentConfirmScreen() {
           full
           size="lg"
           variant="brand"
+          loading={isCompleting}
           onPress={() => setConfirmOpen(true)}
         >
           Confirm completion & payment
@@ -268,15 +278,26 @@ export default function PaymentConfirmScreen() {
       <ConfirmDialog
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
-        onConfirm={() => {
-          settlePayment(task.id);
-          setDone(true);
+        onConfirm={async () => {
+          try {
+            if (apiTaskData && apiTaskData.status === 'ASSIGNED') {
+              await completeTaskApi(task.id).unwrap();
+            }
+            settlePayment(task.id);
+            setDone(true);
+          } catch (err) {
+            toast({
+              title: 'Failed to complete task',
+              description: getApiErrorMessage(err),
+              variant: 'error',
+            });
+          }
         }}
         title="Release payment?"
         message={`Confirm the work is complete and that ${money(
           task.budget
         )} has been paid by ${payment.label.toLowerCase()}. This closes the task.`}
-        confirmLabel="Confirm payment"
+        confirmLabel={isCompleting ? 'Processing...' : 'Confirm payment'}
       />
     </Screen>
   );
