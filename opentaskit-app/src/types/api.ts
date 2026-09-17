@@ -202,6 +202,11 @@ export interface OfferUserSummary {
   id: string;
   fullName: string;
   phoneNumber?: string;
+  avatarUrl?: string | null;
+  rating?: number;
+  reviewCount?: number;
+  isVerified?: boolean;
+  createdAt?: string;
 }
 
 export interface OfferItem {
@@ -214,6 +219,16 @@ export interface OfferItem {
   createdAt: string;
   updatedAt: string;
   user?: OfferUserSummary;
+}
+
+export interface AcceptOfferResponse {
+  message: string;
+  offer: OfferItem;
+}
+
+export interface RejectOfferResponse {
+  message: string;
+  offer: OfferItem;
 }
 
 export interface CreateOfferPayload {

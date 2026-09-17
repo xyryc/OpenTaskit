@@ -36,7 +36,19 @@ export function OfferCard({
 }: OfferCardProps) {
   const router = useRouter();
   const { userById } = useApp();
-  const provider = userById(offer.providerId);
+  const fallbackProvider = userById(offer.providerId);
+  const offerUser = (offer as any).user;
+  const provider = offerUser
+    ? {
+        ...fallbackProvider,
+        id: offerUser.id,
+        name: offerUser.fullName || fallbackProvider.name,
+        avatarUrl: offerUser.avatarUrl ?? fallbackProvider.avatarUrl,
+        rating: offerUser.rating ?? fallbackProvider.rating,
+        reviewCount: offerUser.reviewCount ?? fallbackProvider.reviewCount,
+        verified: offerUser.isVerified ?? fallbackProvider.verified,
+      }
+    : fallbackProvider;
 
   const navigateToProfile = () => {
     router.push({

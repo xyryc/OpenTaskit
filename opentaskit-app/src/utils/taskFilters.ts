@@ -1,4 +1,4 @@
-import type { Task } from '../types';
+import type { Offer, OfferStatus, Task } from '../types';
 
 export type SortKey = 'recommended' | 'latest' | 'nearest' | 'budget_high' | 'budget_low';
 export type DateKey = 'any' | 'today' | 'tomorrow' | 'week' | 'custom';
@@ -145,6 +145,29 @@ export function mapApiTaskToTask(item: import('@/types/api').TaskItem): Task {
     postedAt: item.createdAt,
     status: statusMap[item.status] || 'posted',
     requesterId: item.userId,
+  };
+}
+
+export function mapApiOfferToOffer(
+  item: import('@/types/api').OfferItem
+): Offer & { user?: import('@/types/api').OfferUserSummary } {
+  const statusMap: Record<string, OfferStatus> = {
+    PENDING: 'pending',
+    ACCEPTED: 'accepted',
+    REJECTED: 'rejected',
+    WITHDRAWN: 'withdrawn',
+  };
+
+  return {
+    id: item.id,
+    taskId: item.taskId,
+    providerId: item.userId,
+    price: item.amount,
+    eta: 'Flexible',
+    message: item.message,
+    status: statusMap[item.status] || 'pending',
+    createdAt: item.createdAt,
+    user: item.user,
   };
 }
 

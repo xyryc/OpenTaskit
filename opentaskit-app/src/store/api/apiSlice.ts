@@ -9,6 +9,7 @@ import { createMMKV } from "react-native-mmkv";
 import { router } from "expo-router";
 import { signOut } from "../slices/authActions";
 import type {
+  AcceptOfferResponse,
   AuthResponse,
   AuthUser,
   CategoryItem,
@@ -22,6 +23,7 @@ import type {
   MyProfileResponse,
   OfferItem,
   PaginatedTasksResponse,
+  RejectOfferResponse,
   UpdateMyProfilePayload,
   RefreshPayload,
   RefreshResponse,
@@ -329,6 +331,33 @@ export const apiSlice = createApi({
       ],
     }),
 
+    acceptOffer: builder.mutation<AcceptOfferResponse, { offerId: string; taskId: string }>({
+      query: ({ offerId }) => ({
+        url: `/offers/${offerId}/accept`,
+        method: 'POST',
+      }),
+      invalidatesTags: (_result, _error, { offerId, taskId }) => [
+        { type: 'Offer', id: offerId },
+        { type: 'Offer', id: `TASK_${taskId}` },
+        { type: 'Offer', id: 'MY_LIST' },
+        { type: 'Task', id: taskId },
+        { type: 'Task', id: 'LIST' },
+      ],
+    }),
+
+    rejectOffer: builder.mutation<RejectOfferResponse, { offerId: string; taskId: string }>({
+      query: ({ offerId }) => ({
+        url: `/offers/${offerId}/reject`,
+        method: 'POST',
+      }),
+      invalidatesTags: (_result, _error, { offerId, taskId }) => [
+        { type: 'Offer', id: offerId },
+        { type: 'Offer', id: `TASK_${taskId}` },
+        { type: 'Offer', id: 'MY_LIST' },
+        { type: 'Task', id: taskId },
+      ],
+    }),
+
     uploadImages: builder.mutation<{ message: string; urls: string[] }, FormData>({
       async queryFn(formData, api) {
         const executeUpload = (token: string | null): Promise<any> => {
@@ -457,6 +486,8 @@ export const {
   useGetMyOffersQuery,
   useUpdateOfferMutation,
   useWithdrawOfferMutation,
+  useAcceptOfferMutation,
+  useRejectOfferMutation,
   useUploadImagesMutation,
   useRegisterMutation,
   useLoginMutation,

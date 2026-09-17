@@ -15,10 +15,17 @@ import { bestMatchId } from '@/utils/offerScore';
 import { money } from '@/utils/format';
 import { Screen, ScreenHeader } from '@/components/layout/Screen';
 import { Button } from '@/components/ui/Button';
-import { EmptyState } from '@/components/ui/Feedback';
+import { EmptyState, TaskCardSkeleton } from '@/components/ui/Feedback';
 import { ConfirmDialog } from '@/components/ui/Overlay';
 import { OfferCard } from '@/components/task/OfferCard';
 import { SelectChip } from '@/components/ui/Chip';
+import {
+  useGetTaskByIdQuery,
+  useGetOffersForTaskQuery,
+  useAcceptOfferMutation,
+  useRejectOfferMutation,
+} from '@/store/api/apiSlice';
+import { mapApiTaskToTask, mapApiOfferToOffer } from '@/utils/taskFilters';
 
 type SortKey = 'best' | 'lowest' | 'rating';
 
@@ -26,14 +33,30 @@ export default function TaskOffersScreen() {
   const { id = '' } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { taskById, offersForTask, userById, acceptOffer, rejectOffer } = useApp();
+  const { taskById, offersForTask, userById, acceptOffer: localAcceptOffer, rejectOffer: localRejectOffer, toast } = useApp();
+
+  const { data: apiTaskData, isLoading: isTaskLoading } = useGetTaskByIdQuery(id, { skip: !id });
+  const { data: apiOffersData, isLoading: isOffersLoading } = useGetOffersForTaskQuery(id, { skip: !id });
+
+  const [acceptOfferApi] = useAcceptOfferMutation();
+  const [rejectOfferApi] = useRejectOfferMutation();
 
   const [sort, setSort] = useState<SortKey>('best');
   const [pendingAccept, setPendingAccept] = useState<string | null>(null);
   const [pendingReject, setPendingReject] = useState<string | null>(null);
 
-  const task = taskById(id);
-  const offers = offersForTask(id);
+  const task = useMemo(
+    () => (apiTaskData ? mapApiTaskToTask(apiTaskData) : taskById(id)),
+    [apiTaskData, taskById, id]
+  );
+
+  const offers = useMemo(() => {
+    if (apiOffersData) {
+      return apiOffersData.map(mapApiOfferToOffer);
+    }
+    return offersForTask(id);
+  }, [apiOffersData, offersForTask, id]);
+
   const best = useMemo(
     () => bestMatchId(offers, userById, task?.budget ?? 0),
     [offers, userById, task?.budget]
@@ -43,15 +66,29 @@ export default function TaskOffersScreen() {
     const list = [...offers];
     if (sort === 'lowest') list.sort((a, b) => a.price - b.price);
     if (sort === 'rating') {
-      list.sort(
-        (a, b) => userById(b.providerId).rating - userById(a.providerId).rating
-      );
+      list.sort((a, b) => {
+        const ratingB = (b as any).user?.rating ?? userById(b.providerId).rating;
+        const ratingA = (a as any).user?.rating ?? userById(a.providerId).rating;
+        return ratingB - ratingA;
+      });
     }
     if (sort === 'best') {
       list.sort((a, b) => (a.id === best ? -1 : b.id === best ? 1 : 0));
     }
     return list;
   }, [offers, sort, best, userById]);
+
+  if (isTaskLoading || isOffersLoading) {
+    return (
+      <Screen tone="canvas" edges={['top']}>
+        <ScreenHeader title="Offers" />
+        <View className="p-5 gap-3" style={{ gap: 12 }}>
+          <TaskCardSkeleton />
+          <TaskCardSkeleton />
+        </View>
+      </Screen>
+    );
+  }
 
   if (!task) {
     return (
@@ -67,6 +104,56 @@ export default function TaskOffersScreen() {
   }
 
   const acceptTarget = offers.find((offer) => offer.id === pendingAccept);
+  const acceptTargetName =
+    (acceptTarget as any)?.user?.fullName ||
+    userById(acceptTarget?.providerId ?? '')?.name ||
+    'Tasker';
+
+  const handleConfirmAccept = async () => {
+    if (!pendingAccept || !task) return;
+    const offerIdToAccept = pendingAccept;
+    try {
+      const res = await acceptOfferApi({ offerId: offerIdToAccept, taskId: task.id }).unwrap();
+      toast({
+        title: 'Offer accepted!',
+        description: res.message || 'Task is now assigned.',
+        variant: 'success',
+      });
+      localAcceptOffer(offerIdToAccept);
+      setPendingAccept(null);
+      router.push({
+        pathname: '/(screens)/job/[taskId]',
+        params: { taskId: task.id },
+      } as any);
+    } catch (err: any) {
+      toast({
+        title: 'Could not accept offer',
+        description: err?.data?.message || err?.message || 'Something went wrong',
+        variant: 'error',
+      });
+    }
+  };
+
+  const handleConfirmReject = async () => {
+    if (!pendingReject || !task) return;
+    const offerIdToReject = pendingReject;
+    try {
+      const res = await rejectOfferApi({ offerId: offerIdToReject, taskId: task.id }).unwrap();
+      toast({
+        title: 'Offer declined',
+        description: res.message || 'Offer has been declined.',
+        variant: 'info',
+      });
+      localRejectOffer(offerIdToReject);
+      setPendingReject(null);
+    } catch (err: any) {
+      toast({
+        title: 'Could not decline offer',
+        description: err?.data?.message || err?.message || 'Something went wrong',
+        variant: 'error',
+      });
+    }
+  };
 
   return (
     <Screen tone="canvas" edges={['top']}>
@@ -182,20 +269,11 @@ export default function TaskOffersScreen() {
       <ConfirmDialog
         open={!!pendingAccept}
         onClose={() => setPendingAccept(null)}
-        onConfirm={() => {
-          if (pendingAccept) {
-            acceptOffer(pendingAccept);
-            setPendingAccept(null);
-            router.push({
-              pathname: '/(screens)/job/[taskId]',
-              params: { taskId: task.id },
-            } as any);
-          }
-        }}
+        onConfirm={handleConfirmAccept}
         title="Accept this offer?"
         message={
           acceptTarget
-            ? `${userById(acceptTarget.providerId).name} will be assigned at ${money(
+            ? `${acceptTargetName} will be assigned at ${money(
                 acceptTarget.price
               )}. All other offers are declined automatically.`
             : ''
@@ -207,12 +285,7 @@ export default function TaskOffersScreen() {
       <ConfirmDialog
         open={!!pendingReject}
         onClose={() => setPendingReject(null)}
-        onConfirm={() => {
-          if (pendingReject) {
-            rejectOffer(pendingReject);
-            setPendingReject(null);
-          }
-        }}
+        onConfirm={handleConfirmReject}
         title="Decline this offer?"
         message="They will be told the offer was not accepted. You can still message them afterwards."
         confirmLabel="Decline offer"

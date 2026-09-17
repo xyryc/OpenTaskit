@@ -15,10 +15,16 @@ import { bestMatchId } from '@/utils/offerScore';
 import { distance, money } from '@/utils/format';
 import { Screen, ScreenHeader } from '@/components/layout/Screen';
 import { Button } from '@/components/ui/Button';
-import { EmptyState } from '@/components/ui/Feedback';
+import { EmptyState, TaskCardSkeleton } from '@/components/ui/Feedback';
 import { ConfirmDialog } from '@/components/ui/Overlay';
 import { Avatar } from '@/components/ui/Avatar';
 import { StarRating } from '@/components/ui/Rating';
+import {
+  useGetTaskByIdQuery,
+  useGetOffersForTaskQuery,
+  useAcceptOfferMutation,
+} from '@/store/api/apiSlice';
+import { mapApiTaskToTask, mapApiOfferToOffer } from '@/utils/taskFilters';
 
 const ROWS = [
   { key: 'price', label: 'Price' },
@@ -36,16 +42,58 @@ export default function CompareOffersScreen() {
   const { id = '' } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { taskById, offersForTask, userById, acceptOffer } = useApp();
+  const { taskById, offersForTask, userById, acceptOffer: localAcceptOffer, toast } = useApp();
 
-  const task = taskById(id);
-  const offers = offersForTask(id).filter((offer) => offer.status === 'pending');
+  const { data: apiTaskData, isLoading: isTaskLoading } = useGetTaskByIdQuery(id, { skip: !id });
+  const { data: apiOffersData, isLoading: isOffersLoading } = useGetOffersForTaskQuery(id, { skip: !id });
+  const [acceptOfferApi] = useAcceptOfferMutation();
+
+  const task = useMemo(
+    () => (apiTaskData ? mapApiTaskToTask(apiTaskData) : taskById(id)),
+    [apiTaskData, taskById, id]
+  );
+
+  const offers = useMemo(() => {
+    if (apiOffersData) {
+      return apiOffersData.map(mapApiOfferToOffer).filter((offer) => offer.status === 'pending');
+    }
+    return offersForTask(id).filter((offer) => offer.status === 'pending');
+  }, [apiOffersData, offersForTask, id]);
+
   const best = useMemo(
     () => bestMatchId(offers, userById, task?.budget ?? 0),
     [offers, userById, task?.budget]
   );
   const [selectedId, setSelectedId] = useState<string | undefined>(best ?? offers[0]?.id);
   const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const resolveProvider = (offer: (typeof offers)[number]) => {
+    const fallback = userById(offer.providerId);
+    const offerUser = (offer as any).user;
+    return offerUser
+      ? {
+          ...fallback,
+          id: offerUser.id,
+          name: offerUser.fullName || fallback.name,
+          avatarUrl: offerUser.avatarUrl ?? fallback.avatarUrl,
+          rating: offerUser.rating ?? fallback.rating,
+          reviewCount: offerUser.reviewCount ?? fallback.reviewCount,
+          verified: offerUser.isVerified ?? fallback.verified,
+        }
+      : fallback;
+  };
+
+  if (isTaskLoading || isOffersLoading) {
+    return (
+      <Screen tone="canvas" edges={['top']}>
+        <ScreenHeader title="Compare offers" />
+        <View className="p-5 gap-3" style={{ gap: 12 }}>
+          <TaskCardSkeleton />
+          <TaskCardSkeleton />
+        </View>
+      </Screen>
+    );
+  }
 
   if (!task) {
     return (
@@ -84,7 +132,7 @@ export default function CompareOffersScreen() {
     key: (typeof ROWS)[number]['key']
   ) => {
     const offer = offers.find((o) => o.id === offerId)!;
-    const provider = userById(offer.providerId);
+    const provider = resolveProvider(offer);
     switch (key) {
       case 'price':
         return (
@@ -143,6 +191,34 @@ export default function CompareOffersScreen() {
     }
   };
 
+  const selectedProvider = selectedOffer ? resolveProvider(selectedOffer) : undefined;
+  const selectedProviderName = selectedProvider?.name ?? 'Tasker';
+
+  const handleConfirmAccept = async () => {
+    if (!selectedId || !task) return;
+    const offerIdToAccept = selectedId;
+    try {
+      const res = await acceptOfferApi({ offerId: offerIdToAccept, taskId: task.id }).unwrap();
+      toast({
+        title: 'Offer accepted!',
+        description: res.message || 'Task has been assigned.',
+        variant: 'success',
+      });
+      localAcceptOffer(offerIdToAccept);
+      setConfirmOpen(false);
+      router.push({
+        pathname: '/(screens)/job/[taskId]',
+        params: { taskId: task.id },
+      } as any);
+    } catch (err: any) {
+      toast({
+        title: 'Could not accept offer',
+        description: err?.data?.message || err?.message || 'Something went wrong',
+        variant: 'error',
+      });
+    }
+  };
+
   return (
     <Screen tone="canvas" edges={['top']}>
       <StatusBar style="dark" />
@@ -169,7 +245,7 @@ export default function CompareOffersScreen() {
             <View className="flex-row items-end gap-2.5" style={{ gap: 10 }}>
               <View className="w-[104px] shrink-0" />
               {offers.map((offer) => {
-                const provider = userById(offer.providerId);
+                const provider = resolveProvider(offer);
                 const isBest = offer.id === best;
                 const isSelected = offer.id === selectedId;
 
@@ -199,21 +275,21 @@ export default function CompareOffersScreen() {
                       numberOfLines={1}
                       className="mt-2 text-center text-[13px] font-geist-semibold text-ink"
                     >
-                      {provider.name.split(' ')[0]}
+                      {provider.name}
                     </Text>
-                    <Text
-                      numberOfLines={1}
-                      className="text-center text-[11px] font-geist text-ink-500"
-                    >
-                      {provider.headline}
-                    </Text>
+                    <View className="mt-1 flex-row items-center gap-1">
+                      <StarRating value={provider.rating} size="sm" />
+                      <Text className="font-geist text-[11px] text-ink-500">
+                        ({provider.reviewCount})
+                      </Text>
+                    </View>
                   </Pressable>
                 );
               })}
             </View>
 
-            {/* Comparison matrix data rows */}
-            <View className="mt-3 gap-2" style={{ gap: 8 }}>
+            {/* Comparison Rows */}
+            <View className="mt-4 gap-2" style={{ gap: 8 }}>
               {ROWS.map((row) => (
                 <View
                   key={row.key}
@@ -221,7 +297,7 @@ export default function CompareOffersScreen() {
                   style={{ gap: 10 }}
                 >
                   <View className="w-[104px] shrink-0 justify-center">
-                    <Text className="text-[12px] font-geist-medium uppercase tracking-[0.05em] text-ink-400">
+                    <Text className="font-geist-medium text-[12.5px] text-ink-500">
                       {row.label}
                     </Text>
                   </View>
@@ -257,7 +333,7 @@ export default function CompareOffersScreen() {
             variant="brand"
             onPress={() => setConfirmOpen(true)}
           >
-            Accept {userById(selectedOffer.providerId).name.split(' ')[0]} (
+            Accept {selectedProviderName.split(' ')[0]} (
             {money(selectedOffer.price)})
           </Button>
         </View>
@@ -267,22 +343,11 @@ export default function CompareOffersScreen() {
       <ConfirmDialog
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
-        onConfirm={() => {
-          if (selectedId) {
-            acceptOffer(selectedId);
-            setConfirmOpen(false);
-            router.push({
-              pathname: '/(screens)/job/[taskId]',
-              params: { taskId: task.id },
-            } as any);
-          }
-        }}
+        onConfirm={handleConfirmAccept}
         title="Accept this offer?"
         message={
           selectedOffer
-            ? `${
-                userById(selectedOffer.providerId).name
-              } will be assigned at ${money(
+            ? `${selectedProviderName} will be assigned at ${money(
                 selectedOffer.price
               )}. All other offers are declined automatically.`
             : ''
