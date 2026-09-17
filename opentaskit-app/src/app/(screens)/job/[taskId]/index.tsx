@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -38,6 +38,10 @@ import { StatusChip } from '@/components/ui/Chip';
 import { Avatar } from '@/components/ui/Avatar';
 import { StarRating } from '@/components/ui/Rating';
 import { ConfirmDialog } from '@/components/ui/Overlay';
+import { EmptyState, TaskCardSkeleton } from '@/components/ui/Feedback';
+import { useAppSelector } from '@/store';
+import { useGetTaskByIdQuery, useGetOffersForTaskQuery } from '@/store/api/apiSlice';
+import { mapApiTaskToTask } from '@/utils/taskFilters';
 
 const STEPS = [
   'Assigned',
@@ -59,6 +63,7 @@ export default function JobDetailScreen() {
   const { taskId = '' } = useLocalSearchParams<{ taskId: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const authUser = useAppSelector((state) => state.auth.user);
   const {
     taskById,
     userById,
@@ -71,7 +76,59 @@ export default function JobDetailScreen() {
   const [confirmStart, setConfirmStart] = useState(false);
   const [confirmComplete, setConfirmComplete] = useState(false);
 
-  const task = taskById(taskId);
+  const { data: apiTaskData, isLoading: isTaskLoading } = useGetTaskByIdQuery(taskId, { skip: !taskId });
+  const { data: taskOffers } = useGetOffersForTaskQuery(taskId, { skip: !taskId });
+
+  const task = useMemo(
+    () => (apiTaskData ? mapApiTaskToTask(apiTaskData) : taskById(taskId)),
+    [apiTaskData, taskById, taskId]
+  );
+
+  const acceptedOffer = taskOffers?.find((o) => o.status === 'ACCEPTED');
+  const isProvider = authUser?.id
+    ? (acceptedOffer ? acceptedOffer.userId === authUser.id : task?.assignedProviderId === ME)
+    : task?.assignedProviderId === ME;
+
+  const fallbackOther = userById(
+    isProvider
+      ? task?.requesterId ?? ''
+      : acceptedOffer?.userId ?? task?.assignedProviderId ?? task?.requesterId ?? ''
+  );
+
+  const other = isProvider
+    ? ((task as any)?.user
+        ? {
+            ...fallbackOther,
+            id: (task as any).user.id,
+            name: (task as any).user.fullName || fallbackOther.name,
+            phoneNumber: (task as any).user.phoneNumber || '',
+          }
+        : fallbackOther)
+    : (acceptedOffer?.user
+        ? {
+            ...fallbackOther,
+            id: acceptedOffer.user.id,
+            name: acceptedOffer.user.fullName || fallbackOther.name,
+            phoneNumber: acceptedOffer.user.phoneNumber || '',
+            avatarUrl: acceptedOffer.user.avatarUrl || fallbackOther.avatarUrl,
+            rating: acceptedOffer.user.rating ?? fallbackOther.rating,
+            reviewCount: acceptedOffer.user.reviewCount ?? fallbackOther.reviewCount,
+            verified: acceptedOffer.user.isVerified ?? fallbackOther.verified,
+          }
+        : fallbackOther);
+
+  if (isTaskLoading) {
+    return (
+      <Screen tone="canvas" edges={['top']}>
+        <ScreenHeader title="Job details" />
+        <View className="p-5 gap-3" style={{ gap: 12 }}>
+          <TaskCardSkeleton />
+          <TaskCardSkeleton />
+        </View>
+      </Screen>
+    );
+  }
+
   if (!task) {
     return (
       <Screen tone="canvas" edges={['top']}>
@@ -85,12 +142,6 @@ export default function JobDetailScreen() {
     );
   }
 
-  const isProvider = task.assignedProviderId === ME;
-  const other = userById(
-    isProvider
-      ? task.requesterId
-      : task.assignedProviderId ?? task.requesterId
-  );
   const dispute = disputeForTask(task.id);
   const reviewed = isProvider
     ? task.reviewedByProvider

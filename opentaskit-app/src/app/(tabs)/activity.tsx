@@ -24,22 +24,25 @@ import { ConfirmDialog } from '@/components/ui/Overlay';
 import { TaskCard } from '@/components/task/TaskCard';
 import { CategoryBadge } from '@/components/CategoryIcon';
 import { useAppSelector } from '@/store';
-import { useGetMyOffersQuery, useGetTaskByIdQuery } from '@/store/api/apiSlice';
+import {
+  useGetMyPostedTasksQuery,
+  useGetMyAssignedTasksQuery,
+  useGetMyOffersQuery,
+  useGetTaskByIdQuery,
+  useDeleteTaskMutation,
+} from '@/store/api/apiSlice';
+import { useSavedTasks } from '@/hooks/useSavedTasks';
 
 type Tab = 'requests' | 'offers' | 'jobs';
 
 const statusFilters: { key: TaskStatus | 'all'; label: string }[] = [
   { key: 'all', label: 'All' },
-  { key: 'receiving_offers', label: 'Receiving offers' },
+  { key: 'receiving_offers', label: 'Open' },
   { key: 'assigned', label: 'Assigned' },
   { key: 'in_progress', label: 'In progress' },
-  { key: 'awaiting_completion', label: 'Awaiting' },
   { key: 'completed', label: 'Completed' },
-  { key: 'disputed', label: 'Disputed' },
   { key: 'cancelled', label: 'Cancelled' },
 ];
-
-import { useSavedTasks } from '@/hooks/useSavedTasks';
 
 export default function ActivityScreen() {
   const router = useRouter();
@@ -50,6 +53,7 @@ export default function ActivityScreen() {
     unreadMessages,
     deleteTask,
     requireAccount,
+    toast,
   } = useApp();
   const guest = useAppSelector((state) => state.auth.guest);
 
@@ -57,21 +61,63 @@ export default function ActivityScreen() {
   const [status, setStatus] = useState<TaskStatus | 'all'>('all');
   const [pendingDelete, setPendingDelete] = useState<Task | null>(null);
 
-  const myRequests = tasks.filter((task) => task.requesterId === ME);
-  const myJobs = tasks.filter((task) => task.assignedProviderId === ME);
+  const { data: apiPostedTasks, isLoading: isPostedLoading } = useGetMyPostedTasksQuery(undefined, { skip: guest });
+  const { data: apiAssignedTasks, isLoading: isAssignedLoading } = useGetMyAssignedTasksQuery(undefined, { skip: guest });
+  const { data: apiMyOffers, isLoading: isOffersLoading } = useGetMyOffersQuery(undefined, { skip: guest });
+  const [deleteTaskApi] = useDeleteTaskMutation();
+
+  const myRequests: Task[] = useMemo(() => {
+    if (apiPostedTasks) {
+      return apiPostedTasks.map(mapApiTaskToTask);
+    }
+    return tasks.filter((task) => task.requesterId === ME);
+  }, [apiPostedTasks, tasks]);
+
+  const myJobs: Task[] = useMemo(() => {
+    if (apiAssignedTasks) {
+      return apiAssignedTasks.map(mapApiTaskToTask);
+    }
+    return tasks.filter((task) => task.assignedProviderId === ME);
+  }, [apiAssignedTasks, tasks]);
 
   /**
    * Once an offer is accepted it is a job, not an offer — accepted offers are
    * only shown under Jobs, so a piece of work never appears in two places.
    */
-  const { data: apiMyOffers } = useGetMyOffersQuery(undefined, { skip: guest });
   const myOffers = useMemo(
     () => (apiMyOffers ?? []).filter((offer) => offer.status !== 'ACCEPTED'),
     [apiMyOffers]
   );
 
-  const filtered = (list: Task[]) =>
-    status === 'all' ? list : list.filter((task) => task.status === status);
+  const filtered = (list: Task[]) => {
+    if (status === 'all') return list;
+    if (status === 'receiving_offers') {
+      return list.filter((task) => task.status === 'receiving_offers' || task.status === 'posted');
+    }
+    return list.filter((task) => task.status === status);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!pendingDelete) return;
+    const taskToDelete = pendingDelete;
+    try {
+      const res = await deleteTaskApi(taskToDelete.id).unwrap();
+      toast({
+        title: 'Task deleted',
+        description: res.message || 'Task has been deleted.',
+        variant: 'success',
+      });
+      deleteTask(taskToDelete.id);
+    } catch (err: any) {
+      toast({
+        title: 'Failed to delete task',
+        description: err?.data?.message || err?.message || 'Something went wrong',
+        variant: 'error',
+      });
+    } finally {
+      setPendingDelete(null);
+    }
+  };
 
   const deletePenalty = pendingDelete
     ? deletionPenaltyFor(pendingDelete.budget, pendingDelete.status)
@@ -173,7 +219,12 @@ export default function ActivityScreen() {
       >
         {/* REQUESTS TAB */}
         {tab === 'requests' && (
-          filtered(myRequests).length > 0 ? (
+          isPostedLoading ? (
+            <View className="gap-3" style={{ gap: 12 }}>
+              <TaskCardSkeleton />
+              <TaskCardSkeleton />
+            </View>
+          ) : filtered(myRequests).length > 0 ? (
             <View className="gap-3">
               {filtered(myRequests).map((task) => (
                 <TaskCard
@@ -234,7 +285,12 @@ export default function ActivityScreen() {
 
         {/* OFFERS TAB */}
         {tab === 'offers' && (
-          myOffers.length > 0 ? (
+          isOffersLoading ? (
+            <View className="gap-3" style={{ gap: 12 }}>
+              <TaskCardSkeleton />
+              <TaskCardSkeleton />
+            </View>
+          ) : myOffers.length > 0 ? (
             <View className="gap-3">
               {myOffers.map((offer) => (
                 <MyOfferCard key={offer.id} offer={offer} />
@@ -253,7 +309,12 @@ export default function ActivityScreen() {
 
         {/* JOBS TAB */}
         {tab === 'jobs' && (
-          filtered(myJobs).length > 0 ? (
+          isAssignedLoading ? (
+            <View className="gap-3" style={{ gap: 12 }}>
+              <TaskCardSkeleton />
+              <TaskCardSkeleton />
+            </View>
+          ) : filtered(myJobs).length > 0 ? (
             <View className="gap-3">
               {filtered(myJobs).map((task) => (
                 <Pressable
@@ -314,10 +375,7 @@ export default function ActivityScreen() {
       <ConfirmDialog
         open={pendingDelete !== null}
         onClose={() => setPendingDelete(null)}
-        onConfirm={() => {
-          if (pendingDelete) deleteTask(pendingDelete.id);
-          setPendingDelete(null);
-        }}
+        onConfirm={handleConfirmDelete}
         title={deletePenalty > 0 ? 'Delete and pay the penalty?' : 'Delete this task?'}
         message={
           deletePenalty > 0

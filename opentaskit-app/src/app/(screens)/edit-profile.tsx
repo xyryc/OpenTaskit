@@ -24,7 +24,7 @@ import {
 
 import { useApp } from '@/contexts/AppContext';
 import { getApiErrorMessage } from '@/utils/apiError';
-import { money } from '@/utils/format';
+import { initialsOf, money } from '@/utils/format';
 import { resolveImageSource } from '@/utils/images';
 import { Screen, ScreenHeader } from '@/components/layout/Screen';
 import { Button } from '@/components/ui/Button';
@@ -32,7 +32,11 @@ import { TextField, TextArea } from '@/components/ui/Input';
 import { Avatar } from '@/components/ui/Avatar';
 import { Chip } from '@/components/ui/Chip';
 import { BottomSheet } from '@/components/ui/Overlay';
-import { useGetMyProfileQuery, useUpdateMyProfileMutation } from '@/store/api/apiSlice';
+import {
+  useGetMyProfileQuery,
+  useUpdateMyProfileMutation,
+  useUploadImagesMutation,
+} from '@/store/api/apiSlice';
 import type { PortfolioItem } from '@/types';
 
 export default function EditProfileScreen() {
@@ -40,11 +44,14 @@ export default function EditProfileScreen() {
   const insets = useSafeAreaInsets();
   const { me, updateMe, toast } = useApp();
   const { data: profile } = useGetMyProfileQuery();
-  const [updateMyProfile, { isLoading: saving }] = useUpdateMyProfileMutation();
+  const [updateMyProfile, { isLoading: isUpdatingProfile }] = useUpdateMyProfileMutation();
+  const [uploadImagesApi, { isLoading: isUploadingAvatar }] = useUploadImagesMutation();
 
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [name, setName] = useState(me.name);
   const [headline, setHeadline] = useState(me.headline);
   const [about, setAbout] = useState(me.about);
+  const [location, setLocation] = useState(me.location ?? '');
   const [skills, setSkills] = useState<string[]>(me.skills);
   const [newSkill, setNewSkill] = useState('');
   const [services, setServices] = useState(me.services);
@@ -59,7 +66,11 @@ export default function EditProfileScreen() {
       setName(profile.fullName);
       setHeadline(profile.headline ?? '');
       setAbout(profile.bio ?? '');
+      setLocation(profile.location ?? me.location ?? '');
       setSkills(profile.skills ?? []);
+      if (profile.avatarUrl) {
+        setAvatarUri(profile.avatarUrl);
+      }
     }
   }, [profile]);
 
@@ -77,7 +88,7 @@ export default function EditProfileScreen() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handlePickAvatar = async () => {
+  const handleSelectFromGallery = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
@@ -88,14 +99,56 @@ export default function EditProfileScreen() {
         mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.8,
+        quality: 0.85,
       });
       if (!result.canceled && result.assets[0]?.uri) {
-        toast({ title: 'Photo selected', description: 'Avatar photo updated.', variant: 'success' });
+        setAvatarUri(result.assets[0].uri);
+        toast({ title: 'Photo selected', description: 'Avatar preview updated.', variant: 'success' });
       }
     } catch (err) {
       console.error(err);
+      toast({ title: 'Error', description: 'Failed to pick image from gallery.', variant: 'error' });
     }
+  };
+
+  const handleCaptureAvatar = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Allow camera access to take a photo.');
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.85,
+      });
+      if (!result.canceled && result.assets[0]?.uri) {
+        setAvatarUri(result.assets[0].uri);
+        toast({ title: 'Photo captured', description: 'Avatar preview updated.', variant: 'success' });
+      }
+    } catch (err) {
+      console.error(err);
+      toast({ title: 'Error', description: 'Failed to capture photo.', variant: 'error' });
+    }
+  };
+
+  const handlePickAvatar = () => {
+    Alert.alert('Profile Photo', 'Choose an option', [
+      {
+        text: 'Take Photo',
+        onPress: handleCaptureAvatar,
+      },
+      {
+        text: 'Choose from Gallery',
+        onPress: handleSelectFromGallery,
+      },
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+    ]);
   };
 
   const handleAddSkill = () => {
@@ -181,32 +234,87 @@ export default function EditProfileScreen() {
     setPortfolio((prev) => prev.filter((p) => p.id !== idToRemove));
   };
 
+  const isSaving = isUpdatingProfile || isUploadingAvatar;
+
   const handleSave = async () => {
     const next: Record<string, string> = {};
-    if (name.trim().length < 3) next.name = 'Enter your full name (at least 3 characters)';
-    if (about.trim().length < 30) next.about = 'Tell people a little more about your work (at least 30 characters)';
+    if (name.trim().length < 2) {
+      next.name = 'Enter your full name (at least 2 characters)';
+    }
+    if (about.length > 1000) {
+      next.about = 'About section must be 1000 characters or less';
+    }
 
     setErrors(next);
-    if (Object.keys(next).length > 0) return;
+    if (Object.keys(next).length > 0) {
+      toast({
+        title: 'Check your input',
+        description: Object.values(next)[0],
+        variant: 'error',
+      });
+      return;
+    }
+
+    let finalAvatarUrl: string | undefined = profile?.avatarUrl ?? undefined;
+
+    if (avatarUri && !avatarUri.startsWith('http')) {
+      const formData = new FormData();
+      const filename = avatarUri.split('/').pop() || `avatar-${Date.now()}.jpg`;
+      const match = /\.(\w+)$/.exec(filename);
+      const ext = match ? match[1].toLowerCase() : 'jpg';
+      const type = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+
+      formData.append('files', {
+        uri: avatarUri,
+        name: filename,
+        type,
+      } as any);
+
+      try {
+        const uploadRes = await uploadImagesApi(formData).unwrap();
+        if (uploadRes.urls && uploadRes.urls.length > 0) {
+          finalAvatarUrl = uploadRes.urls[0];
+        }
+      } catch (uploadErr) {
+        console.warn('Avatar upload error:', uploadErr);
+        toast({
+          title: 'Photo Upload Failed',
+          description: getApiErrorMessage(uploadErr) || 'Could not upload profile photo. Please try again.',
+          variant: 'error',
+        });
+        return;
+      }
+    } else if (avatarUri && avatarUri.startsWith('http')) {
+      finalAvatarUrl = avatarUri;
+    }
 
     try {
       await updateMyProfile({
         fullName: name.trim(),
         headline: headline.trim(),
         bio: about.trim(),
+        location: location.trim(),
+        avatarUrl: finalAvatarUrl,
         skills,
       }).unwrap();
 
-      // Not yet supported by the API - kept as local-only state for now.
       updateMe({
         name: name.trim(),
+        initials: initialsOf(name.trim() || me.name),
+        avatarUrl: finalAvatarUrl,
         headline: headline.trim(),
         about: about.trim(),
+        location: location.trim(),
         skills,
         services,
         portfolio,
       });
-      toast({ title: 'Profile updated', variant: 'success' });
+
+      toast({
+        title: 'Profile updated',
+        description: 'Your profile changes have been saved.',
+        variant: 'success',
+      });
       router.back();
     } catch (err) {
       toast({
@@ -235,7 +343,15 @@ export default function EditProfileScreen() {
           <View className="gap-5 px-5 pb-8 pt-4" style={{ gap: 20 }}>
             {/* Avatar & Photo Action */}
             <View className="items-center py-2">
-              <Avatar user={{ ...me, name, avatarUrl: profile?.avatarUrl ?? undefined }} size="xl" />
+              <Avatar
+                user={{
+                  ...me,
+                  name: name.trim() || me.name,
+                  initials: initialsOf(name.trim() || me.name),
+                  avatarUrl: avatarUri || profile?.avatarUrl || me.avatarUrl || undefined,
+                }}
+                size="xl"
+              />
               <Pressable
                 onPress={handlePickAvatar}
                 hitSlop={10}
@@ -265,6 +381,14 @@ export default function EditProfileScreen() {
                 value={headline}
                 onChangeText={setHeadline}
                 hint="Shown under your name on offers and your profile."
+              />
+
+              <TextField
+                label="Location"
+                value={location}
+                onChangeText={setLocation}
+                placeholder="e.g. Colombo, Sri Lanka"
+                hint="Your city, area or neighborhood."
               />
 
               <TextArea
@@ -437,10 +561,15 @@ export default function EditProfileScreen() {
             full
             size="lg"
             variant="brand"
-            loading={saving}
+            loading={isSaving}
+            disabled={isSaving}
             onPress={handleSave}
           >
-            Save changes
+            {isUploadingAvatar
+              ? 'Uploading photo...'
+              : isUpdatingProfile
+              ? 'Saving profile...'
+              : 'Save changes'}
           </Button>
         </View>
       </KeyboardAvoidingView>

@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { FilterTasksDto, TaskStatus } from './dto/filter-tasks.dto';
+import { OfferStatus } from '../../generated/prisma/enums';
 import { UpdateTaskDto } from './dto/update-task.dto';
 
 @Injectable()
@@ -110,6 +111,47 @@ export class TasksService {
       include: {
         category: {
           select: { id: true, name: true, slug: true, icon: true },
+        },
+        user: {
+          select: { id: true, fullName: true, phoneNumber: true },
+        },
+        _count: {
+          select: { offers: true },
+        },
+      },
+    });
+  }
+
+  // Get all tasks assigned to the logged-in user (jobs)
+  async findAssignedTasks(userId: string) {
+    return this.prisma.task.findMany({
+      where: {
+        offers: {
+          some: {
+            userId,
+            status: OfferStatus.ACCEPTED,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        category: {
+          select: { id: true, name: true, slug: true, icon: true },
+        },
+        user: {
+          select: { id: true, fullName: true, phoneNumber: true },
+        },
+        offers: {
+          where: {
+            status: OfferStatus.ACCEPTED,
+          },
+          select: {
+            id: true,
+            amount: true,
+            message: true,
+            status: true,
+            userId: true,
+          },
         },
         _count: {
           select: { offers: true },

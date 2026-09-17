@@ -274,7 +274,45 @@ export const apiSlice = createApi({
         method: 'POST',
         body,
       }),
-      invalidatesTags: [{ type: 'Task', id: 'LIST' }],
+      invalidatesTags: [
+        { type: 'Task', id: 'LIST' },
+        { type: 'Task', id: 'MY_POSTED' },
+      ],
+    }),
+
+    getMyPostedTasks: builder.query<TaskItem[], void>({
+      query: () => '/users/me/tasks?type=posted',
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map(({ id }) => ({ type: 'Task' as const, id })),
+              { type: 'Task', id: 'MY_POSTED' },
+            ]
+          : [{ type: 'Task', id: 'MY_POSTED' }],
+    }),
+
+    getMyAssignedTasks: builder.query<TaskItem[], void>({
+      query: () => '/users/me/tasks?type=assigned',
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map(({ id }) => ({ type: 'Task' as const, id })),
+              { type: 'Task', id: 'MY_ASSIGNED' },
+            ]
+          : [{ type: 'Task', id: 'MY_ASSIGNED' }],
+    }),
+
+    deleteTask: builder.mutation<{ message: string; id: string }, string>({
+      query: (taskId) => ({
+        url: `/tasks/${taskId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (_result, _error, taskId) => [
+        { type: 'Task', id: taskId },
+        { type: 'Task', id: 'LIST' },
+        { type: 'Task', id: 'MY_POSTED' },
+        { type: 'Task', id: 'MY_ASSIGNED' },
+      ],
     }),
 
     // Offers
@@ -342,6 +380,8 @@ export const apiSlice = createApi({
         { type: 'Offer', id: 'MY_LIST' },
         { type: 'Task', id: taskId },
         { type: 'Task', id: 'LIST' },
+        { type: 'Task', id: 'MY_POSTED' },
+        { type: 'Task', id: 'MY_ASSIGNED' },
       ],
     }),
 
@@ -403,11 +443,18 @@ export const apiSlice = createApi({
               }
             };
 
-            xhr.onerror = () => {
+            xhr.onerror = (e) => {
+              console.warn("[uploadImages] Network error:", {
+                status: xhr.status,
+                statusText: xhr.statusText,
+                response: xhr.responseText,
+                url: `${API_BASE_URL}/uploads`,
+                event: e,
+              });
               resolve({
                 error: {
                   status: "FETCH_ERROR" as const,
-                  error: "Network error occurred while uploading photos",
+                  error: `Network error connecting to ${API_BASE_URL}/uploads. Please check that the server is running.`,
                 },
               });
             };
@@ -480,7 +527,10 @@ export const {
   useGetCategoryByIdQuery,
   useGetTasksQuery,
   useGetTaskByIdQuery,
+  useGetMyPostedTasksQuery,
+  useGetMyAssignedTasksQuery,
   useCreateTaskMutation,
+  useDeleteTaskMutation,
   useCreateOfferMutation,
   useGetOffersForTaskQuery,
   useGetMyOffersQuery,

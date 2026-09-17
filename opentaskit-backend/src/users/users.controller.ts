@@ -32,11 +32,24 @@ export class UsersController {
     private readonly offersService: OffersService,
   ) {}
 
-  // GET /users/me/tasks - Tasks posted by the authenticated user
-  @ApiOperation({ summary: "Get authenticated user's posted tasks" })
+  // GET /users/me/tasks - Tasks posted or assigned to the authenticated user
+  @ApiOperation({ summary: "Get authenticated user's posted or assigned tasks" })
   @Get('me/tasks')
-  getMyTasks(@CurrentUser('id') userId: string) {
+  getMyTasks(
+    @CurrentUser('id') userId: string,
+    @Query('type') type?: string,
+  ) {
+    if (type === 'assigned' || type === 'jobs') {
+      return this.tasksService.findAssignedTasks(userId);
+    }
     return this.tasksService.findMyTasks(userId);
+  }
+
+  // GET /users/me/assigned-tasks - Tasks where the authenticated user is the hired tasker
+  @ApiOperation({ summary: "Get tasks assigned to the authenticated user" })
+  @Get('me/assigned-tasks')
+  getMyAssignedTasks(@CurrentUser('id') userId: string) {
+    return this.tasksService.findAssignedTasks(userId);
   }
 
   // GET /users/me/saved-tasks - Tasks bookmarked by the authenticated user
