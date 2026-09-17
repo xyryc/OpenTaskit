@@ -355,8 +355,8 @@ export class TasksService {
     return saved.map((item) => item.task);
   }
 
-  // 10. Mark task as COMPLETED
-  async completeTask(taskId: string, userId: string, userRole: string) {
+  // 10. Start task (transition from ASSIGNED to IN_PROGRESS)
+  async startTask(taskId: string, userId: string, userRole: string) {
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },
       include: {
@@ -373,8 +373,69 @@ export class TasksService {
     // Rule 1: Task must currently be in ASSIGNED status
     if (task.status !== TaskStatus.ASSIGNED) {
       throw new BadRequestException(
-        `Only assigned tasks can be marked as completed. Current       
-  status: ${task.status}`,
+        `Only assigned tasks can be started. Current status: ${task.status}`,
+      );
+    }
+
+    // Rule 2: Caller must be the assigned provider or an Admin
+    const isAssignedProvider = task.offers.some(
+      (offer) => offer.userId === userId,
+    );
+    const isAdmin = userRole === 'ADMIN';
+
+    if (!isAssignedProvider && !isAdmin) {
+      throw new ForbiddenException(
+        'Only the assigned tasker can start this task',
+      );
+    }
+
+    const inProgressTask = await this.prisma.task.update({
+      where: { id: taskId },
+      data: { status: TaskStatus.IN_PROGRESS },
+      include: {
+        category: {
+          select: { id: true, name: true, slug: true, icon: true },
+        },
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            phoneNumber: true,
+            avatarUrl: true,
+            isVerified: true,
+          },
+        },
+      },
+    });
+
+    return {
+      message: 'Task is now in progress',
+      task: inProgressTask,
+    };
+  }
+
+  // 11. Mark task as COMPLETED
+  async completeTask(taskId: string, userId: string, userRole: string) {
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      include: {
+        offers: {
+          where: { status: 'ACCEPTED' },
+        },
+      },
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    // Rule 1: Task must currently be in IN_PROGRESS or ASSIGNED status
+    if (
+      task.status !== TaskStatus.IN_PROGRESS &&
+      task.status !== TaskStatus.ASSIGNED
+    ) {
+      throw new BadRequestException(
+        `Only in-progress or assigned tasks can be marked as completed. Current status: ${task.status}`,
       );
     }
 

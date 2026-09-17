@@ -32,6 +32,7 @@ import type {
   RefreshResponse,
   RegisterPayload,
   ResetPasswordPayload,
+  StartTaskResponse,
   MyOfferItem,
   TaskItem,
   UpdateOfferResponse,
@@ -331,6 +332,21 @@ export const apiSlice = createApi({
       ],
     }),
 
+    startTask: builder.mutation<StartTaskResponse, string>({
+      query: (taskId) => ({
+        url: `/tasks/${taskId}/start`,
+        method: 'POST',
+      }),
+      invalidatesTags: (_result, _error, taskId) => [
+        { type: 'Task', id: taskId },
+        { type: 'Task', id: 'LIST' },
+        { type: 'Task', id: 'MY_POSTED' },
+        { type: 'Task', id: 'MY_ASSIGNED' },
+        { type: 'Offer', id: `TASK_${taskId}` },
+        { type: 'Offer', id: 'MY_LIST' },
+      ],
+    }),
+
     completeTask: builder.mutation<CompleteTaskResponse, string>({
       query: (taskId) => ({
         url: `/tasks/${taskId}/complete`,
@@ -578,6 +594,7 @@ export const {
   useCreateTaskMutation,
   useUpdateTaskMutation,
   useDeleteTaskMutation,
+  useStartTaskMutation,
   useCompleteTaskMutation,
   useCancelTaskMutation,
   useCreateOfferMutation,

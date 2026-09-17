@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
+import { View, Text, Pressable, ScrollView, RefreshControl } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -62,10 +62,40 @@ export default function ActivityScreen() {
   const [status, setStatus] = useState<TaskStatus | 'all'>('all');
   const [pendingDelete, setPendingDelete] = useState<Task | null>(null);
 
-  const { data: apiPostedTasks, isLoading: isPostedLoading } = useGetMyPostedTasksQuery(undefined, { skip: guest });
-  const { data: apiAssignedTasks, isLoading: isAssignedLoading } = useGetMyAssignedTasksQuery(undefined, { skip: guest });
-  const { data: apiMyOffers, isLoading: isOffersLoading } = useGetMyOffersQuery(undefined, { skip: guest });
+  const {
+    data: apiPostedTasks,
+    isLoading: isPostedLoading,
+    refetch: refetchPosted,
+  } = useGetMyPostedTasksQuery(undefined, { skip: guest });
+  const {
+    data: apiAssignedTasks,
+    isLoading: isAssignedLoading,
+    refetch: refetchAssigned,
+  } = useGetMyAssignedTasksQuery(undefined, { skip: guest });
+  const {
+    data: apiMyOffers,
+    isLoading: isOffersLoading,
+    refetch: refetchOffers,
+  } = useGetMyOffersQuery(undefined, { skip: guest });
   const [deleteTaskApi] = useDeleteTaskMutation();
+
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    if (guest) return;
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        refetchPosted(),
+        refetchAssigned(),
+        refetchOffers(),
+      ]);
+    } catch {
+      // Ignored
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const myRequests: Task[] = useMemo(() => {
     if (apiPostedTasks) {
@@ -215,8 +245,17 @@ export default function ActivityScreen() {
       {/* Scrollable Body Content */}
       <ScrollView
         className="flex-1 px-5 pt-4"
-        contentContainerStyle={{ paddingBottom: 110 }}
+        contentContainerStyle={{ paddingBottom: 110, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
+        alwaysBounceVertical={true}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#0094F7"
+            colors={['#0094F7']}
+          />
+        }
       >
         {/* REQUESTS TAB */}
         {tab === 'requests' && (
@@ -274,7 +313,13 @@ export default function ActivityScreen() {
                       </View>
                     </View>
                   }
-                  onClick={() => router.push(`/task/${task.id}` as any)}
+                  onClick={() => {
+                    if (task.status === 'posted' || task.status === 'receiving_offers') {
+                      router.push(`/task/${task.id}` as any);
+                    } else {
+                      router.push(`/job/${task.id}` as any);
+                    }
+                  }}
                 />
               ))}
             </View>

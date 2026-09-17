@@ -90,9 +90,22 @@ export class TasksController {
     return this.tasksService.unsaveTask(userId, taskId);
   }
 
-  // 8. POST /tasks/:id/complete - Mark Task as Completed
+  // 8. POST /tasks/:id/start - Start an Assigned Task
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Mark an assigned task as completed' })
+  @ApiOperation({ summary: 'Start an assigned task (Tasker or Admin)' })
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/start')
+  startTask(
+    @Param('id') taskId: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: string,
+  ) {
+    return this.tasksService.startTask(taskId, userId, userRole);
+  }
+
+  // 9. POST /tasks/:id/complete - Mark Task as Completed
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Mark an assigned or in-progress task as completed' })
   @UseGuards(JwtAuthGuard)
   @Post(':id/complete')
   completeTask(

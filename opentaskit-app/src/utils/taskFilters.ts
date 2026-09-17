@@ -89,6 +89,7 @@ export function mapApiTaskToTask(item: import('@/types/api').TaskItem): Task {
   const statusMap: Record<string, Task['status']> = {
     OPEN: 'posted',
     ASSIGNED: 'assigned',
+    IN_PROGRESS: 'in_progress',
     COMPLETED: 'completed',
     CANCELLED: 'cancelled',
   };

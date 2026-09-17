@@ -5,6 +5,7 @@ import {
   ScrollView,
   Pressable,
   Linking,
+  RefreshControl,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -18,6 +19,7 @@ import {
   MapPin,
   MessageCircle,
   Phone,
+  Play,
   Star,
   Wallet2,
   X,
@@ -43,6 +45,7 @@ import { useAppSelector } from '@/store';
 import {
   useGetTaskByIdQuery,
   useGetOffersForTaskQuery,
+  useStartTaskMutation,
   useCompleteTaskMutation,
   useCancelTaskMutation,
 } from '@/store/api/apiSlice';
@@ -60,7 +63,8 @@ const STEPS = [
 function getStepIndex(status: string, paid?: boolean, reviewed?: boolean): number {
   if (status === 'cancelled') return 0;
   if (reviewed) return 5;
-  if (paid || status === 'completed') return 4;
+  if (paid) return 5;
+  if (status === 'completed') return 4;
   if (status === 'awaiting_completion') return 3;
   if (status === 'in_progress') return 2;
   return 1;
@@ -78,14 +82,32 @@ export default function JobDetailScreen() {
     toast,
   } = useApp();
 
+  const [startTaskApi, { isLoading: isStarting }] = useStartTaskMutation();
   const [completeTaskApi, { isLoading: isCompleting }] = useCompleteTaskMutation();
   const [cancelTaskApi, { isLoading: isCancelling }] = useCancelTaskMutation();
 
+  const [confirmStart, setConfirmStart] = useState(false);
   const [confirmComplete, setConfirmComplete] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const { data: apiTaskData, isLoading: isTaskLoading } = useGetTaskByIdQuery(taskId, { skip: !taskId });
-  const { data: taskOffers } = useGetOffersForTaskQuery(taskId, { skip: !taskId });
+  const {
+    data: apiTaskData,
+    isLoading: isTaskLoading,
+    refetch: refetchTask,
+  } = useGetTaskByIdQuery(taskId, { skip: !taskId });
+  const { data: taskOffers, refetch: refetchOffers } = useGetOffersForTaskQuery(taskId, { skip: !taskId });
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([refetchTask(), refetchOffers()]);
+    } catch {
+      // Ignored
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const task = useMemo(
     () => (apiTaskData ? mapApiTaskToTask(apiTaskData) : taskById(taskId)),
@@ -108,6 +130,25 @@ export default function JobDetailScreen() {
   const isProvider = authUser?.id
     ? (acceptedOffer ? acceptedOffer.userId === authUser.id : task?.assignedProviderId === ME)
     : task?.assignedProviderId === ME;
+
+  const handleConfirmStart = async () => {
+    if (!task) return;
+    try {
+      await startTaskApi(task.id).unwrap();
+      setConfirmStart(false);
+      toast({
+        title: 'Task started',
+        description: 'You have started working on this task. Status is now In progress.',
+        variant: 'success',
+      });
+    } catch (err) {
+      toast({
+        title: 'Failed to start task',
+        description: getApiErrorMessage(err),
+        variant: 'error',
+      });
+    }
+  };
 
   const handleConfirmComplete = async () => {
     if (!task) return;
@@ -220,7 +261,17 @@ export default function JobDetailScreen() {
 
       <ScrollView
         className="flex-1"
+        contentContainerStyle={{ flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
+        alwaysBounceVertical={true}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#0094F7"
+            colors={['#0094F7']}
+          />
+        }
       >
         <View className="gap-5 px-5 pb-8 pt-4" style={{ gap: 20 }}>
           {/* Cancelled Banner */}
@@ -536,11 +587,11 @@ export default function JobDetailScreen() {
               full
               size="lg"
               variant="brand"
-              icon={<CheckCircle2 size={18} color="#FFFFFF" />}
-              loading={isCompleting}
-              onPress={() => setConfirmComplete(true)}
+              icon={<Play size={18} color="#FFFFFF" />}
+              loading={isStarting}
+              onPress={() => setConfirmStart(true)}
             >
-              Mark as completed
+              Start task
             </Button>
           ) : (
             <View className="flex-row gap-2.5" style={{ gap: 10 }}>
@@ -556,12 +607,11 @@ export default function JobDetailScreen() {
               )}
               <Button
                 size="lg"
-                variant="brand"
+                variant="outline"
                 className="flex-1"
-                loading={isCompleting}
-                onPress={() => setConfirmComplete(true)}
+                disabled
               >
-                Mark completed
+                Waiting for tasker to start
               </Button>
             </View>
           ))}
@@ -662,6 +712,16 @@ export default function JobDetailScreen() {
           </Button>
         )}
       </View>
+
+      {/* Confirm Start Dialog */}
+      <ConfirmDialog
+        open={confirmStart}
+        onClose={() => setConfirmStart(false)}
+        onConfirm={handleConfirmStart}
+        title="Start this task?"
+        message="Let the requester know that you have begun work on this task. The status will move to In Progress."
+        confirmLabel={isStarting ? 'Starting...' : 'Start task'}
+      />
 
       {/* Confirm Complete Dialog */}
       <ConfirmDialog

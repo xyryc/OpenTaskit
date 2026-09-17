@@ -112,7 +112,7 @@ export interface CategoryItem {
   };
 }
 
-export type TaskApiStatus = 'OPEN' | 'ASSIGNED' | 'COMPLETED' | 'CANCELLED';
+export type TaskApiStatus = 'OPEN' | 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 export type LocationApiType = 'IN_PERSON' | 'REMOTE';
 export type TimeApiType = 'ASAP' | 'SPECIFIC_DATE' | 'FLEXIBLE';
 export type PaymentApiMethod = 'CASH' | 'CARD' | 'WALLET';
@@ -250,6 +250,11 @@ export interface AcceptOfferResponse {
 export interface RejectOfferResponse {
   message: string;
   offer: OfferItem;
+}
+
+export interface StartTaskResponse {
+  message: string;
+  task: TaskItem;
 }
 
 export interface CompleteTaskResponse {
