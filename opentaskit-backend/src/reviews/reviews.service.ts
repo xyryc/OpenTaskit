@@ -87,10 +87,13 @@ export class ReviewsService {
         },
         include: {
           fromUser: {
-            select: { id: true, fullName: true },
+            select: { id: true, fullName: true, avatarUrl: true },
           },
           toUser: {
-            select: { id: true, fullName: true },
+            select: { id: true, fullName: true, avatarUrl: true },
+          },
+          task: {
+            select: { id: true, title: true, images: true },
           },
         },
       });
@@ -138,12 +141,21 @@ export class ReviewsService {
           select: {
             id: true,
             fullName: true,
+            avatarUrl: true,
           },
         },
         toUser: {
           select: {
             id: true,
             fullName: true,
+            avatarUrl: true,
+          },
+        },
+        task: {
+          select: {
+            id: true,
+            title: true,
+            images: true,
           },
         },
       },
@@ -173,10 +185,10 @@ export class ReviewsService {
         orderBy: { createdAt: 'desc' },
         include: {
           fromUser: {
-            select: { id: true, fullName: true },
+            select: { id: true, fullName: true, avatarUrl: true },
           },
           task: {
-            select: { id: true, title: true },
+            select: { id: true, title: true, images: true },
           },
         },
       }),
@@ -242,8 +254,8 @@ export class ReviewsService {
             where: { toUserId: userId },
             orderBy: { createdAt: 'desc' },
             include: {
-              fromUser: { select: { id: true, fullName: true } },
-              task: { select: { id: true, title: true } },
+              fromUser: { select: { id: true, fullName: true, avatarUrl: true } },
+              task: { select: { id: true, title: true, images: true } },
             },
           })
         : Promise.resolve([]),
@@ -252,8 +264,8 @@ export class ReviewsService {
             where: { fromUserId: userId },
             orderBy: { createdAt: 'desc' },
             include: {
-              toUser: { select: { id: true, fullName: true } },
-              task: { select: { id: true, title: true } },
+              toUser: { select: { id: true, fullName: true, avatarUrl: true } },
+              task: { select: { id: true, title: true, images: true } },
             },
           })
         : Promise.resolve([]),

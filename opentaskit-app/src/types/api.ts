@@ -304,11 +304,13 @@ export interface UpdateOfferResponse {
 export interface ReviewUserSummary {
   id: string;
   fullName: string;
+  avatarUrl?: string | null;
 }
 
 export interface ReviewTaskSummary {
   id: string;
   title: string;
+  images?: string[];
 }
 
 export interface ReviewItem {
@@ -361,6 +363,10 @@ export interface MyReviewsResponse {
   totalGiven: number;
 }
 
+export interface MyReviewsQuery {
+  type?: 'all' | 'received' | 'given';
+}
+
 export interface PublicProfileReview {
   id: string;
   rating: number;
@@ -371,6 +377,11 @@ export interface PublicProfileReview {
     id: string;
     fullName: string;
     avatarUrl: string | null;
+  };
+  task?: {
+    id: string;
+    title: string;
+    images?: string[];
   };
 }
 

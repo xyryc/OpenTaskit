@@ -286,24 +286,50 @@ export default function ProviderProfileScreen() {
                     className="rounded-3xl border border-ink-200 bg-white p-4"
                   >
                     <View className="flex-row items-start gap-3" style={{ gap: 12 }}>
-                      <Avatar
-                        user={{
-                          name: review.fromUser.fullName,
-                          initials: initialsOf(review.fromUser.fullName),
-                          tone: 'bg-brand-tint',
-                          verified: false,
-                          avatarUrl: review.fromUser.avatarUrl,
+                      <Pressable
+                        onPress={() => {
+                          if (review.fromUser?.id) {
+                            router.push({
+                              pathname: '/(screens)/provider/[userId]',
+                              params: { userId: review.fromUser.id },
+                            } as any);
+                          }
                         }}
-                        size="sm"
-                      />
+                        hitSlop={6}
+                        className="active:opacity-80"
+                      >
+                        <Avatar
+                          user={{
+                            name: review.fromUser.fullName,
+                            initials: initialsOf(review.fromUser.fullName),
+                            tone: 'bg-brand-tint',
+                            verified: false,
+                            avatarUrl: review.fromUser.avatarUrl,
+                          }}
+                          size="sm"
+                        />
+                      </Pressable>
                       <View className="flex-1 min-w-0">
                         <View className="flex-row items-baseline justify-between gap-2">
-                          <Text
-                            numberOfLines={1}
-                            className="flex-1 text-[14px] font-geist-semibold text-ink"
+                          <Pressable
+                            className="flex-1 min-w-0"
+                            onPress={() => {
+                              if (review.fromUser?.id) {
+                                router.push({
+                                  pathname: '/(screens)/provider/[userId]',
+                                  params: { userId: review.fromUser.id },
+                                } as any);
+                              }
+                            }}
+                            hitSlop={6}
                           >
-                            {review.fromUser.fullName}
-                          </Text>
+                            <Text
+                              numberOfLines={1}
+                              className="text-[14px] font-geist-semibold text-ink active:text-brand"
+                            >
+                              {review.fromUser.fullName}
+                            </Text>
+                          </Pressable>
                           <Text className="shrink-0 font-geist text-[11.5px] text-ink-400">
                             {timeAgo(review.createdAt)}
                           </Text>
@@ -311,12 +337,65 @@ export default function ProviderProfileScreen() {
                         <View className="mt-1">
                           <StarRow value={review.rating} size={13} />
                         </View>
+                        {review.task?.title && (
+                          <Pressable
+                            onPress={() => {
+                              if (review.task?.id) {
+                                router.push({
+                                  pathname: '/(screens)/task/[id]',
+                                  params: { id: review.task.id },
+                                } as any);
+                              }
+                            }}
+                            className="mt-1 active:opacity-75"
+                          >
+                            <Text
+                              numberOfLines={1}
+                              className="font-geist text-[12px] text-ink-500"
+                            >
+                              {review.task.title}
+                            </Text>
+                          </Pressable>
+                        )}
                       </View>
                     </View>
 
                     <Text className="mt-3 font-geist text-[13.5px] leading-relaxed text-ink-700">
                       {review.text}
                     </Text>
+
+                    {review.task?.images && review.task.images.length > 0 && (
+                      <View className="mt-3">
+                        <ScrollView
+                          horizontal
+                          showsHorizontalScrollIndicator={false}
+                          className="-mx-1"
+                        >
+                          <View className="flex-row gap-2 px-1" style={{ gap: 8 }}>
+                            {review.task.images.map((imgUri, idx) => (
+                              <Pressable
+                                key={idx}
+                                onPress={() => {
+                                  if (review.task?.id) {
+                                    router.push({
+                                      pathname: '/(screens)/task/[id]',
+                                      params: { id: review.task.id },
+                                    } as any);
+                                  }
+                                }}
+                                className="overflow-hidden rounded-2xl border border-ink-100 active:opacity-85"
+                              >
+                                <Image
+                                  source={{ uri: imgUri }}
+                                  style={{ width: 72, height: 72 }}
+                                  contentFit="cover"
+                                />
+                              </Pressable>
+                            ))}
+                          </View>
+                        </ScrollView>
+                      </View>
+                    )}
 
                     {review.tags.length > 0 && (
                       <View className="mt-3 flex-row flex-wrap gap-1.5" style={{ gap: 6 }}>

@@ -30,6 +30,8 @@ import type {
   MessageResponse,
   MyKycResponse,
   MyProfileResponse,
+  MyReviewsQuery,
+  MyReviewsResponse,
   OfferItem,
   PaginatedTasksResponse,
   RejectOfferResponse,
@@ -618,6 +620,14 @@ export const apiSlice = createApi({
       providesTags: (_result, _error, { userId }) => [{ type: 'Review', id: `USER_${userId}` }],
     }),
 
+    getMyReviews: builder.query<MyReviewsResponse, MyReviewsQuery | void>({
+      query: (params) => ({
+        url: `/reviews/me`,
+        params: params ?? undefined,
+      }),
+      providesTags: ['Review'],
+    }),
+
     getPublicProfile: builder.query<PublicProfileResponse, string>({
       query: (userId) => `/users/${userId}/profile`,
       providesTags: (_result, _error, userId) => [{ type: 'User', id: userId }],
@@ -731,6 +741,7 @@ export const {
   useCreateReviewMutation,
   useGetReviewsForTaskQuery,
   useGetUserReviewsQuery,
+  useGetMyReviewsQuery,
   useGetPublicProfileQuery,
   useGetMyKycQuery,
   useSubmitKycMutation,

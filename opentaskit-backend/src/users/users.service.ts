@@ -346,6 +346,13 @@ export class UsersService {
               avatarUrl: true,
             },
           },
+          task: {
+            select: {
+              id: true,
+              title: true,
+              images: true,
+            },
+          },
         },
       }),
     ]);

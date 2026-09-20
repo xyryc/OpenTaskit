@@ -331,7 +331,11 @@ export default function ProfileScreen() {
 
           {/* Trust & Performance */}
           <View>
-            <SectionHeader title="Trust & performance" />
+            <SectionHeader
+              title="Trust & performance"
+              action="My reviews"
+              onAction={() => router.push('/(screens)/my-reviews')}
+            />
             <TrustStats
               stats={[
                 { label: 'Completed', value: `${profile?.stats.tasksCompleted ?? me.completedJobs} jobs` },
