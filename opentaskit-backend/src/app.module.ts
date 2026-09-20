@@ -5,6 +5,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import { MailModule } from './mail/mail.module';
+import { SmsModule } from './sms/sms.module';
 import { CategoriesModule } from './categories/categories.module';
 import { TasksModule } from './tasks/tasks.module';
 import { UsersModule } from './users/users.module';
@@ -28,6 +29,7 @@ import { KycModule } from './kyc/kyc.module';
     ]),
     PrismaModule,
     MailModule,
+    SmsModule,
     AuthModule,
     KycModule,
     CategoriesModule,

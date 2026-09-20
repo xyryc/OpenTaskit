@@ -1,5 +1,4 @@
 import {
-  IsEmail,
   IsNotEmpty,
   IsString,
   Length,
@@ -7,8 +6,8 @@ import {
 } from 'class-validator';
 
 export class ResetPasswordDto {
-  @IsEmail({}, { message: 'Please enter a valid email address' })
-  @IsNotEmpty({ message: 'Email is required' })
+  @IsString()
+  @IsNotEmpty({ message: 'Email or phone number is required' })
   email: string;
 
   @IsString()

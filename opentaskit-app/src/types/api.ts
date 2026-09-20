@@ -91,6 +91,12 @@ export interface VerifyOtpPayload {
   otp: string;
 }
 
+export interface ChangePasswordPayload {
+  oldPassword: string;
+  newPassword: string;
+  confirmNewPassword: string;
+}
+
 export interface ResetPasswordPayload {
   email: string;
   otp: string;

@@ -15,6 +15,8 @@ import {
 } from 'lucide-react-native';
 
 import { useApp } from '@/contexts/AppContext';
+import { useChangePasswordMutation } from '@/store/api/apiSlice';
+import { getApiErrorMessage } from '@/utils/apiError';
 import { Screen, ScreenHeader } from '@/components/layout/Screen';
 import { Button } from '@/components/ui/Button';
 import { TextField, Toggle } from '@/components/ui/Input';
@@ -64,25 +66,47 @@ export default function SecuritySettingsScreen() {
   const [twoFactor, setTwoFactor] = useState(true);
   const [sessions, setSessions] = useState(INITIAL_SESSIONS);
   const [revokeId, setRevokeId] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [changePasswordApi, { isLoading: isChangingPassword }] = useChangePasswordMutation();
 
-  const handleUpdatePassword = () => {
+  const handleUpdatePassword = async () => {
     const problems: Record<string, string> = {};
     if (!current) problems.current = 'Enter your current password';
-    if (next.length < 8) problems.next = 'Use at least 8 characters';
+    if (next.length < 6) problems.next = 'Use at least 6 characters';
     if (confirm !== next) problems.confirm = 'Passwords do not match';
 
     setErrors(problems);
     if (Object.keys(problems).length > 0) return;
 
-    setSaving(true);
-    setTimeout(() => {
-      setSaving(false);
+    try {
+      const res = await changePasswordApi({
+        oldPassword: current,
+        newPassword: next,
+        confirmNewPassword: confirm,
+      }).unwrap();
+
       setCurrent('');
       setNext('');
       setConfirm('');
-      toast({ title: 'Password updated', variant: 'success' });
-    }, 700);
+      toast({
+        title: 'Password updated',
+        description: res.message || 'Your password has been changed successfully.',
+        variant: 'success',
+      });
+    } catch (err: any) {
+      const msg = getApiErrorMessage(err);
+      if (
+        msg.toLowerCase().includes('current password') ||
+        msg.toLowerCase().includes('incorrect')
+      ) {
+        setErrors({ current: msg });
+      } else {
+        toast({
+          title: 'Update failed',
+          description: msg,
+          variant: 'error',
+        });
+      }
+    }
   };
 
   const handleConfirmRevoke = () => {
@@ -144,7 +168,7 @@ export default function SecuritySettingsScreen() {
                 full
                 size="lg"
                 variant="brand"
-                loading={saving}
+                loading={isChangingPassword}
                 onPress={handleUpdatePassword}
               >
                 Update password

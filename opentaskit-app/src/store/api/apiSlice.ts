@@ -14,6 +14,7 @@ import type {
   AuthUser,
   CancelTaskResponse,
   CategoryItem,
+  ChangePasswordPayload,
   CompleteTaskResponse,
   CreateDisputePayload,
   CreateOfferPayload,
@@ -368,6 +369,10 @@ export const apiSlice = createApi({
 
     verifyOtp: builder.mutation<MessageResponse, VerifyOtpPayload>({
       query: (body) => ({ url: "/auth/verify-otp", method: "POST", body }),
+    }),
+
+    changePassword: builder.mutation<MessageResponse, ChangePasswordPayload>({
+      query: (body) => ({ url: "/auth/change-password", method: "PATCH", body }),
     }),
 
     // User Profile
@@ -756,6 +761,7 @@ export const {
   useForgotPasswordMutation,
   useVerifyOtpMutation,
   useResetPasswordMutation,
+  useChangePasswordMutation,
   useGetMyProfileQuery,
   useUpdateMyProfileMutation,
   useGetSavedTasksQuery,

@@ -17,6 +17,7 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { MailService } from 'src/mail/mail.service';
+import { SmsService } from 'src/sms/sms.service';
 
 @Injectable()
 export class AuthService {
@@ -24,6 +25,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly mailService: MailService,
+    private readonly smsService: SmsService,
   ) {}
 
   // Helper: SHA-256 pre-hash to overcome bcrypt 72-byte limit
@@ -286,15 +288,38 @@ export class AuthService {
     };
   }
 
-  async forgotPassword(dto: ForgotPasswordDto) {
-    const user = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+  // Helper: Look up user by email or phone number
+  private async findUserByEmailOrPhone(input: string) {
+    const trimmed = (input || '').trim();
+    if (!trimmed) return null;
+
+    if (trimmed.includes('@')) {
+      return this.prisma.user.findUnique({
+        where: { email: trimmed.toLowerCase() },
+      });
+    }
+
+    const formattedPhone = this.smsService.formatContactNumber(trimmed);
+    return this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { phoneNumber: trimmed },
+          { phoneNumber: formattedPhone },
+          { phoneNumber: formattedPhone.replace('+', '') },
+          ...(trimmed.startsWith('0') ? [{ phoneNumber: trimmed.slice(1) }] : []),
+          ...(trimmed.startsWith('+94') ? [{ phoneNumber: `0${trimmed.slice(3)}` }] : []),
+        ],
+      },
     });
+  }
+
+  async forgotPassword(dto: ForgotPasswordDto) {
+    const user = await this.findUserByEmailOrPhone(dto.email);
 
     if (!user) {
       return {
         message:
-          'If an account exists with this email, a 6-digit verification code has been sent.',
+          'If an account exists with this email or phone number, a 6-digit verification code has been sent.',
       };
     }
 
@@ -317,19 +342,24 @@ export class AuthService {
       },
     });
 
-    // 5. Send Email via Brevo
-    await this.mailService.sendPasswordResetOtp(user.email, user.fullName, otp);
+    // 5. Send Email via Brevo if user has email
+    if (user.email) {
+      await this.mailService.sendPasswordResetOtp(user.email, user.fullName, otp);
+    }
+
+    // 6. If user has phone number registered, send OTP via SMSLenz
+    if (user.phoneNumber) {
+      await this.smsService.sendOtp(user.phoneNumber, otp);
+    }
 
     return {
       message:
-        'If an account exists with this email, a 6-digit verification code has been sent.',
+        'If an account exists with this email or phone number, a 6-digit verification code has been sent.',
     };
   }
 
   async verifyOtp(dto: VerifyOtpDto) {
-    const user = await this.prisma.user.findUnique({
-      where: { email: dto.email },
-    });
+    const user = await this.findUserByEmailOrPhone(dto.email);
 
     if (
       !user ||
@@ -359,9 +389,7 @@ export class AuthService {
       throw new BadRequestException('Passwords do not match.');
     }
 
-    const user = await this.prisma.user.findUnique({
-      where: { email: dto.email },
-    });
+    const user = await this.findUserByEmailOrPhone(dto.email);
 
     if (
       !user ||

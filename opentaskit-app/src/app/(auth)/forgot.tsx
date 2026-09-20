@@ -1,52 +1,60 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { StatusBar } from 'expo-status-bar';
-import { KeyRound, Mail } from 'lucide-react-native';
+import React, { useState } from "react";
+import { View, Text, ScrollView } from "react-native";
+import { useRouter } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
+import { KeyRound, Mail } from "lucide-react-native";
 
-import { useApp } from '@/contexts/AppContext';
-import { useForgotPasswordMutation } from '@/store/api/apiSlice';
-import { parseApiError } from '@/utils/apiError';
-import { ScreenHeader } from '@/components/layout/Screen';
-import { Button } from '@/components/ui/Button';
-import { TextField } from '@/components/ui/Input';
+import { useApp } from "@/contexts/AppContext";
+import { useForgotPasswordMutation } from "@/store/api/apiSlice";
+import { parseApiError } from "@/utils/apiError";
+import { ScreenHeader } from "@/components/layout/Screen";
+import { Button } from "@/components/ui/Button";
+import { TextField } from "@/components/ui/Input";
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
   const { toast } = useApp();
-  const [value, setValue] = useState('');
+  const [value, setValue] = useState("");
   const [error, setError] = useState<string>();
   const [forgotPassword, { isLoading: loading }] = useForgotPasswordMutation();
 
   const handleSubmit = async () => {
-    const trimmed = value.trim().toLowerCase();
-    if (!trimmed || !/^\S+@\S+\.\S+$/.test(trimmed)) {
-      setError('Enter a valid email address');
+    const trimmed = value.trim();
+    const isEmail = /^\S+@\S+\.\S+$/.test(trimmed);
+    const isPhone = /^[+]?[\d\s\-()]{7,15}$/.test(trimmed);
+
+    if (!trimmed || (!isEmail && !isPhone)) {
+      setError("Enter a valid email address or phone number");
       return;
     }
     setError(undefined);
 
+    const payloadValue = isEmail ? trimmed.toLowerCase() : trimmed;
+
     try {
-      const res = await forgotPassword({ email: trimmed }).unwrap();
+      const res = await forgotPassword({ email: payloadValue }).unwrap();
       toast({
-        title: 'Code Sent',
-        description: res.message || 'Check your inbox for the 6-digit verification code.',
-        variant: 'info',
+        title: "Code Sent",
+        description:
+          res.message ||
+          (isEmail
+            ? "Check your inbox for the 6-digit verification code."
+            : "Check your phone messages for the 6-digit verification code."),
+        variant: "info",
       });
       router.push({
-        pathname: '/verify',
-        params: { flow: 'reset', email: trimmed },
+        pathname: "/verify",
+        params: { flow: "reset", email: payloadValue },
       } as any);
     } catch (err) {
-      const parsed = parseApiError(err, ['email']);
+      const parsed = parseApiError(err, ["email"]);
       setError(parsed.fieldErrors.email || parsed.generalMessage);
     }
   };
 
-
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['top', 'bottom']}>
+    <SafeAreaView className="flex-1 bg-white" edges={["top", "bottom"]}>
       <StatusBar style="dark" />
 
       {/* Screen Header */}
@@ -66,17 +74,21 @@ export default function ForgotPasswordScreen() {
           Let’s get you back in
         </Text>
         <Text className="font-geist mt-2 text-[14.5px] leading-relaxed text-ink-500">
-          Enter the email or phone number linked to your account and we will send a verification code.
+          Enter the email or phone number linked to your account and we will
+          send a verification code.
         </Text>
 
         <View className="mt-6">
           <TextField
             label="Email or phone"
             value={value}
-            onChangeText={setValue}
+            onChangeText={(val) => {
+              setValue(val);
+              if (error) setError(undefined);
+            }}
             error={error}
             autoCapitalize="none"
-            placeholder="you@example.com"
+            placeholder="you@example.com or +94XXXXXXXX"
             leading={<Mail size={18} color="#8A959B" />}
           />
         </View>
@@ -84,10 +96,21 @@ export default function ForgotPasswordScreen() {
 
       {/* Bottom Actions */}
       <View className="gap-2.5 px-6 pb-6 pt-3 border-t border-ink-100 bg-white">
-        <Button full size="lg" variant="brand" loading={loading} onPress={handleSubmit}>
+        <Button
+          full
+          size="lg"
+          variant="brand"
+          loading={loading}
+          onPress={handleSubmit}
+        >
           Send code
         </Button>
-        <Button full size="lg" variant="ghost" onPress={() => router.push('/login')}>
+        <Button
+          full
+          size="lg"
+          variant="ghost"
+          onPress={() => router.push("/login")}
+        >
           Back to log in
         </Button>
       </View>
