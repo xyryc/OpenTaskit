@@ -20,29 +20,55 @@ import {
 
 import { useApp } from '@/contexts/AppContext';
 import { ME } from '@/data/users';
-import { distance, money } from '@/utils/format';
+import { useAppSelector } from '@/store';
+import { useGetPublicProfileQuery } from '@/store/api/apiSlice';
+import { distance, initialsOf, monthYear, money, timeAgo } from '@/utils/format';
 import { resolveImageSource } from '@/utils/images';
 import { Screen, ScreenHeader, SectionHeader } from '@/components/layout/Screen';
 import { Avatar, VerifiedPill } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
-import { StarRating } from '@/components/ui/Rating';
+import { StarRating, StarRow } from '@/components/ui/Rating';
 import { TrustStats } from '@/components/task/TrustStats';
 import { BottomSheet } from '@/components/ui/Overlay';
-import { ReviewItem } from '@/components/reviews/ReviewItem';
 
 export default function ProviderProfileScreen() {
   const { userId = '' } = useLocalSearchParams<{ userId: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const { userById, reviewsFor, offers, tasks, toast, requireAccount } = useApp();
+  const { userById, offers, tasks, toast, requireAccount } = useApp();
+  const authUser = useAppSelector((state) => state.auth.user);
   const [inviteOpen, setInviteOpen] = useState(false);
 
-  const targetId = userId || ME;
-  const user = userById(targetId);
-  const isMe = targetId === ME;
-  const reviews = reviewsFor(targetId);
+  const targetId = userId || authUser?.id || ME;
+  const isMe = !!authUser?.id && targetId === authUser.id;
+
+  const { data: profile } = useGetPublicProfileQuery(targetId, { skip: !targetId });
+  const fallbackUser = userById(targetId);
+
+  // Merge the real public-profile card onto the mock user so fields the
+  // backend doesn't return yet (services, portfolio, response/success rate,
+  // distance, availability) stay as clearly-dummy placeholders.
+  const user = React.useMemo(() => {
+    if (!profile) return fallbackUser;
+    return {
+      ...fallbackUser,
+      id: profile.id,
+      name: profile.fullName || fallbackUser.name,
+      avatarUrl: profile.avatarUrl ?? fallbackUser.avatarUrl,
+      headline: profile.headline ?? fallbackUser.headline,
+      about: profile.bio ?? fallbackUser.about,
+      location: profile.location ?? fallbackUser.location,
+      skills: profile.skills?.length ? profile.skills : fallbackUser.skills,
+      rating: profile.rating,
+      reviewCount: profile.reviewCount,
+      completedJobs: profile.stats.tasksCompleted,
+      memberSince: monthYear(profile.memberSince),
+    };
+  }, [profile, fallbackUser]);
+
+  const reviews = profile?.recentReviews ?? [];
 
   // Check if provider sent an offer to any of my tasks
   const theirOffer = offers.find(
@@ -250,12 +276,58 @@ export default function ProviderProfileScreen() {
           {/* Reviews Section */}
           <View>
             <SectionHeader
-              title={`Reviews (${reviews.length})`}
+              title={`Reviews (${profile?.reviewCount ?? reviews.length})`}
             />
             {reviews.length > 0 ? (
               <View className="gap-3" style={{ gap: 12 }}>
-                {reviews.slice(0, 2).map((review) => (
-                  <ReviewItem key={review.id} review={review} />
+                {reviews.map((review) => (
+                  <View
+                    key={review.id}
+                    className="rounded-3xl border border-ink-200 bg-white p-4"
+                  >
+                    <View className="flex-row items-start gap-3" style={{ gap: 12 }}>
+                      <Avatar
+                        user={{
+                          name: review.fromUser.fullName,
+                          initials: initialsOf(review.fromUser.fullName),
+                          tone: 'bg-brand-tint',
+                          verified: false,
+                          avatarUrl: review.fromUser.avatarUrl,
+                        }}
+                        size="sm"
+                      />
+                      <View className="flex-1 min-w-0">
+                        <View className="flex-row items-baseline justify-between gap-2">
+                          <Text
+                            numberOfLines={1}
+                            className="flex-1 text-[14px] font-geist-semibold text-ink"
+                          >
+                            {review.fromUser.fullName}
+                          </Text>
+                          <Text className="shrink-0 font-geist text-[11.5px] text-ink-400">
+                            {timeAgo(review.createdAt)}
+                          </Text>
+                        </View>
+                        <View className="mt-1">
+                          <StarRow value={review.rating} size={13} />
+                        </View>
+                      </View>
+                    </View>
+
+                    <Text className="mt-3 font-geist text-[13.5px] leading-relaxed text-ink-700">
+                      {review.text}
+                    </Text>
+
+                    {review.tags.length > 0 && (
+                      <View className="mt-3 flex-row flex-wrap gap-1.5" style={{ gap: 6 }}>
+                        {review.tags.map((tag) => (
+                          <Chip key={tag} tone="brand">
+                            {tag}
+                          </Chip>
+                        ))}
+                      </View>
+                    )}
+                  </View>
                 ))}
               </View>
             ) : (

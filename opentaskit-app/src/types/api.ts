@@ -361,6 +361,38 @@ export interface MyReviewsResponse {
   totalGiven: number;
 }
 
+export interface PublicProfileReview {
+  id: string;
+  rating: number;
+  text: string;
+  tags: string[];
+  createdAt: string;
+  fromUser: {
+    id: string;
+    fullName: string;
+    avatarUrl: string | null;
+  };
+}
+
+export interface PublicProfileResponse {
+  id: string;
+  fullName: string;
+  avatarUrl: string | null;
+  headline: string | null;
+  bio: string | null;
+  location: string | null;
+  skills: string[];
+  rating: number;
+  reviewCount: number;
+  createdAt: string;
+  memberSince: string;
+  stats: {
+    tasksCompleted: number;
+    tasksPosted: number;
+  };
+  recentReviews: PublicProfileReview[];
+}
+
 export interface ApiErrorResponse {
   status: number;
   error: string;

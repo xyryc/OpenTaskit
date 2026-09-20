@@ -36,6 +36,7 @@ import type {
   ResetPasswordPayload,
   StartTaskResponse,
   MyOfferItem,
+  PublicProfileResponse,
   TaskItem,
   UpdateOfferResponse,
   UserReviewsQuery,
@@ -140,12 +141,21 @@ export async function refreshAccessToken(api: { dispatch: (action: any) => void 
         storage.set(ACCESS_TOKEN_KEY, data.accessToken);
         storage.set(REFRESH_TOKEN_KEY, data.refreshToken);
         return data.accessToken;
-      } else {
-        forceLogout(api);
-        return null;
       }
+
+      // Only a 401/403 from the server means the refresh token itself is
+      // invalid/expired/revoked - that's a real "session over" signal. Any
+      // other status (5xx, etc.) is a server-side hiccup, not proof the
+      // session is dead, so don't wipe the user's tokens over it.
+      if (response.status === 401 || response.status === 403) {
+        forceLogout(api);
+      }
+      return null;
     } catch {
-      forceLogout(api);
+      // Network failure (offline, request timeout, dev server mid-restart,
+      // etc.) - the refresh token may still be perfectly valid, so don't
+      // force a logout here. Just fail this attempt; the next request will
+      // retry the refresh once connectivity/the server is back.
       return null;
     } finally {
       isRefreshing = false;
@@ -504,6 +514,11 @@ export const apiSlice = createApi({
       providesTags: (_result, _error, { userId }) => [{ type: 'Review', id: `USER_${userId}` }],
     }),
 
+    getPublicProfile: builder.query<PublicProfileResponse, string>({
+      query: (userId) => `/users/${userId}/profile`,
+      providesTags: (_result, _error, userId) => [{ type: 'User', id: userId }],
+    }),
+
     uploadImages: builder.mutation<{ message: string; urls: string[] }, FormData>({
       async queryFn(formData, api) {
         const executeUpload = (token: string | null): Promise<any> => {
@@ -651,6 +666,7 @@ export const {
   useCreateReviewMutation,
   useGetReviewsForTaskQuery,
   useGetUserReviewsQuery,
+  useGetPublicProfileQuery,
   useUploadImagesMutation,
   useRegisterMutation,
   useLoginMutation,
