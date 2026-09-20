@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -24,31 +24,42 @@ import { TextArea } from '@/components/ui/Input';
 import { ConfirmDialog } from '@/components/ui/Overlay';
 import { PhotoPicker } from '@/components/create/PhotoPicker';
 import { CategoryBadge } from '@/components/CategoryIcon';
+import {
+  useGetTaskByIdQuery,
+  useCreateDisputeMutation,
+  useUploadImagesMutation,
+} from '@/store/api/apiSlice';
+import { mapApiTaskToTask } from '@/utils/taskFilters';
+import { getApiErrorMessage } from '@/utils/apiError';
+import { DISPUTE_REASON_LABELS } from '@/utils/disputes';
+import type { DisputeReason } from '@/types/api';
 
-const REASONS = [
-  'Service not completed',
-  'Poor quality',
-  'Payment issue',
-  'Incorrect service',
-  'Provider did not arrive',
-  'Requester unavailable',
-  'Other',
-];
+const REASONS = (Object.keys(DISPUTE_REASON_LABELS) as DisputeReason[]).map((value) => ({
+  value,
+  label: DISPUTE_REASON_LABELS[value],
+}));
 
 export default function RaiseDisputeScreen() {
   const { taskId = '' } = useLocalSearchParams<{ taskId: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { taskById, raiseDispute } = useApp();
+  const { taskById, toast } = useApp();
 
-  const [reason, setReason] = useState('');
+  const [reason, setReason] = useState<DisputeReason | ''>('');
   const [description, setDescription] = useState('');
   const [evidence, setEvidence] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pickerOpen, setPickerOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  const task = taskById(taskId);
+  const { data: apiTaskData } = useGetTaskByIdQuery(taskId, { skip: !taskId });
+  const [createDisputeApi, { isLoading: isSubmitting }] = useCreateDisputeMutation();
+  const [uploadImagesApi] = useUploadImagesMutation();
+
+  const task = useMemo(
+    () => (apiTaskData ? mapApiTaskToTask(apiTaskData) : taskById(taskId)),
+    [apiTaskData, taskById, taskId]
+  );
   if (!task) {
     return (
       <Screen tone="canvas" edges={['top']}>
@@ -78,18 +89,51 @@ export default function RaiseDisputeScreen() {
     }
   };
 
-  const handleConfirmSubmit = () => {
-    raiseDispute({
-      taskId: task.id,
-      reason,
-      description: description.trim(),
-      evidence,
-    });
-    setConfirmOpen(false);
-    router.replace({
-      pathname: '/(screens)/dispute/[taskId]',
-      params: { taskId: task.id },
-    } as any);
+  const handleConfirmSubmit = async () => {
+    if (!reason) return;
+    try {
+      const localUris = evidence.filter((uri) => !uri.startsWith('http'));
+      const remoteUris = evidence.filter((uri) => uri.startsWith('http'));
+      let evidenceUrls = remoteUris;
+
+      if (localUris.length > 0) {
+        const formData = new FormData();
+        for (const uri of localUris) {
+          const filename = uri.split('/').pop() || `evidence-${Date.now()}.jpg`;
+          const match = /\.(\w+)$/.exec(filename);
+          const ext = match ? match[1].toLowerCase() : 'jpg';
+          const type = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+          formData.append('files', { uri, name: filename, type } as any);
+        }
+        const uploadRes = await uploadImagesApi(formData).unwrap();
+        evidenceUrls = [...remoteUris, ...uploadRes.urls];
+      }
+
+      await createDisputeApi({
+        taskId: task.id,
+        reason,
+        description: description.trim(),
+        evidenceUrls,
+      }).unwrap();
+
+      setConfirmOpen(false);
+      toast({
+        title: 'Dispute submitted',
+        description: 'Our team will review the case and contact both parties.',
+        variant: 'success',
+      });
+      router.replace({
+        pathname: '/(screens)/dispute/[taskId]',
+        params: { taskId: task.id },
+      } as any);
+    } catch (err) {
+      setConfirmOpen(false);
+      toast({
+        title: 'Failed to submit dispute',
+        description: getApiErrorMessage(err),
+        variant: 'error',
+      });
+    }
   };
 
   return (
@@ -143,11 +187,11 @@ export default function RaiseDisputeScreen() {
             </Text>
             <View className="gap-2" style={{ gap: 8 }}>
               {REASONS.map((item) => {
-                const active = reason === item;
+                const active = reason === item.value;
                 return (
                   <Pressable
-                    key={item}
-                    onPress={() => setReason(item)}
+                    key={item.value}
+                    onPress={() => setReason(item.value)}
                     className={`flex-row items-center justify-between rounded-2xl border px-4 py-3.5 ${
                       active
                         ? 'border-brand bg-brand-tint/50'
@@ -161,7 +205,7 @@ export default function RaiseDisputeScreen() {
                           : 'font-geist text-ink-800'
                       }`}
                     >
-                      {item}
+                      {item.label}
                     </Text>
                     <View
                       className={`h-5 w-5 items-center justify-center rounded-full border ${
@@ -275,7 +319,7 @@ export default function RaiseDisputeScreen() {
         onConfirm={handleConfirmSubmit}
         title="Submit dispute?"
         message="Job funds will be held securely in escrow while support investigates. Both parties will be contacted."
-        confirmLabel="Submit dispute"
+        confirmLabel={isSubmitting ? 'Submitting…' : 'Submit dispute'}
       />
     </Screen>
   );

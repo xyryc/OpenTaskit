@@ -22,9 +22,16 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 
   refreshPromise = (async () => {
+    // Only an explicit rejection from the backend (invalid/expired/revoked
+    // refresh token) should force a logout. Network errors, timeouts, or the
+    // request simply not completing should fail this one attempt silently so
+    // a flaky connection doesn't wipe out a perfectly valid session.
+    let authRejected = false;
+
     try {
       const refreshToken = getStoredRefreshToken();
       if (!refreshToken) {
+        authRejected = true;
         throw new Error("No refresh token available");
       }
 
@@ -35,6 +42,9 @@ async function refreshAccessToken(): Promise<string | null> {
       });
 
       if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          authRejected = true;
+        }
         throw new Error(`Token refresh failed (HTTP ${res.status})`);
       }
 
@@ -59,9 +69,11 @@ async function refreshAccessToken(): Promise<string | null> {
 
       return data.accessToken as string;
     } catch {
-      clearStoredSession();
-      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
-        window.location.href = "/login?expired=true";
+      if (authRejected) {
+        clearStoredSession();
+        if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+          window.location.href = "/login?expired=true";
+        }
       }
       return null;
     } finally {

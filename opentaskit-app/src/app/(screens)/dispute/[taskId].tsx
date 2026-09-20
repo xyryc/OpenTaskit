@@ -1,10 +1,8 @@
-import React, { useState } from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
   ScrollView,
-  TextInput,
-  Pressable,
   Image,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -13,30 +11,36 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   CheckCircle2,
   Gavel,
-  Send,
 } from 'lucide-react-native';
 
 import { useApp } from '@/contexts/AppContext';
-import { ME } from '@/data/users';
+import { useAppSelector } from '@/store';
+import { useGetTaskByIdQuery, useGetDisputesForTaskQuery } from '@/store/api/apiSlice';
+import { mapApiTaskToTask } from '@/utils/taskFilters';
 import { money, timeAgo } from '@/utils/format';
 import { resolveImageSource } from '@/utils/images';
 import { Screen, ScreenHeader } from '@/components/layout/Screen';
 import { Chip } from '@/components/ui/Chip';
-import { Avatar } from '@/components/ui/Avatar';
 import { EmptyState } from '@/components/ui/Feedback';
+import { DISPUTE_REASON_LABELS, DISPUTE_RESOLUTION_LABELS, DISPUTE_STATUS_META } from '@/utils/disputes';
 
 export default function DisputeDetailScreen() {
   const { taskId = '' } = useLocalSearchParams<{ taskId: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { taskById, disputeForTask, userById, respondToDispute, toast } = useApp();
+  const { taskById } = useApp();
+  const authUser = useAppSelector((state) => state.auth.user);
 
-  const [reply, setReply] = useState('');
+  const { data: apiTaskData } = useGetTaskByIdQuery(taskId, { skip: !taskId });
+  const { data: disputes, isLoading } = useGetDisputesForTaskQuery(taskId, { skip: !taskId });
 
-  const task = taskById(taskId);
-  const dispute = disputeForTask(taskId);
+  const task = useMemo(
+    () => (apiTaskData ? mapApiTaskToTask(apiTaskData) : taskById(taskId)),
+    [apiTaskData, taskById, taskId]
+  );
+  const dispute = disputes?.[0];
 
-  if (!task || !dispute) {
+  if (!isLoading && (!task || !dispute)) {
     return (
       <Screen tone="canvas" edges={['top']}>
         <ScreenHeader title="Dispute" />
@@ -53,12 +57,48 @@ export default function DisputeDetailScreen() {
     );
   }
 
-  const handleSendReply = () => {
-    if (!reply.trim()) return;
-    respondToDispute(dispute.id, reply.trim());
-    setReply('');
-    toast({ title: 'Response submitted', variant: 'success' });
-  };
+  if (!task || !dispute) {
+    return (
+      <Screen tone="canvas" edges={['top']}>
+        <ScreenHeader title="Dispute" />
+      </Screen>
+    );
+  }
+
+  const isRaiser = authUser?.id === dispute.raisedById;
+  const otherPartyName = isRaiser
+    ? dispute.againstUser?.fullName ?? 'the other party'
+    : dispute.raisedBy?.fullName ?? 'the other party';
+  const statusMeta = DISPUTE_STATUS_META[dispute.status];
+  const isFinalized = dispute.status === 'RESOLVED' || dispute.status === 'DISMISSED';
+
+  const timeline = [
+    {
+      id: 'filed',
+      label: 'Dispute filed',
+      detail: isRaiser
+        ? `You raised this dispute against ${otherPartyName}.`
+        : `${otherPartyName} raised this dispute against you.`,
+      done: true,
+      at: dispute.createdAt,
+    },
+    {
+      id: 'review',
+      label: 'Support reviewing your case',
+      detail: 'Our mediation team is looking into the evidence from both parties.',
+      done: dispute.status !== 'OPEN',
+      at: null as string | null,
+    },
+    {
+      id: 'resolved',
+      label: dispute.status === 'DISMISSED' ? 'Dispute dismissed' : 'Case resolved',
+      detail: dispute.resolution
+        ? DISPUTE_RESOLUTION_LABELS[dispute.resolution]
+        : 'You will be notified as soon as a decision is made.',
+      done: isFinalized,
+      at: dispute.resolvedAt,
+    },
+  ];
 
   return (
     <Screen tone="canvas" edges={['top']}>
@@ -80,23 +120,13 @@ export default function DisputeDetailScreen() {
             <View className="flex-row items-start justify-between gap-3">
               <View className="flex-1">
                 <Text className="text-[12px] font-geist-medium uppercase tracking-[0.08em] text-ink-400">
-                  Case NX-{dispute.id.toUpperCase()}
+                  Case #{dispute.id.slice(0, 8).toUpperCase()}
                 </Text>
                 <Text className="mt-1 text-[18px] font-geist-bold text-ink">
-                  {dispute.reason}
+                  {DISPUTE_REASON_LABELS[dispute.reason]}
                 </Text>
               </View>
-              <Chip
-                tone={
-                  dispute.status === 'resolved'
-                    ? 'success'
-                    : dispute.status === 'decision_made'
-                    ? 'warning'
-                    : 'info'
-                }
-              >
-                {dispute.status.replace(/_/g, ' ')}
-              </Chip>
+              <Chip tone={statusMeta.tone}>{statusMeta.label}</Chip>
             </View>
 
             <Text className="mt-3 text-[13.5px] font-geist leading-relaxed text-ink-700">
@@ -114,17 +144,17 @@ export default function DisputeDetailScreen() {
           </View>
 
           {/* Evidence Photos */}
-          {dispute.evidence.length > 0 && (
+          {dispute.evidenceUrls.length > 0 && (
             <View>
               <Text className="mb-2.5 text-[15px] font-geist-semibold text-ink">
-                Evidence photos ({dispute.evidence.length})
+                Evidence photos ({dispute.evidenceUrls.length})
               </Text>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{ gap: 8 }}
               >
-                {dispute.evidence.map((src, index) => (
+                {dispute.evidenceUrls.map((src) => (
                   <Image
                     key={src}
                     source={resolveImageSource(src) as any}
@@ -142,7 +172,7 @@ export default function DisputeDetailScreen() {
               Resolution timeline
             </Text>
             <View>
-              {dispute.timeline.map((event, index) => (
+              {timeline.map((event, index) => (
                 <View key={event.id} className="flex-row gap-3" style={{ gap: 12 }}>
                   <View className="items-center">
                     <View
@@ -156,7 +186,7 @@ export default function DisputeDetailScreen() {
                         <CheckCircle2 size={14} color="#FFFFFF" />
                       )}
                     </View>
-                    {index < dispute.timeline.length - 1 && (
+                    {index < timeline.length - 1 && (
                       <View
                         className={`min-h-[30px] w-0.5 flex-1 ${
                           event.done ? 'bg-brand/40' : 'bg-ink-200'
@@ -176,7 +206,7 @@ export default function DisputeDetailScreen() {
                     <Text className="mt-0.5 font-geist text-[12.5px] leading-snug text-ink-500">
                       {event.detail}
                     </Text>
-                    {event.done && (
+                    {event.done && event.at && (
                       <Text className="mt-0.5 font-geist text-[11px] text-ink-400">
                         {timeAgo(event.at)}
                       </Text>
@@ -187,66 +217,32 @@ export default function DisputeDetailScreen() {
             </View>
           </View>
 
-          {/* Responses Thread */}
-          <View>
-            <Text className="mb-2.5 text-[15px] font-geist-semibold text-ink">
-              Case statements & responses
-            </Text>
-
-            <View className="gap-2.5" style={{ gap: 10 }}>
-              {dispute.responses.length === 0 ? (
-                <View className="rounded-2xl bg-ink-100/70 p-3.5">
-                  <Text className="font-geist text-[13px] text-ink-500">
-                    No responses yet. Both parties can state their case here for
-                    support to review.
-                  </Text>
-                </View>
-              ) : (
-                dispute.responses.map((res) => {
-                  const author = userById(res.authorId);
-                  return (
-                    <View
-                      key={res.id}
-                      className="rounded-3xl border border-ink-200 bg-white p-4 shadow-sm"
-                    >
-                      <View className="flex-row items-center gap-2.5" style={{ gap: 10 }}>
-                        <Avatar user={author} size="xs" />
-                        <Text className="font-geist-semibold text-[13px] text-ink">
-                          {res.authorId === ME ? 'You' : author.name}
-                        </Text>
-                        <Text className="ml-auto font-geist text-[11.5px] text-ink-400">
-                          {timeAgo(res.at)}
-                        </Text>
-                      </View>
-                      <Text className="mt-2 font-geist text-[13.5px] leading-relaxed text-ink-700">
-                        {res.text}
-                      </Text>
-                    </View>
-                  );
-                })
+          {/* Resolution Notes (if finalized) */}
+          {isFinalized && dispute.resolutionNotes && (
+            <View className="rounded-3xl border border-ink-200 bg-white p-4">
+              <Text className="mb-1.5 text-[13px] font-geist-semibold text-ink">
+                Mediation notes
+              </Text>
+              <Text className="font-geist text-[13px] leading-relaxed text-ink-700">
+                {dispute.resolutionNotes}
+              </Text>
+              {dispute.resolvedBy && (
+                <Text className="mt-2 font-geist text-[11.5px] text-ink-400">
+                  — {dispute.resolvedBy.fullName}, OpenTaskit support
+                </Text>
               )}
             </View>
+          )}
 
-            {/* Reply Input */}
-            {dispute.status !== 'resolved' && (
-              <View className="mt-3 flex-row items-center gap-2" style={{ gap: 8 }}>
-                <TextInput
-                  value={reply}
-                  onChangeText={setReply}
-                  placeholder="Add details or reply to support…"
-                  placeholderTextColor="#8A959B"
-                  style={[{ fontFamily: 'Geist-Regular' }]}
-                  className="flex-1 h-12 rounded-2xl border border-ink-200 bg-white px-4 text-[14px] text-ink font-geist"
-                />
-                <Pressable
-                  onPress={handleSendReply}
-                  className="h-12 w-12 items-center justify-center rounded-2xl bg-brand active:bg-brand-dark"
-                >
-                  <Send size={18} color="#FFFFFF" />
-                </Pressable>
-              </View>
-            )}
-          </View>
+          {/* Follow-up Note */}
+          {!isFinalized && (
+            <View className="rounded-2xl bg-ink-100/70 p-3.5">
+              <Text className="font-geist text-[13px] leading-relaxed text-ink-700">
+                Our support team may reach out to you and {otherPartyName} directly
+                for more details while this case is reviewed.
+              </Text>
+            </View>
+          )}
         </View>
       </ScrollView>
     </Screen>

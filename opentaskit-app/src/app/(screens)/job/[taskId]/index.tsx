@@ -46,12 +46,14 @@ import {
   useGetTaskByIdQuery,
   useGetOffersForTaskQuery,
   useGetReviewsForTaskQuery,
+  useGetDisputesForTaskQuery,
   useStartTaskMutation,
   useCompleteTaskMutation,
   useCancelTaskMutation,
 } from '@/store/api/apiSlice';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { mapApiTaskToTask } from '@/utils/taskFilters';
+import { DISPUTE_REASON_LABELS, DISPUTE_STATUS_META } from '@/utils/disputes';
 
 const STEPS = [
   'Assigned',
@@ -79,7 +81,6 @@ export default function JobDetailScreen() {
   const {
     taskById,
     userById,
-    disputeForTask,
     toast,
   } = useApp();
 
@@ -99,11 +100,12 @@ export default function JobDetailScreen() {
   } = useGetTaskByIdQuery(taskId, { skip: !taskId });
   const { data: taskOffers, refetch: refetchOffers } = useGetOffersForTaskQuery(taskId, { skip: !taskId });
   const { data: taskReviews, refetch: refetchReviews } = useGetReviewsForTaskQuery(taskId, { skip: !taskId });
+  const { data: taskDisputes, refetch: refetchDisputes } = useGetDisputesForTaskQuery(taskId, { skip: !taskId });
 
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await Promise.all([refetchTask(), refetchOffers(), refetchReviews()]);
+      await Promise.all([refetchTask(), refetchOffers(), refetchReviews(), refetchDisputes()]);
     } catch {
       // Ignored
     } finally {
@@ -249,7 +251,8 @@ export default function JobDetailScreen() {
     );
   }
 
-  const dispute = disputeForTask(task.id);
+  const dispute = taskDisputes?.[0];
+  const activeDispute = dispute && (dispute.status === 'OPEN' || dispute.status === 'UNDER_REVIEW') ? dispute : undefined;
   const reviewed = !!(authUser?.id && taskReviews?.some((r) => r.fromUserId === authUser.id));
   const currentStep = getStepIndex(task.status, task.paid, reviewed);
 
@@ -479,7 +482,7 @@ export default function JobDetailScreen() {
           </View>
 
           {/* Dispute Banner (if active) */}
-          {dispute && (
+          {activeDispute && (
             <Pressable
               onPress={() =>
                 router.push({
@@ -498,7 +501,7 @@ export default function JobDetailScreen() {
                   Dispute in progress
                 </Text>
                 <Text className="text-[12.5px] font-geist text-ink-600">
-                  {dispute.reason} · {dispute.status.replace(/_/g, ' ')}
+                  {DISPUTE_REASON_LABELS[activeDispute.reason]} · {DISPUTE_STATUS_META[activeDispute.status].label}
                 </Text>
               </View>
               <ChevronRight size={18} color="#C7382F" />
@@ -533,8 +536,10 @@ export default function JobDetailScreen() {
           )}
 
           {/* Raise Dispute Button */}
-          {!dispute &&
-            ['in_progress', 'awaiting_completion', 'completed'].includes(
+          {/* Allowed once a tasker is assigned - covers issues reported while
+              work is ongoing, awaiting confirmation, or after completion. */}
+          {!activeDispute &&
+            ['assigned', 'in_progress', 'awaiting_completion', 'completed'].includes(
               task.status
             ) && (
               <Pressable

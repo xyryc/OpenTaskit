@@ -112,7 +112,7 @@ export interface CategoryItem {
   };
 }
 
-export type TaskApiStatus = 'OPEN' | 'ASSIGNED' | 'IN_PROGRESS' | 'AWAITING_CONFIRMATION' | 'COMPLETED' | 'CANCELLED';
+export type TaskApiStatus = 'OPEN' | 'ASSIGNED' | 'IN_PROGRESS' | 'AWAITING_CONFIRMATION' | 'COMPLETED' | 'CANCELLED' | 'DISPUTED';
 export type LocationApiType = 'IN_PERSON' | 'REMOTE';
 export type TimeApiType = 'ASAP' | 'SPECIFIC_DATE' | 'FLEXIBLE';
 export type PaymentApiMethod = 'CASH' | 'CARD' | 'WALLET';
@@ -417,6 +417,80 @@ export interface PublicProfileResponse {
     tasksPosted: number;
   };
   recentReviews: PublicProfileReview[];
+}
+
+export type DisputeReason =
+  | 'WORK_UNSATISFACTORY'
+  | 'TASKER_NO_SHOW'
+  | 'POSTER_UNRESPONSIVE'
+  | 'PAYMENT_ISSUE'
+  | 'HARASSMENT'
+  | 'OTHER';
+export type DisputeStatusValue = 'OPEN' | 'UNDER_REVIEW' | 'RESOLVED' | 'DISMISSED';
+export type DisputeResolutionValue =
+  | 'REFUND_POSTER'
+  | 'PAY_TASKER'
+  | 'SPLIT_PAYMENT'
+  | 'CANCELLED_NO_PENALTY'
+  | 'DISMISSED';
+
+export interface DisputeUserSummary {
+  id: string;
+  fullName: string;
+  avatarUrl: string | null;
+  email?: string;
+}
+
+export interface DisputeTaskSummary {
+  id: string;
+  title: string;
+  status: string;
+  budget: number;
+}
+
+export interface DisputeItem {
+  id: string;
+  taskId: string;
+  raisedById: string;
+  againstUserId: string;
+  reason: DisputeReason;
+  description: string;
+  evidenceUrls: string[];
+  status: DisputeStatusValue;
+  resolution: DisputeResolutionValue | null;
+  resolutionNotes: string | null;
+  resolvedById: string | null;
+  resolvedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  task?: DisputeTaskSummary;
+  raisedBy?: DisputeUserSummary;
+  againstUser?: DisputeUserSummary;
+  resolvedBy?: { id: string; fullName: string } | null;
+}
+
+export interface CreateDisputePayload {
+  reason: DisputeReason;
+  description: string;
+  evidenceUrls?: string[];
+}
+
+export interface MyDisputesQuery {
+  status?: DisputeStatusValue;
+  role?: 'raised' | 'received' | 'all';
+  page?: number;
+  limit?: number;
+}
+
+export interface MyDisputesResponse {
+  data: DisputeItem[];
+  openCount: number;
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
 export interface ApiErrorResponse {

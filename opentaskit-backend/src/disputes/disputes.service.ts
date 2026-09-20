@@ -48,13 +48,18 @@ export class DisputesService {
       );
     }
 
-    // Rule B: Can only dispute ASSIGNED or COMPLETED tasks
-    if (
-      task.status !== TaskStatus.ASSIGNED &&
-      task.status !== TaskStatus.COMPLETED
-    ) {
+    // Rule B: Can only dispute a task once a tasker is assigned - covers
+    // issues reported while work is ongoing (ASSIGNED/IN_PROGRESS), while
+    // waiting on the poster's confirmation, or after it's been completed.
+    const disputableStatuses: TaskStatus[] = [
+      TaskStatus.ASSIGNED,
+      TaskStatus.IN_PROGRESS,
+      TaskStatus.AWAITING_CONFIRMATION,
+      TaskStatus.COMPLETED,
+    ];
+    if (!disputableStatuses.includes(task.status)) {
       throw new BadRequestException(
-        `Disputes can only be opened on ASSIGNED or COMPLETED tasks. Current status: ${task.status}`,
+        `Disputes can only be opened once a tasker is assigned. Current status: ${task.status}`,
       );
     }
 

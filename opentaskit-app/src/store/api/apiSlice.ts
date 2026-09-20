@@ -15,12 +15,16 @@ import type {
   CancelTaskResponse,
   CategoryItem,
   CompleteTaskResponse,
+  CreateDisputePayload,
   CreateOfferPayload,
   CreateReviewPayload,
   CreateTaskPayload,
+  DisputeItem,
   FilterTasksQuery,
   ForgotPasswordPayload,
   KycVerificationRecord,
+  MyDisputesQuery,
+  MyDisputesResponse,
   LoginPayload,
   LogoutPayload,
   MessageResponse,
@@ -309,7 +313,7 @@ const baseQueryWithReauth: BaseQueryFn<
 export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithReauth,
-  tagTypes: ["Category", "Task", "User", "SavedTask", "Offer", "Review", "Kyc"],
+  tagTypes: ["Category", "Task", "User", "SavedTask", "Offer", "Review", "Kyc", "Dispute"],
   // Two-sided marketplace state (task/offer status) changes from the OTHER
   // party's device, which this client has no way to know about until it
   // re-asks the server - so re-check on every screen focus/mount rather than
@@ -619,6 +623,42 @@ export const apiSlice = createApi({
       providesTags: (_result, _error, userId) => [{ type: 'User', id: userId }],
     }),
 
+    // Disputes
+    createDispute: builder.mutation<DisputeItem, { taskId: string } & CreateDisputePayload>({
+      query: ({ taskId, ...body }) => ({
+        url: `/tasks/${taskId}/disputes`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (_result, _error, { taskId }) => [
+        { type: 'Dispute', id: `TASK_${taskId}` },
+        { type: 'Dispute', id: 'MY_LIST' },
+        { type: 'Task', id: taskId },
+      ],
+    }),
+
+    getDisputesForTask: builder.query<DisputeItem[], string>({
+      query: (taskId) => `/tasks/${taskId}/disputes`,
+      providesTags: (result, _error, taskId) =>
+        result
+          ? [
+              ...result.map(({ id }) => ({ type: 'Dispute' as const, id })),
+              { type: 'Dispute' as const, id: `TASK_${taskId}` },
+            ]
+          : [{ type: 'Dispute' as const, id: `TASK_${taskId}` }],
+    }),
+
+    getMyDisputes: builder.query<MyDisputesResponse, MyDisputesQuery | void>({
+      query: (params) => ({ url: '/disputes/me', params: params ?? undefined }),
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.data.map(({ id }) => ({ type: 'Dispute' as const, id })),
+              { type: 'Dispute' as const, id: 'MY_LIST' },
+            ]
+          : [{ type: 'Dispute' as const, id: 'MY_LIST' }],
+    }),
+
     uploadImages: builder.mutation<{ message: string; urls: string[] }, FormData>({
       queryFn: (formData, api) => multipartUpload("/uploads", formData, api),
     }),
@@ -694,6 +734,9 @@ export const {
   useGetPublicProfileQuery,
   useGetMyKycQuery,
   useSubmitKycMutation,
+  useCreateDisputeMutation,
+  useGetDisputesForTaskQuery,
+  useGetMyDisputesQuery,
   useUploadImagesMutation,
   useRegisterMutation,
   useLoginMutation,

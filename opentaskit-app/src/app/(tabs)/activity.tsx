@@ -42,6 +42,7 @@ const statusFilters: { key: TaskStatus | 'all'; label: string }[] = [
   { key: 'assigned', label: 'Assigned' },
   { key: 'in_progress', label: 'In progress' },
   { key: 'completed', label: 'Completed' },
+  { key: 'disputed', label: 'Disputed' },
   { key: 'cancelled', label: 'Cancelled' },
 ];
 

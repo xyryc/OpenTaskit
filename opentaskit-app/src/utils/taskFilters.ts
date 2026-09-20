@@ -93,6 +93,7 @@ export function mapApiTaskToTask(item: import('@/types/api').TaskItem): Task {
     AWAITING_CONFIRMATION: 'awaiting_completion',
     COMPLETED: 'completed',
     CANCELLED: 'cancelled',
+    DISPUTED: 'disputed',
   };
 
   const scheduleTypeMap: Record<string, Task['schedule']['type']> = {
