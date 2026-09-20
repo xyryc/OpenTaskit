@@ -481,8 +481,9 @@ export default function JobDetailScreen() {
             </Pressable>
           </View>
 
-          {/* Dispute Banner (if active) */}
-          {activeDispute && (
+          {/* Dispute Banner — stays visible after resolution so both parties
+              can still reach the dispute history, not just while it's active */}
+          {dispute && (
             <Pressable
               onPress={() =>
                 router.push({
@@ -490,21 +491,31 @@ export default function JobDetailScreen() {
                   params: { taskId: task.id },
                 } as any)
               }
-              className="flex-row items-center gap-3 rounded-3xl border border-danger/30 bg-danger/10 p-4 active:bg-danger/20"
+              className={
+                activeDispute
+                  ? 'flex-row items-center gap-3 rounded-3xl border border-danger/30 bg-danger/10 p-4 active:bg-danger/20'
+                  : 'flex-row items-center gap-3 rounded-3xl border border-ink-200 bg-ink-50 p-4 active:bg-ink-100'
+              }
               style={{ gap: 12 }}
             >
               <View className="h-10 w-10 items-center justify-center rounded-2xl bg-white shadow-sm">
-                <Gavel size={18} color="#C7382F" />
+                <Gavel size={18} color={activeDispute ? '#C7382F' : '#6B7280'} />
               </View>
               <View className="flex-1 min-w-0">
-                <Text className="text-[14px] font-geist-semibold text-danger">
-                  Dispute in progress
+                <Text
+                  className={
+                    activeDispute
+                      ? 'text-[14px] font-geist-semibold text-danger'
+                      : 'text-[14px] font-geist-semibold text-ink'
+                  }
+                >
+                  {activeDispute ? 'Dispute in progress' : 'Dispute history'}
                 </Text>
                 <Text className="text-[12.5px] font-geist text-ink-600">
-                  {DISPUTE_REASON_LABELS[activeDispute.reason]} · {DISPUTE_STATUS_META[activeDispute.status].label}
+                  {DISPUTE_REASON_LABELS[dispute.reason]} · {DISPUTE_STATUS_META[dispute.status].label}
                 </Text>
               </View>
-              <ChevronRight size={18} color="#C7382F" />
+              <ChevronRight size={18} color={activeDispute ? '#C7382F' : '#6B7280'} />
             </Pressable>
           )}
 
