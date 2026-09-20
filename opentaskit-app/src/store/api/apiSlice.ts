@@ -20,9 +20,11 @@ import type {
   CreateTaskPayload,
   FilterTasksQuery,
   ForgotPasswordPayload,
+  KycVerificationRecord,
   LoginPayload,
   LogoutPayload,
   MessageResponse,
+  MyKycResponse,
   MyProfileResponse,
   OfferItem,
   PaginatedTasksResponse,
@@ -166,6 +168,104 @@ export async function refreshAccessToken(api: { dispatch: (action: any) => void 
   return refreshPromise;
 }
 
+/**
+ * Shared multipart/form-data uploader for endpoints that need a longer
+ * timeout than fetchBaseQuery's default 10s (image/document uploads), with
+ * one automatic retry after a silent token refresh on 401.
+ */
+function multipartUpload(
+  path: string,
+  formData: FormData,
+  api: { dispatch: (action: any) => void },
+  timeoutMs = 60000,
+) {
+  const executeUpload = (token: string | null): Promise<any> => {
+    return new Promise((resolve) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", `${API_BASE_URL}${path}`);
+      xhr.timeout = timeoutMs;
+
+      if (token) {
+        xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+      }
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            resolve({ data });
+          } catch {
+            resolve({
+              error: {
+                status: "CUSTOM_ERROR" as const,
+                error: "Failed to parse upload response",
+              },
+            });
+          }
+        } else {
+          try {
+            const errorData = JSON.parse(xhr.responseText);
+            resolve({
+              error: {
+                status: xhr.status,
+                data: errorData,
+              },
+            });
+          } catch {
+            resolve({
+              error: {
+                status: xhr.status,
+                data: xhr.responseText,
+              },
+            });
+          }
+        }
+      };
+
+      xhr.onerror = (e) => {
+        console.warn(`[multipartUpload] Network error:`, {
+          status: xhr.status,
+          statusText: xhr.statusText,
+          response: xhr.responseText,
+          url: `${API_BASE_URL}${path}`,
+          event: e,
+        });
+        resolve({
+          error: {
+            status: "FETCH_ERROR" as const,
+            error: `Network error connecting to ${API_BASE_URL}${path}. Please check that the server is running.`,
+          },
+        });
+      };
+
+      xhr.ontimeout = () => {
+        resolve({
+          error: {
+            status: "TIMEOUT_ERROR" as const,
+            error: "Upload timed out. Please try again.",
+          },
+        });
+      };
+
+      xhr.send(formData);
+    });
+  };
+
+  return (async () => {
+    const currentToken = storage.getString(ACCESS_TOKEN_KEY) || null;
+    let res = await executeUpload(currentToken);
+
+    if (res.error && res.error.status === 401) {
+      const newToken = await refreshAccessToken(api);
+      if (newToken) {
+        res = await executeUpload(newToken);
+      }
+    }
+
+    return res;
+  })();
+}
+
 // Public auth endpoints: a 401 from these means "invalid credentials" or
 // "invalid/expired refresh token", never "access token expired" - so they
 // must never trigger the reauth-and-retry flow below.
@@ -209,7 +309,7 @@ const baseQueryWithReauth: BaseQueryFn<
 export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithReauth,
-  tagTypes: ["Category", "Task", "User", "SavedTask", "Offer", "Review"],
+  tagTypes: ["Category", "Task", "User", "SavedTask", "Offer", "Review", "Kyc"],
   // Two-sided marketplace state (task/offer status) changes from the OTHER
   // party's device, which this client has no way to know about until it
   // re-asks the server - so re-check on every screen focus/mount rather than
@@ -520,93 +620,18 @@ export const apiSlice = createApi({
     }),
 
     uploadImages: builder.mutation<{ message: string; urls: string[] }, FormData>({
-      async queryFn(formData, api) {
-        const executeUpload = (token: string | null): Promise<any> => {
-          return new Promise((resolve) => {
-            const xhr = new XMLHttpRequest();
-            xhr.open("POST", `${API_BASE_URL}/uploads`);
-            xhr.timeout = 60000; // 60s timeout for image upload
+      queryFn: (formData, api) => multipartUpload("/uploads", formData, api),
+    }),
 
-            if (token) {
-              xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-            }
+    // KYC / Identity Verification
+    getMyKyc: builder.query<MyKycResponse, void>({
+      query: () => "/kyc/me",
+      providesTags: ["Kyc"],
+    }),
 
-            xhr.onload = () => {
-              if (xhr.status >= 200 && xhr.status < 300) {
-                try {
-                  const data = JSON.parse(xhr.responseText);
-                  resolve({ data });
-                } catch {
-                  resolve({
-                    error: {
-                      status: "CUSTOM_ERROR" as const,
-                      error: "Failed to parse upload response",
-                    },
-                  });
-                }
-              } else {
-                try {
-                  const errorData = JSON.parse(xhr.responseText);
-                  resolve({
-                    error: {
-                      status: xhr.status,
-                      data: errorData,
-                    },
-                  });
-                } catch {
-                  resolve({
-                    error: {
-                      status: xhr.status,
-                      data: xhr.responseText,
-                    },
-                  });
-                }
-              }
-            };
-
-            xhr.onerror = (e) => {
-              console.warn("[uploadImages] Network error:", {
-                status: xhr.status,
-                statusText: xhr.statusText,
-                response: xhr.responseText,
-                url: `${API_BASE_URL}/uploads`,
-                event: e,
-              });
-              resolve({
-                error: {
-                  status: "FETCH_ERROR" as const,
-                  error: `Network error connecting to ${API_BASE_URL}/uploads. Please check that the server is running.`,
-                },
-              });
-            };
-
-            xhr.ontimeout = () => {
-              resolve({
-                error: {
-                  status: "TIMEOUT_ERROR" as const,
-                  error: "Image upload timed out. Please try again.",
-                },
-              });
-            };
-
-            xhr.send(formData);
-          });
-        };
-
-        // 1. Initial attempt with current access token
-        const currentToken = storage.getString(ACCESS_TOKEN_KEY) || null;
-        let res = await executeUpload(currentToken);
-
-        // 2. If 401 Unauthorized, automatically refresh tokens and retry!
-        if (res.error && res.error.status === 401) {
-          const newToken = await refreshAccessToken(api);
-          if (newToken) {
-            res = await executeUpload(newToken);
-          }
-        }
-
-        return res;
-      },
+    submitKyc: builder.mutation<KycVerificationRecord, FormData>({
+      queryFn: (formData, api) => multipartUpload("/kyc/submit", formData, api),
+      invalidatesTags: ["Kyc"],
     }),
 
     resetPassword: builder.mutation<MessageResponse, ResetPasswordPayload>({
@@ -667,6 +692,8 @@ export const {
   useGetReviewsForTaskQuery,
   useGetUserReviewsQuery,
   useGetPublicProfileQuery,
+  useGetMyKycQuery,
+  useSubmitKycMutation,
   useUploadImagesMutation,
   useRegisterMutation,
   useLoginMutation,

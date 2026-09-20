@@ -19,6 +19,7 @@ import {
 
 import { useAuthActions } from '@/hooks/useAuthActions';
 import { useApp } from '@/contexts/AppContext';
+import { useGetMyKycQuery } from '@/store/api/apiSlice';
 import { Screen, ScreenHeader } from '@/components/layout/Screen';
 import { Button } from '@/components/ui/Button';
 import { TextField } from '@/components/ui/Input';
@@ -28,7 +29,9 @@ import { ConfirmDialog } from '@/components/ui/Overlay';
 export default function AccountSettingsScreen() {
   const router = useRouter();
   const { signOut } = useAuthActions();
-  const { me, kyc, updateMe, toast } = useApp();
+  const { me, updateMe, toast } = useApp();
+  const { data: kycData } = useGetMyKycQuery();
+  const isVerified = kycData?.status === 'VERIFIED';
 
   const [name, setName] = useState(me.name);
   const [email, setEmail] = useState('kavindu@opentaskit.lk');
@@ -107,7 +110,7 @@ export default function AccountSettingsScreen() {
               style={{ gap: 12 }}
             >
               <View className="h-9 w-9 items-center justify-center rounded-xl bg-brand-tint">
-                {kyc === 'verified' ? (
+                {isVerified ? (
                   <BadgeCheck size={18} color="#0094F7" />
                 ) : (
                   <ShieldCheck size={18} color="#0094F7" />
@@ -118,7 +121,7 @@ export default function AccountSettingsScreen() {
                   Identity verification
                 </Text>
                 <Text className="mt-0.5 font-geist text-[12.5px] text-ink-500">
-                  {kyc === 'verified'
+                  {isVerified
                     ? 'Verified — badge visible on your profile'
                     : 'Verify to unlock higher-value jobs'}
                 </Text>

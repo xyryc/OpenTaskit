@@ -374,6 +374,32 @@ export interface PublicProfileReview {
   };
 }
 
+export type KycDocumentType = 'NIC' | 'DRIVING_LICENSE' | 'PASSPORT';
+export type KycStatusValue = 'NONE' | 'PENDING' | 'VERIFIED' | 'REJECTED';
+
+export interface KycVerificationRecord {
+  id: string;
+  documentType: KycDocumentType;
+  idNumber: string;
+  fullName: string | null;
+  dob: string | null;
+  frontPhotoUrl: string | null;
+  backPhotoUrl: string | null;
+  selfieUrl: string | null;
+  status: KycStatusValue;
+  rejectionReason: string | null;
+  reviewNotes: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MyKycResponse {
+  isVerified: boolean;
+  status: KycStatusValue;
+  verification: KycVerificationRecord | null;
+}
+
 export interface PublicProfileResponse {
   id: string;
   fullName: string;

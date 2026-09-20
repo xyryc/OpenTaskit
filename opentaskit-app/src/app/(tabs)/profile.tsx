@@ -4,6 +4,7 @@ import {
   Text,
   ScrollView,
   Pressable,
+  RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -38,7 +39,7 @@ import { CardBackgroundPattern } from '@/components/ui/CardBackgroundPattern';
 import { ProviderAvailabilityCard } from '@/components/provider/ProviderAvailabilityCard';
 import { useAuthActions } from '@/hooks/useAuthActions';
 import { useAppSelector } from '@/store';
-import { useGetMyProfileQuery } from '@/store/api/apiSlice';
+import { useGetMyProfileQuery, useGetMyKycQuery } from '@/store/api/apiSlice';
 import { useSavedTasks } from '@/hooks/useSavedTasks';
 
 export default function ProfileScreen() {
@@ -47,7 +48,6 @@ export default function ProfileScreen() {
   const { savedCount } = useSavedTasks();
   const {
     me,
-    kyc,
     wallet,
     unreadMessages,
     available,
@@ -55,7 +55,28 @@ export default function ProfileScreen() {
     toast,
   } = useApp();
 
-  const { data: profile } = useGetMyProfileQuery(undefined, { skip: guest });
+  const { data: profile, refetch: refetchProfile } = useGetMyProfileQuery(undefined, { skip: guest });
+  const { data: kycData, refetch: refetchKyc } = useGetMyKycQuery(undefined, { skip: guest });
+  const kyc = (kycData?.status.toLowerCase() ?? 'none') as
+    | 'none'
+    | 'pending'
+    | 'verified'
+    | 'rejected';
+  const isVerified = kycData?.isVerified ?? false;
+
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    if (guest) return;
+    setRefreshing(true);
+    try {
+      await Promise.all([refetchProfile(), refetchKyc()]);
+    } catch {
+      // Ignored
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const [logoutOpen, setLogoutOpen] = useState(false);
   const { signOut, isLoggingOut: logoutLoading } = useAuthActions();
@@ -156,7 +177,20 @@ export default function ProfileScreen() {
     <Screen tone="canvas" edges={['top']}>
       <StatusBar style="dark" />
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+      <ScrollView
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ flexGrow: 1 }}
+        alwaysBounceVertical={true}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#0094F7"
+            colors={['#0094F7']}
+          />
+        }
+      >
         {/* Profile Identity Card */}
         <View className="border-b border-ink-100 bg-white px-5 pb-5 pt-6">
           <View className="flex-row items-start gap-4" style={{ gap: 14 }}>
@@ -166,6 +200,7 @@ export default function ProfileScreen() {
                 name: profile?.fullName ?? me.name,
                 initials: profile ? initialsOf(profile.fullName) : me.initials,
                 avatarUrl: profile?.avatarUrl ?? undefined,
+                verified: isVerified,
               }}
               size="xl"
               showVerified
@@ -185,7 +220,7 @@ export default function ProfileScreen() {
               </Text>
               <View className="mt-1.5 flex-row flex-wrap items-center gap-2" style={{ gap: 8 }}>
                 <StarRating value={profile?.rating ?? me.rating} count={profile?.reviewCount ?? me.reviewCount} />
-                <VerifiedPill verified={me.verified} />
+                <VerifiedPill verified={isVerified} />
               </View>
             </View>
 
@@ -233,13 +268,7 @@ export default function ProfileScreen() {
         <View className="gap-5 px-5 py-5 pb-12" style={{ gap: 20 }}>
           {/* KYC Status Banner */}
           <Pressable
-            onPress={() => {
-              if (kyc === 'verified') {
-                toast({ title: 'Identity Verified', description: 'Your National ID has been verified.', variant: 'success' });
-              } else {
-                toast({ title: 'KYC Verification', description: 'Document verification portal.', variant: 'info' });
-              }
-            }}
+            onPress={() => router.push('/(screens)/kyc')}
             className={`flex-row items-center rounded-3xl border p-4 active:bg-ink-100/60 ${
               kycCard.tone === 'success'
                 ? 'border-success/30 bg-success/8'

@@ -77,7 +77,7 @@ export function ScreenHeader({
           {title && (
             <Text
               numberOfLines={1}
-              className={`font-geist-semibold font-semibold tracking-tight text-ink ${
+              className={`font-geist-semibold tracking-tight text-ink ${
                 large ? 'text-[22px]' : 'text-[17px]'
               }`}
             >
@@ -126,12 +126,12 @@ export function SectionHeader({
 }) {
   return (
     <View className={`mb-3 flex-row items-baseline justify-between gap-3 ${className}`}>
-      <Text className="text-[16px] font-geist-semibold font-semibold tracking-tight text-ink">
+      <Text className="text-[16px] font-geist-semibold tracking-tight text-ink">
         {title}
       </Text>
       {action && onAction && (
         <Pressable onPress={onAction} hitSlop={8}>
-          <Text className="text-[13px] font-geist-medium font-medium text-brand">{action}</Text>
+          <Text className="text-[13px] font-geist-medium text-brand">{action}</Text>
         </Pressable>
       )}
     </View>

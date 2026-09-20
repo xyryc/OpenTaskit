@@ -14,46 +14,31 @@ import * as ImagePicker from 'expo-image-picker';
 import {
   AlertTriangle,
   BadgeCheck,
+  Calendar,
   Camera,
   Check,
   ChevronLeft,
   Clock,
-  CreditCard,
-  FileText,
   Lock,
   ScanFace,
   ShieldCheck,
 } from 'lucide-react-native';
 
 import { useApp } from '@/contexts/AppContext';
+import { useAppSelector } from '@/store';
+import { useGetMyKycQuery, useSubmitKycMutation } from '@/store/api/apiSlice';
+import { getApiErrorMessage } from '@/utils/apiError';
 import { Screen, ScreenHeader } from '@/components/layout/Screen';
 import { Button } from '@/components/ui/Button';
-import { TextField } from '@/components/ui/Input';
+import { Skeleton } from '@/components/ui/Feedback';
+import { Field, TextField } from '@/components/ui/Input';
+import { DobPickerSheet } from '@/components/kyc/DobPickerSheet';
 
-const DOCUMENTS = [
-  {
-    id: 'nic',
-    label: 'National ID (NIC)',
-    note: 'Fastest to verify',
-    icon: <CreditCard size={20} color="#0094F7" />,
-  },
-  {
-    id: 'passport',
-    label: 'Passport',
-    note: 'Photo page only',
-    icon: <FileText size={20} color="#0094F7" />,
-  },
-  {
-    id: 'licence',
-    label: 'Driver’s licence',
-    note: 'Front and back',
-    icon: <CreditCard size={20} color="#0094F7" />,
-  },
-];
+// Only National ID verification is supported for now.
+const DOCUMENT_LABEL = 'National ID (NIC)';
 
 const STEP_LABELS = [
   'Personal info',
-  'Document type',
   'Document photos',
   'Selfie',
   'Review',
@@ -62,25 +47,46 @@ const STEP_LABELS = [
 export default function KycScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { kyc, setKyc, me, toast } = useApp();
+  const { me, toast } = useApp();
+  const authUser = useAppSelector((state) => state.auth.user);
+
+  const { data: kycData, isLoading: isKycLoading } = useGetMyKycQuery();
+  const [submitKycApi, { isLoading: submitting }] = useSubmitKycMutation();
+  const status = kycData?.status ?? 'NONE';
+  const verification = kycData?.verification ?? null;
 
   const [started, setStarted] = useState(false);
   const [step, setStep] = useState(1);
 
-  const [fullName, setFullName] = useState(me.name);
+  const [fullName, setFullName] = useState(authUser?.fullName ?? me.name);
   const [idNumber, setIdNumber] = useState('');
-  const [dob, setDob] = useState('12 Apr 1995');
-  const [docType, setDocType] = useState('nic');
+  const [dob, setDob] = useState('');
+  const [dobDate, setDobDate] = useState<Date | null>(null);
+  const [dobPickerOpen, setDobPickerOpen] = useState(false);
 
   const [frontUri, setFrontUri] = useState<string | null>(null);
   const [backUri, setBackUri] = useState<string | null>(null);
   const [selfieUri, setSelfieUri] = useState<string | null>(null);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [submitting, setSubmitting] = useState(false);
+
+  // Loading Screen: waiting on the real verification status
+  if (!started && isKycLoading && !kycData) {
+    return (
+      <Screen tone="white" edges={['top']}>
+        <ScreenHeader title="Identity verification" border={false} />
+        <View className="gap-3 p-5" style={{ gap: 12 }}>
+          <Skeleton className="h-24 w-24 self-center rounded-3xl" />
+          <Skeleton className="mt-2 h-6 w-3/4 self-center" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-5/6" />
+        </View>
+      </Screen>
+    );
+  }
 
   // Status Screen: Verified
-  if (!started && kyc === 'verified') {
+  if (!started && status === 'VERIFIED') {
     return (
       <StatusScreen
         tone="success"
@@ -94,7 +100,7 @@ export default function KycScreen() {
   }
 
   // Status Screen: Pending
-  if (!started && kyc === 'pending') {
+  if (!started && status === 'PENDING') {
     return (
       <StatusScreen
         tone="warning"
@@ -103,23 +109,22 @@ export default function KycScreen() {
         body="We are checking your documents. This usually takes under 24 hours and you can keep using OpenTaskit meanwhile."
         primaryLabel="Back to profile"
         onPrimary={() => router.back()}
-        secondaryLabel="Preview verified state"
-        onSecondary={() => {
-          setKyc('verified');
-          toast({ title: 'Identity verified', variant: 'success' });
-        }}
       />
     );
   }
 
   // Status Screen: Rejected
-  if (!started && kyc === 'rejected') {
+  if (!started && status === 'REJECTED') {
     return (
       <StatusScreen
         tone="danger"
         icon={<AlertTriangle size={48} color="#C7382F" />}
         title="Verification rejected"
-        body="The photo of your document was too blurry to read. Retake it in good light with all four corners visible."
+        body={
+          verification?.rejectionReason
+            ? `Your submission was rejected: ${verification.rejectionReason}`
+            : 'Your submission was not approved. Please review your documents and try again.'
+        }
         primaryLabel="Resubmit documents"
         onPrimary={() => {
           setStarted(true);
@@ -208,8 +213,8 @@ export default function KycScreen() {
     );
   }
 
-  // Camera Picker Handler
-  const capturePhoto = async (type: 'front' | 'back' | 'selfie') => {
+  // Document Photo Picker Handler (gallery or camera)
+  const capturePhoto = async (type: 'front' | 'back') => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
@@ -224,13 +229,32 @@ export default function KycScreen() {
         if (type === 'front') {
           setFrontUri(res.assets[0].uri);
           setErrors((prev) => ({ ...prev, front: '' }));
-        } else if (type === 'back') {
+        } else {
           setBackUri(res.assets[0].uri);
           setErrors((prev) => ({ ...prev, back: '' }));
-        } else {
-          setSelfieUri(res.assets[0].uri);
-          setErrors((prev) => ({ ...prev, selfie: '' }));
         }
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Selfie must be a live camera capture, never picked from the gallery.
+  const captureSelfie = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Camera access is required to take your verification selfie.');
+        return;
+      }
+      const res = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        cameraType: ImagePicker.CameraType.front,
+        quality: 0.8,
+      });
+      if (!res.canceled && res.assets[0]?.uri) {
+        setSelfieUri(res.assets[0].uri);
+        setErrors((prev) => ({ ...prev, selfie: '' }));
       }
     } catch (err) {
       console.error(err);
@@ -243,32 +267,55 @@ export default function KycScreen() {
       if (fullName.trim().length < 3)
         nextErr.fullName = 'Enter the name exactly as printed on your document';
       if (idNumber.trim().length < 6)
-        nextErr.idNumber = 'Enter your document number';
+        nextErr.idNumber = 'Enter your NIC number';
+      if (!dobDate) nextErr.dob = 'Select your date of birth';
     }
-    if (step === 3) {
-      if (!frontUri) nextErr.front = 'Capture the front of your document';
-      if (docType !== 'passport' && !backUri)
-        nextErr.back = 'Capture the back of your document';
+    if (step === 2) {
+      if (!frontUri) nextErr.front = 'Capture the front of your NIC';
+      if (!backUri) nextErr.back = 'Capture the back of your NIC';
     }
-    if (step === 4 && !selfieUri) {
+    if (step === 3 && !selfieUri) {
       nextErr.selfie = 'Take a selfie to match your document';
     }
     setErrors(nextErr);
     return Object.keys(nextErr).length === 0;
   };
 
-  const handleSubmit = () => {
-    setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
-      setKyc('pending');
+  const appendPhoto = (formData: FormData, field: string, uri: string) => {
+    const filename = uri.split('/').pop() || `${field}-${Date.now()}.jpg`;
+    const match = /\.(\w+)$/.exec(filename);
+    const ext = match ? match[1].toLowerCase() : 'jpg';
+    const type = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+    formData.append(field, { uri, name: filename, type } as any);
+  };
+
+  const handleSubmit = async () => {
+    if (!frontUri) return;
+
+    const formData = new FormData();
+    formData.append('documentType', 'NIC');
+    formData.append('idNumber', idNumber.trim());
+    if (fullName.trim()) formData.append('fullName', fullName.trim());
+    if (dobDate) formData.append('dob', dobDate.toISOString().slice(0, 10));
+    appendPhoto(formData, 'frontPhoto', frontUri);
+    if (backUri) appendPhoto(formData, 'backPhoto', backUri);
+    if (selfieUri) appendPhoto(formData, 'selfie', selfieUri);
+
+    try {
+      await submitKycApi(formData).unwrap();
       setStarted(false);
       toast({
         title: 'Documents submitted',
         description: 'We will review within 24 hours.',
         variant: 'success',
       });
-    }, 1200);
+    } catch (err) {
+      toast({
+        title: 'Submission failed',
+        description: getApiErrorMessage(err),
+        variant: 'error',
+      });
+    }
   };
 
   return (
@@ -294,11 +341,11 @@ export default function KycScreen() {
         <View className="mt-2.5">
           <View className="flex-row items-center justify-between">
             <Text className="font-geist-medium text-[12px] text-ink-500">
-              Step {step} of 5 · {STEP_LABELS[step - 1]}
+              Step {step} of {STEP_LABELS.length} · {STEP_LABELS[step - 1]}
             </Text>
           </View>
           <View className="mt-1.5 flex-row gap-1" style={{ gap: 4 }}>
-            {[1, 2, 3, 4, 5].map((s) => (
+            {STEP_LABELS.map((_, idx) => idx + 1).map((s) => (
               <View
                 key={s}
                 className={`h-1.5 flex-1 rounded-full ${
@@ -325,7 +372,8 @@ export default function KycScreen() {
                 error={errors.fullName}
               />
               <TextField
-                label="Document number"
+                label="NIC number"
+                hint="The National ID number printed on your card"
                 value={idNumber}
                 onChangeText={(val) => {
                   setIdNumber(val);
@@ -334,11 +382,23 @@ export default function KycScreen() {
                 placeholder="199512345678"
                 error={errors.idNumber}
               />
-              <TextField
-                label="Date of birth"
-                value={dob}
-                onChangeText={setDob}
-              />
+              <Field label="Date of birth" error={errors.dob}>
+                <Pressable
+                  onPress={() => setDobPickerOpen(true)}
+                  className={`flex-row items-center h-[52px] rounded-2xl border bg-white px-4 active:bg-ink-100 ${
+                    errors.dob ? 'border-danger' : 'border-ink-200'
+                  }`}
+                >
+                  <Text
+                    className={`flex-1 text-[15px] font-geist ${
+                      dob ? 'text-ink' : 'text-ink-400'
+                    }`}
+                  >
+                    {dob || 'Select your date of birth'}
+                  </Text>
+                  <Calendar size={18} color="#8A959B" />
+                </Pressable>
+              </Field>
               <View className="rounded-2xl bg-ink-100/70 p-3.5">
                 <Text className="font-geist text-[12px] leading-relaxed text-ink-700">
                   Make sure these details match your document exactly — mismatches are the most common reason for rejection.
@@ -347,58 +407,22 @@ export default function KycScreen() {
             </View>
           )}
 
-          {/* STEP 2: Document type */}
+          {/* STEP 2: Document photos */}
           {step === 2 && (
-            <View className="gap-2.5" style={{ gap: 10 }}>
-              {DOCUMENTS.map((doc) => {
-                const selected = docType === doc.id;
-                return (
-                  <Pressable
-                    key={doc.id}
-                    onPress={() => setDocType(doc.id)}
-                    className={`flex-row items-center gap-3 rounded-3xl border p-4 active:bg-ink-100/60 ${
-                      selected
-                        ? 'border-brand bg-brand-tint/50'
-                        : 'border-ink-200 bg-white'
-                    }`}
-                    style={{ gap: 12 }}
-                  >
-                    <View className="h-11 w-11 items-center justify-center rounded-2xl bg-white shadow-sm">
-                      {doc.icon}
-                    </View>
-                    <View className="flex-1 min-w-0">
-                      <Text className="text-[14.5px] font-geist-semibold text-ink">
-                        {doc.label}
-                      </Text>
-                      <Text className="mt-0.5 font-geist text-[12.5px] text-ink-500">
-                        {doc.note}
-                      </Text>
-                    </View>
-                    {selected && <Check size={18} color="#0094F7" />}
-                  </Pressable>
-                );
-              })}
-            </View>
-          )}
-
-          {/* STEP 3: Document photos */}
-          {step === 3 && (
             <View className="gap-3.5" style={{ gap: 14 }}>
               <CaptureCard
-                label="Front of document"
+                label="Front of NIC"
                 imageUri={frontUri}
                 onCapture={() => capturePhoto('front')}
                 error={errors.front}
               />
 
-              {docType !== 'passport' && (
-                <CaptureCard
-                  label="Back of document"
-                  imageUri={backUri}
-                  onCapture={() => capturePhoto('back')}
-                  error={errors.back}
-                />
-              )}
+              <CaptureCard
+                label="Back of NIC"
+                imageUri={backUri}
+                onCapture={() => capturePhoto('back')}
+                error={errors.back}
+              />
 
               <View className="rounded-2xl bg-ink-100/70 p-4">
                 <Text className="font-geist text-[12.5px] leading-relaxed text-ink-700">
@@ -410,8 +434,8 @@ export default function KycScreen() {
             </View>
           )}
 
-          {/* STEP 4: Selfie */}
-          {step === 4 && (
+          {/* STEP 3: Selfie */}
+          {step === 3 && (
             <View className="gap-3" style={{ gap: 12 }}>
               <View
                 className={`items-center rounded-3xl border-2 border-dashed p-8 text-center ${
@@ -448,9 +472,9 @@ export default function KycScreen() {
                     size="md"
                     variant="outline"
                     icon={<Camera size={16} color="#0C1417" />}
-                    onPress={() => capturePhoto('selfie')}
+                    onPress={captureSelfie}
                   >
-                    {selfieUri ? 'Retake selfie' : 'Take photo'}
+                    {selfieUri ? 'Retake selfie' : 'Open camera'}
                   </Button>
                 </View>
               </View>
@@ -463,22 +487,17 @@ export default function KycScreen() {
             </View>
           )}
 
-          {/* STEP 5: Review */}
-          {step === 5 && (
+          {/* STEP 4: Review */}
+          {step === 4 && (
             <View className="gap-4" style={{ gap: 16 }}>
               <View className="divide-y divide-ink-100 overflow-hidden rounded-3xl border border-ink-200 bg-white px-4">
                 <ReviewRow label="Full name" value={fullName} />
-                <ReviewRow
-                  label="Document"
-                  value={DOCUMENTS.find((d) => d.id === docType)?.label ?? ''}
-                />
-                <ReviewRow label="Document number" value={idNumber} />
+                <ReviewRow label="Document" value={DOCUMENT_LABEL} />
+                <ReviewRow label="NIC number" value={idNumber} />
                 <ReviewRow label="Date of birth" value={dob} />
                 <ReviewRow
                   label="Photos"
-                  value={`${frontUri ? 1 : 0}${
-                    docType !== 'passport' && backUri ? ' + 1' : ''
-                  } + selfie`}
+                  value={`${frontUri ? 1 : 0}${backUri ? ' + 1' : ''} + selfie`}
                 />
               </View>
 
@@ -498,7 +517,7 @@ export default function KycScreen() {
         className="shrink-0 border-t border-ink-100 bg-white px-5 pt-3"
         style={{ paddingBottom: Math.max(insets.bottom, 16) + 4 }}
       >
-        {step < 5 ? (
+        {step < STEP_LABELS.length ? (
           <Button
             full
             size="lg"
@@ -521,6 +540,17 @@ export default function KycScreen() {
           </Button>
         )}
       </View>
+
+      <DobPickerSheet
+        open={dobPickerOpen}
+        onClose={() => setDobPickerOpen(false)}
+        value={dobDate}
+        onSelect={(label, date) => {
+          setDob(label);
+          setDobDate(date);
+          if (errors.dob) setErrors((prev) => ({ ...prev, dob: '' }));
+        }}
+      />
     </Screen>
   );
 }

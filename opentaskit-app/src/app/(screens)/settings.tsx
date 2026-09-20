@@ -27,6 +27,7 @@ import {
 
 import { useAuthActions } from '@/hooks/useAuthActions';
 import { useApp } from '@/contexts/AppContext';
+import { useGetMyKycQuery } from '@/store/api/apiSlice';
 import { LANGUAGES } from '@/utils/i18n';
 import { Screen, ScreenHeader } from '@/components/layout/Screen';
 import { ConfirmDialog } from '@/components/ui/Overlay';
@@ -37,13 +38,13 @@ export default function SettingsScreen() {
   const { signOut } = useAuthActions();
   const {
     language,
-    kyc,
     locationPermission,
     setLocationPermission,
     available,
     toggleAvailable,
     toast,
   } = useApp();
+  const { data: kycData } = useGetMyKycQuery();
 
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -52,11 +53,11 @@ export default function SettingsScreen() {
     LANGUAGES.find((item) => item.code === language)?.native ?? 'English';
 
   const kycStatusLabel =
-    kyc === 'verified'
+    kycData?.status === 'VERIFIED'
       ? 'Verified'
-      : kyc === 'pending'
+      : kycData?.status === 'PENDING'
       ? 'In review'
-      : kyc === 'rejected'
+      : kycData?.status === 'REJECTED'
       ? 'Rejected'
       : 'Not started';
 
