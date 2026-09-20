@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -10,13 +10,21 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CheckCircle2 } from 'lucide-react-native';
 
 import { useApp } from '@/contexts/AppContext';
-import { ME } from '@/data/users';
+import { useAppSelector } from '@/store';
+import {
+  useCreateReviewMutation,
+  useGetOffersForTaskQuery,
+  useGetReviewsForTaskQuery,
+  useGetTaskByIdQuery,
+} from '@/store/api/apiSlice';
+import { getApiErrorMessage } from '@/utils/apiError';
 import { Screen, ScreenHeader } from '@/components/layout/Screen';
 import { Button } from '@/components/ui/Button';
 import { TextArea } from '@/components/ui/Input';
 import { RatingInput } from '@/components/ui/Rating';
 import { SelectChip } from '@/components/ui/Chip';
 import { Avatar } from '@/components/ui/Avatar';
+import { TaskCardSkeleton } from '@/components/ui/Feedback';
 
 const TAG_OPTIONS = [
   'Professional',
@@ -40,7 +48,8 @@ export default function LeaveReviewScreen() {
   const { taskId = '' } = useLocalSearchParams<{ taskId: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { taskById, userById, leaveReview } = useApp();
+  const { userById, toast } = useApp();
+  const authUser = useAppSelector((state) => state.auth.user);
 
   const [rating, setRating] = useState(5);
   const [tags, setTags] = useState<string[]>(['Professional', 'On time']);
@@ -48,8 +57,68 @@ export default function LeaveReviewScreen() {
   const [error, setError] = useState<string>();
   const [done, setDone] = useState(false);
 
-  const task = taskById(taskId);
-  if (!task) {
+  const { data: apiTask, isLoading: isTaskLoading } = useGetTaskByIdQuery(taskId, { skip: !taskId });
+  const { data: taskOffers } = useGetOffersForTaskQuery(taskId, { skip: !taskId });
+  const { data: taskReviews, isLoading: isReviewsLoading } = useGetReviewsForTaskQuery(taskId, { skip: !taskId });
+  const [createReview, { isLoading: isSubmitting }] = useCreateReviewMutation();
+
+  const acceptedOffer = useMemo(() => taskOffers?.find((o) => o.status === 'ACCEPTED'), [taskOffers]);
+  const isProvider = !!(authUser?.id && acceptedOffer && acceptedOffer.userId === authUser.id);
+
+  const otherSummary = isProvider ? apiTask?.user : acceptedOffer?.user;
+  const fallbackOther = userById(
+    isProvider ? apiTask?.userId ?? '' : acceptedOffer?.userId ?? ''
+  );
+  const other = otherSummary
+    ? {
+        ...fallbackOther,
+        id: otherSummary.id,
+        name: otherSummary.fullName || fallbackOther.name,
+        avatarUrl: otherSummary.avatarUrl ?? fallbackOther.avatarUrl,
+        verified: (otherSummary as any).isVerified ?? fallbackOther.verified,
+      }
+    : fallbackOther;
+
+  const alreadyReviewed = useMemo(
+    () => !!authUser?.id && taskReviews?.some((r) => r.fromUserId === authUser.id),
+    [taskReviews, authUser?.id]
+  );
+
+  const handleSubmit = async () => {
+    if (text.trim().length < 10) {
+      setError('Add a sentence or two so others can learn from your experience');
+      return;
+    }
+    setError(undefined);
+    try {
+      await createReview({
+        taskId,
+        rating,
+        text: text.trim(),
+        tags,
+      }).unwrap();
+      setDone(true);
+    } catch (err) {
+      toast({
+        title: 'Could not submit review',
+        description: getApiErrorMessage(err),
+        variant: 'error',
+      });
+    }
+  };
+
+  if (isTaskLoading || isReviewsLoading) {
+    return (
+      <Screen tone="canvas" edges={['top']}>
+        <ScreenHeader title="Review" />
+        <View className="p-5 gap-3" style={{ gap: 12 }}>
+          <TaskCardSkeleton />
+        </View>
+      </Screen>
+    );
+  }
+
+  if (!apiTask) {
     return (
       <Screen tone="canvas" edges={['top']}>
         <ScreenHeader title="Review" />
@@ -62,32 +131,21 @@ export default function LeaveReviewScreen() {
     );
   }
 
-  const isProvider = task.assignedProviderId === ME;
-  const other = userById(
-    isProvider
-      ? task.requesterId
-      : task.assignedProviderId ?? task.requesterId
-  );
+  if (apiTask.status !== 'COMPLETED') {
+    return (
+      <Screen tone="canvas" edges={['top']}>
+        <ScreenHeader title="Review" />
+        <View className="flex-1 items-center justify-center p-6">
+          <Text className="text-center font-geist text-[14px] text-ink-500">
+            Reviews can only be left once this task is marked completed.
+          </Text>
+        </View>
+      </Screen>
+    );
+  }
 
-  const handleSubmit = () => {
-    if (text.trim().length < 10) {
-      setError('Add a sentence or two so others can learn from your experience');
-      return;
-    }
-    setError(undefined);
-    leaveReview({
-      taskId,
-      toId: other.id,
-      rating,
-      text: text.trim(),
-      tags,
-      role: isProvider ? 'requester' : 'provider',
-    });
-    setDone(true);
-  };
-
-  // Celebration state upon publishing review
-  if (done) {
+  // Celebration state upon publishing review (or if already reviewed earlier)
+  if (done || alreadyReviewed) {
     return (
       <Screen tone="white" edges={['top']}>
         <StatusBar style="dark" />
@@ -141,7 +199,7 @@ export default function LeaveReviewScreen() {
       <StatusBar style="dark" />
 
       {/* Screen Header */}
-      <ScreenHeader title="Leave a review" subtitle={task.title} />
+      <ScreenHeader title="Leave a review" subtitle={apiTask.title} />
 
       <ScrollView
         className="flex-1"
@@ -212,7 +270,7 @@ export default function LeaveReviewScreen() {
         className="shrink-0 border-t border-ink-100 bg-white px-5 pt-3"
         style={{ paddingBottom: Math.max(insets.bottom, 16) + 4 }}
       >
-        <Button full size="lg" variant="brand" onPress={handleSubmit}>
+        <Button full size="lg" variant="brand" loading={isSubmitting} onPress={handleSubmit}>
           Publish review
         </Button>
       </View>

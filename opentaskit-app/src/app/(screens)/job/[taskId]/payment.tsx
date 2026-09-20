@@ -15,7 +15,7 @@ import {
 } from 'lucide-react-native';
 
 import { useApp } from '@/contexts/AppContext';
-import { ME } from '@/data/users';
+import { useAppSelector } from '@/store';
 import {
   commissionFor,
   earningsFor,
@@ -26,7 +26,11 @@ import type { PaymentMethod } from '@/types';
 import { Screen, ScreenHeader } from '@/components/layout/Screen';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/Overlay';
-import { useGetTaskByIdQuery, useCompleteTaskMutation } from '@/store/api/apiSlice';
+import {
+  useGetTaskByIdQuery,
+  useGetOffersForTaskQuery,
+  useCompleteTaskMutation,
+} from '@/store/api/apiSlice';
 import { mapApiTaskToTask } from '@/utils/taskFilters';
 import { getApiErrorMessage } from '@/utils/apiError';
 
@@ -35,11 +39,13 @@ export default function PaymentConfirmScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { taskById, userById, settlePayment, toast } = useApp();
+  const authUser = useAppSelector((state) => state.auth.user);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [done, setDone] = useState(false);
 
   const { data: apiTaskData, isLoading: isTaskLoading } = useGetTaskByIdQuery(taskId, { skip: !taskId });
+  const { data: taskOffers } = useGetOffersForTaskQuery(taskId, { skip: !taskId });
   const [completeTaskApi, { isLoading: isCompleting }] = useCompleteTaskMutation();
 
   const task = React.useMemo(
@@ -60,12 +66,22 @@ export default function PaymentConfirmScreen() {
   }
 
   const payment = paymentMethodMeta(task.paymentMethod);
-  const isProvider = task.assignedProviderId === ME;
-  const other = userById(
-    isProvider
-      ? task.requesterId
-      : task.assignedProviderId ?? task.requesterId
+  const acceptedOffer = taskOffers?.find((o) => o.status === 'ACCEPTED');
+  const isProvider = !!(authUser?.id && acceptedOffer && acceptedOffer.userId === authUser.id);
+
+  const otherSummary = isProvider ? apiTaskData?.user : acceptedOffer?.user;
+  const fallbackOther = userById(
+    isProvider ? apiTaskData?.userId ?? '' : acceptedOffer?.userId ?? ''
   );
+  const other = otherSummary
+    ? {
+        ...fallbackOther,
+        id: otherSummary.id,
+        name: otherSummary.fullName || fallbackOther.name,
+        avatarUrl: otherSummary.avatarUrl ?? fallbackOther.avatarUrl,
+        verified: (otherSummary as any).isVerified ?? fallbackOther.verified,
+      }
+    : fallbackOther;
   const commission = commissionFor(task.budget);
 
   // Success Celebration View
@@ -280,7 +296,7 @@ export default function PaymentConfirmScreen() {
         onClose={() => setConfirmOpen(false)}
         onConfirm={async () => {
           try {
-            if (apiTaskData && apiTaskData.status === 'ASSIGNED') {
+            if (apiTaskData && apiTaskData.status !== 'COMPLETED') {
               await completeTaskApi(task.id).unwrap();
             }
             settlePayment(task.id);

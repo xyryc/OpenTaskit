@@ -90,6 +90,7 @@ export function mapApiTaskToTask(item: import('@/types/api').TaskItem): Task {
     OPEN: 'posted',
     ASSIGNED: 'assigned',
     IN_PROGRESS: 'in_progress',
+    AWAITING_CONFIRMATION: 'awaiting_completion',
     COMPLETED: 'completed',
     CANCELLED: 'cancelled',
   };

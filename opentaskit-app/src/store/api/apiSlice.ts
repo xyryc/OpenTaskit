@@ -16,6 +16,7 @@ import type {
   CategoryItem,
   CompleteTaskResponse,
   CreateOfferPayload,
+  CreateReviewPayload,
   CreateTaskPayload,
   FilterTasksQuery,
   ForgotPasswordPayload,
@@ -26,6 +27,7 @@ import type {
   OfferItem,
   PaginatedTasksResponse,
   RejectOfferResponse,
+  ReviewItem,
   UpdateMyProfilePayload,
   UpdateTaskPayload,
   RefreshPayload,
@@ -36,6 +38,8 @@ import type {
   MyOfferItem,
   TaskItem,
   UpdateOfferResponse,
+  UserReviewsQuery,
+  UserReviewsResponse,
   VerifyOtpPayload,
 } from '@/types';
 
@@ -195,7 +199,15 @@ const baseQueryWithReauth: BaseQueryFn<
 export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithReauth,
-  tagTypes: ["Category", "Task", "User", "SavedTask", "Offer"],
+  tagTypes: ["Category", "Task", "User", "SavedTask", "Offer", "Review"],
+  // Two-sided marketplace state (task/offer status) changes from the OTHER
+  // party's device, which this client has no way to know about until it
+  // re-asks the server - so re-check on every screen focus/mount rather than
+  // trusting a possibly stale cache indefinitely.
+  refetchOnFocus: true,
+  // Refetch on mount only if the cached data is more than 30s old, so quick
+  // back-and-forth navigation within a session doesn't hammer the API.
+  refetchOnMountOrArgChange: 30,
   endpoints: (builder) => ({
     // Categories
     getCategories: builder.query<CategoryItem[], boolean | void>({
@@ -460,6 +472,38 @@ export const apiSlice = createApi({
       ],
     }),
 
+    // Reviews
+    createReview: builder.mutation<ReviewItem, { taskId: string } & CreateReviewPayload>({
+      query: ({ taskId, ...body }) => ({
+        url: `/tasks/${taskId}/reviews`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (result, _error, { taskId }) => [
+        { type: 'Review', id: `TASK_${taskId}` },
+        ...(result ? [{ type: 'Review' as const, id: `USER_${result.toUserId}` }] : []),
+      ],
+    }),
+
+    getReviewsForTask: builder.query<ReviewItem[], string>({
+      query: (taskId) => `/tasks/${taskId}/reviews`,
+      providesTags: (result, _error, taskId) =>
+        result
+          ? [
+              ...result.map(({ id }) => ({ type: 'Review' as const, id })),
+              { type: 'Review' as const, id: `TASK_${taskId}` },
+            ]
+          : [{ type: 'Review' as const, id: `TASK_${taskId}` }],
+    }),
+
+    getUserReviews: builder.query<UserReviewsResponse, { userId: string } & UserReviewsQuery>({
+      query: ({ userId, ...params }) => ({
+        url: `/users/${userId}/reviews`,
+        params,
+      }),
+      providesTags: (_result, _error, { userId }) => [{ type: 'Review', id: `USER_${userId}` }],
+    }),
+
     uploadImages: builder.mutation<{ message: string; urls: string[] }, FormData>({
       async queryFn(formData, api) {
         const executeUpload = (token: string | null): Promise<any> => {
@@ -604,6 +648,9 @@ export const {
   useWithdrawOfferMutation,
   useAcceptOfferMutation,
   useRejectOfferMutation,
+  useCreateReviewMutation,
+  useGetReviewsForTaskQuery,
+  useGetUserReviewsQuery,
   useUploadImagesMutation,
   useRegisterMutation,
   useLoginMutation,

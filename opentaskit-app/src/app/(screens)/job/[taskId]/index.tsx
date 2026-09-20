@@ -45,6 +45,7 @@ import { useAppSelector } from '@/store';
 import {
   useGetTaskByIdQuery,
   useGetOffersForTaskQuery,
+  useGetReviewsForTaskQuery,
   useStartTaskMutation,
   useCompleteTaskMutation,
   useCancelTaskMutation,
@@ -97,11 +98,12 @@ export default function JobDetailScreen() {
     refetch: refetchTask,
   } = useGetTaskByIdQuery(taskId, { skip: !taskId });
   const { data: taskOffers, refetch: refetchOffers } = useGetOffersForTaskQuery(taskId, { skip: !taskId });
+  const { data: taskReviews, refetch: refetchReviews } = useGetReviewsForTaskQuery(taskId, { skip: !taskId });
 
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await Promise.all([refetchTask(), refetchOffers()]);
+      await Promise.all([refetchTask(), refetchOffers(), refetchReviews()]);
     } catch {
       // Ignored
     } finally {
@@ -122,10 +124,13 @@ export default function JobDetailScreen() {
       apiTaskData?.userId === authUser.id)
   );
   const isAdmin = authUser?.role === 'ADMIN';
+  // Once the tasker has started the task, only an admin can still cancel it.
   const canCancel =
     (isOwner || isAdmin) &&
     task?.status !== 'completed' &&
-    task?.status !== 'cancelled';
+    task?.status !== 'cancelled' &&
+    (isAdmin ||
+      (task?.status !== 'in_progress' && task?.status !== 'awaiting_completion'));
 
   const isProvider = authUser?.id
     ? (acceptedOffer ? acceptedOffer.userId === authUser.id : task?.assignedProviderId === ME)
@@ -153,11 +158,12 @@ export default function JobDetailScreen() {
   const handleConfirmComplete = async () => {
     if (!task) return;
     try {
-      await completeTaskApi(task.id).unwrap();
+      const result = await completeTaskApi(task.id).unwrap();
       setConfirmComplete(false);
+      const isNowCompleted = result.task.status === 'COMPLETED';
       toast({
-        title: 'Task completed',
-        description: 'The task has been marked as completed successfully.',
+        title: isNowCompleted ? 'Task completed' : 'Marked as done',
+        description: result.message,
         variant: 'success',
       });
     } catch (err) {
@@ -244,9 +250,7 @@ export default function JobDetailScreen() {
   }
 
   const dispute = disputeForTask(task.id);
-  const reviewed = isProvider
-    ? task.reviewedByProvider
-    : task.reviewedByRequester;
+  const reviewed = !!(authUser?.id && taskReviews?.some((r) => r.fromUserId === authUser.id));
   const currentStep = getStepIndex(task.status, task.paid, reviewed);
 
   return (
@@ -629,27 +633,9 @@ export default function JobDetailScreen() {
               Mark as completed
             </Button>
           ) : (
-            <View className="flex-row gap-2.5" style={{ gap: 10 }}>
-              {canCancel && (
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="flex-1"
-                  onPress={() => setConfirmCancel(true)}
-                >
-                  Cancel task
-                </Button>
-              )}
-              <Button
-                size="lg"
-                variant="brand"
-                className="flex-1"
-                loading={isCompleting}
-                onPress={() => setConfirmComplete(true)}
-              >
-                Confirm completion
-              </Button>
-            </View>
+            <Button full size="lg" variant="outline" disabled>
+              Waiting for tasker to mark complete
+            </Button>
           ))}
 
         {task.status === 'awaiting_completion' &&
@@ -662,8 +648,12 @@ export default function JobDetailScreen() {
               full
               size="lg"
               variant="brand"
-              loading={isCompleting}
-              onPress={() => setConfirmComplete(true)}
+              onPress={() =>
+                router.push({
+                  pathname: '/(screens)/job/[taskId]/payment',
+                  params: { taskId: task.id },
+                } as any)
+              }
             >
               Confirm completion
             </Button>
@@ -728,13 +718,13 @@ export default function JobDetailScreen() {
         open={confirmComplete}
         onClose={() => setConfirmComplete(false)}
         onConfirm={handleConfirmComplete}
-        title={isProvider ? 'Mark work as completed?' : 'Mark task completed?'}
+        title={isProvider ? 'Mark work as done?' : 'Confirm task completion?'}
         message={
           isProvider
-            ? 'The task will be marked as completed. Make sure all agreed deliverables are finished.'
-            : 'Confirm that the work is finished. This marks the task as completed.'
+            ? 'The requester will be asked to confirm before the task is marked completed. Make sure all agreed deliverables are finished first.'
+            : 'Confirm that the work is finished. This marks the task as completed and releases payment.'
         }
-        confirmLabel={isCompleting ? 'Completing...' : 'Mark completed'}
+        confirmLabel={isCompleting ? 'Submitting...' : isProvider ? 'Mark as done' : 'Confirm completion'}
       />
 
       {/* Confirm Cancel Dialog */}

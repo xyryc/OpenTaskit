@@ -103,9 +103,12 @@ export class TasksController {
     return this.tasksService.startTask(taskId, userId, userRole);
   }
 
-  // 9. POST /tasks/:id/complete - Mark Task as Completed
+  // 9. POST /tasks/:id/complete - Tasker marks done (awaiting confirmation) / Poster confirms completion
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Mark an assigned or in-progress task as completed' })
+  @ApiOperation({
+    summary:
+      'Tasker marks the task done (-> AWAITING_CONFIRMATION), or the poster confirms it (-> COMPLETED)',
+  })
   @UseGuards(JwtAuthGuard)
   @Post(':id/complete')
   completeTask(

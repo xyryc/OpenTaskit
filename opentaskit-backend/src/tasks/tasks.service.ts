@@ -415,6 +415,8 @@ export class TasksService {
   }
 
   // 11. Mark task as COMPLETED
+  // Two-step handshake: the tasker marks the task done (-> AWAITING_CONFIRMATION),
+  // then the poster confirms it (-> COMPLETED). Admins may finalize at either step.
   async completeTask(taskId: string, userId: string, userRole: string) {
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },
@@ -429,17 +431,6 @@ export class TasksService {
       throw new NotFoundException('Task not found');
     }
 
-    // Rule 1: Task must currently be in IN_PROGRESS or ASSIGNED status
-    if (
-      task.status !== TaskStatus.IN_PROGRESS &&
-      task.status !== TaskStatus.ASSIGNED
-    ) {
-      throw new BadRequestException(
-        `Only in-progress or assigned tasks can be marked as completed. Current status: ${task.status}`,
-      );
-    }
-
-    // Rule 2: Caller must be the task poster, the assigned provider, or an Admin
     const isPoster = task.userId === userId;
     const isAssignedProvider = task.offers.some(
       (offer) => offer.userId === userId,
@@ -452,9 +443,46 @@ export class TasksService {
       );
     }
 
-    const completedTask = await this.prisma.task.update({
+    let nextStatus: TaskStatus;
+
+    if (isAdmin) {
+      // Admins may push a task to COMPLETED from any active, non-terminal state.
+      if (
+        task.status !== TaskStatus.IN_PROGRESS &&
+        task.status !== TaskStatus.ASSIGNED &&
+        task.status !== TaskStatus.AWAITING_CONFIRMATION
+      ) {
+        throw new BadRequestException(
+          `Only in-progress, assigned or awaiting-confirmation tasks can be marked as completed. Current status: ${task.status}`,
+        );
+      }
+      nextStatus = TaskStatus.COMPLETED;
+    } else if (isPoster) {
+      // The poster's call is a confirmation - the tasker must have marked it done first.
+      if (task.status !== TaskStatus.AWAITING_CONFIRMATION) {
+        throw new BadRequestException(
+          'The tasker must mark this task as done before you can confirm completion',
+        );
+      }
+      nextStatus = TaskStatus.COMPLETED;
+    } else {
+      // The tasker's call marks the task done and awaits the poster's confirmation.
+      if (
+        task.status !== TaskStatus.IN_PROGRESS &&
+        task.status !== TaskStatus.ASSIGNED
+      ) {
+        throw new BadRequestException(
+          task.status === TaskStatus.AWAITING_CONFIRMATION
+            ? 'This task is already awaiting the poster’s confirmation'
+            : `Only in-progress or assigned tasks can be marked as done. Current status: ${task.status}`,
+        );
+      }
+      nextStatus = TaskStatus.AWAITING_CONFIRMATION;
+    }
+
+    const updatedTask = await this.prisma.task.update({
       where: { id: taskId },
-      data: { status: TaskStatus.COMPLETED },
+      data: { status: nextStatus },
       include: {
         category: {
           select: { id: true, name: true, slug: true, icon: true },
@@ -472,8 +500,11 @@ export class TasksService {
     });
 
     return {
-      message: 'Task marked as completed successfully',
-      task: completedTask,
+      message:
+        nextStatus === TaskStatus.COMPLETED
+          ? 'Task marked as completed successfully'
+          : 'Task marked as done, awaiting the poster’s confirmation',
+      task: updatedTask,
     };
   }
 
@@ -502,6 +533,17 @@ export class TasksService {
     // Rule 3: Cannot cancel already cancelled task
     if (task.status === TaskStatus.CANCELLED) {
       throw new BadRequestException('Task is already cancelled');
+    }
+
+    // Rule 4: Once the tasker has started work, only an Admin can cancel
+    if (
+      userRole !== 'ADMIN' &&
+      (task.status === TaskStatus.IN_PROGRESS ||
+        task.status === TaskStatus.AWAITING_CONFIRMATION)
+    ) {
+      throw new BadRequestException(
+        'This task has already been started and can no longer be cancelled',
+      );
     }
 
     // Atomic transaction: Cancel task and mark active offers as WITHDRAWN;

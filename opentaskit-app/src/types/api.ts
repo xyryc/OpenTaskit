@@ -112,7 +112,7 @@ export interface CategoryItem {
   };
 }
 
-export type TaskApiStatus = 'OPEN' | 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+export type TaskApiStatus = 'OPEN' | 'ASSIGNED' | 'IN_PROGRESS' | 'AWAITING_CONFIRMATION' | 'COMPLETED' | 'CANCELLED';
 export type LocationApiType = 'IN_PERSON' | 'REMOTE';
 export type TimeApiType = 'ASAP' | 'SPECIFIC_DATE' | 'FLEXIBLE';
 export type PaymentApiMethod = 'CASH' | 'CARD' | 'WALLET';
@@ -299,6 +299,66 @@ export interface UpdateOfferResponse {
   message: string;
   status: OfferApiStatus;
   updatedAt: string;
+}
+
+export interface ReviewUserSummary {
+  id: string;
+  fullName: string;
+}
+
+export interface ReviewTaskSummary {
+  id: string;
+  title: string;
+}
+
+export interface ReviewItem {
+  id: string;
+  taskId: string;
+  fromUserId: string;
+  toUserId: string;
+  rating: number;
+  text: string;
+  tags: string[];
+  createdAt: string;
+  fromUser?: ReviewUserSummary;
+  toUser?: ReviewUserSummary;
+  task?: ReviewTaskSummary;
+}
+
+export interface CreateReviewPayload {
+  rating: number;
+  text: string;
+  tags?: string[];
+}
+
+export interface UserReviewsQuery {
+  page?: number;
+  limit?: number;
+}
+
+export interface UserReviewsResponse {
+  user: {
+    id: string;
+    fullName: string;
+    averageRating: number;
+    totalReviews: number;
+  };
+  distribution: Record<number, number>;
+  topTags: { tag: string; count: number }[];
+  reviews: ReviewItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface MyReviewsResponse {
+  received: ReviewItem[];
+  given: ReviewItem[];
+  totalReceived: number;
+  totalGiven: number;
 }
 
 export interface ApiErrorResponse {

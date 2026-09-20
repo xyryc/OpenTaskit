@@ -11,7 +11,7 @@ import {
   NativeScrollEvent,
   Alert,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -158,6 +158,14 @@ export default function TaskDetailScreen() {
   }
 
   const mine = !!(authUser?.id && task.requesterId === authUser.id);
+
+  // Once your own task has been assigned (or moved further along), this
+  // screen's offer-browsing UI no longer applies - send the poster to the
+  // job status screen instead, regardless of how they navigated here.
+  if (mine && task.status !== 'posted' && task.status !== 'receiving_offers') {
+    return <Redirect href={`/job/${task.id}` as any} />;
+  }
+
   const existingOffer = myOffer(task.id);
   const saved = isTaskSaved(task.id);
 
