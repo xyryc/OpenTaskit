@@ -208,7 +208,7 @@ export default function ProfileScreen() {
             onPress={() =>
               router.push({
                 pathname: '/(screens)/provider/[userId]',
-                params: { userId: ME },
+                params: { userId: user?.id ?? ME },
               } as any)
             }
             className="mt-4 flex-row items-center rounded-2xl border border-ink-200 bg-canvas p-3.5 active:bg-ink-100"

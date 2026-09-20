@@ -5,7 +5,6 @@ import {
   Pressable,
   ScrollView,
   RefreshControl,
-  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -15,7 +14,7 @@ import { useSavedTasks } from '@/hooks/useSavedTasks';
 import { mapApiTaskToTask } from '@/utils/taskFilters';
 import { money } from '@/utils/format';
 import { Screen, ScreenHeader } from '@/components/layout/Screen';
-import { EmptyState } from '@/components/ui/Feedback';
+import { EmptyState, ListSkeleton } from '@/components/ui/Feedback';
 import { TaskCard } from '@/components/task/TaskCard';
 import { useApp } from '@/contexts/AppContext';
 
@@ -64,11 +63,8 @@ export default function SavedTasksScreen() {
           />
         </View>
       ) : isLoading ? (
-        <View className="flex-1 items-center justify-center py-20">
-          <ActivityIndicator size="large" color="#0094F7" />
-          <Text className="mt-3 font-geist text-[13px] text-ink-500">
-            Loading your saved tasks...
-          </Text>
+        <View className="flex-1 px-5 pt-4">
+          <ListSkeleton count={4} />
         </View>
       ) : savedTasks.length === 0 ? (
         <ScrollView

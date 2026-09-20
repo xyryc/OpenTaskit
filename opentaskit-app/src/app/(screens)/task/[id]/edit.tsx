@@ -7,7 +7,6 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -37,6 +36,7 @@ import {
 import { getApiErrorMessage, parseApiError } from '@/utils/apiError';
 import { Screen, ScreenHeader } from '@/components/layout/Screen';
 import { Button } from '@/components/ui/Button';
+import { Skeleton } from '@/components/ui/Feedback';
 import { TextField, TextArea, Toggle } from '@/components/ui/Input';
 import { SelectChip } from '@/components/ui/Chip';
 import { BottomSheet } from '@/components/ui/Overlay';
@@ -275,11 +275,31 @@ export default function EditTaskScreen() {
     return (
       <Screen tone="canvas" edges={['top']}>
         <ScreenHeader title="Edit task" />
-        <View className="flex-1 items-center justify-center p-6">
-          <ActivityIndicator size="large" color="#0094F7" />
-          <Text className="mt-3 font-geist text-[14px] text-ink-500">
-            Loading task details...
-          </Text>
+        <View className="flex-1 gap-5 p-5" style={{ gap: 20 }}>
+          <View className="gap-2" style={{ gap: 8 }}>
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-12 w-full" />
+          </View>
+          <View className="gap-2" style={{ gap: 8 }}>
+            <Skeleton className="h-3 w-28" />
+            <Skeleton className="h-24 w-full" />
+          </View>
+          <View className="gap-2" style={{ gap: 8 }}>
+            <Skeleton className="h-3 w-20" />
+            <View className="flex-row gap-2" style={{ gap: 8 }}>
+              <Skeleton className="h-9 w-20 rounded-full" />
+              <Skeleton className="h-9 w-20 rounded-full" />
+              <Skeleton className="h-9 w-20 rounded-full" />
+            </View>
+          </View>
+          <View className="gap-2" style={{ gap: 8 }}>
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-12 w-full" />
+          </View>
+          <View className="gap-2" style={{ gap: 8 }}>
+            <Skeleton className="h-3 w-16" />
+            <Skeleton className="h-12 w-full" />
+          </View>
         </View>
       </Screen>
     );

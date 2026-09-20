@@ -1,8 +1,32 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 
 export function Skeleton({ className = '' }: { className?: string }) {
-  return <View className={`bg-ink-200/60 rounded-xl ${className}`} />;
+  const opacity = useSharedValue(0.55);
+
+  useEffect(() => {
+    opacity.value = withRepeat(
+      withTiming(1, { duration: 700, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true,
+    );
+  }, [opacity]);
+
+  const shimmerStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+
+  return (
+    <Animated.View
+      className={`bg-ink-200/60 rounded-xl ${className}`}
+      style={shimmerStyle}
+    />
+  );
 }
 
 export function TaskCardSkeleton() {
