@@ -8,6 +8,12 @@ export enum UserRole {
   ADMIN = 'ADMIN',
 }
 
+export enum FilterUserStatus {
+  ACTIVE = 'ACTIVE',
+  SUSPENDED = 'SUSPENDED',
+  PENDING_VERIFICATION = 'PENDING_VERIFICATION',
+}
+
 export class FilterUsersDto {
   @ApiPropertyOptional({
     description: 'Search by full name, email, or phone number',
@@ -25,12 +31,12 @@ export class FilterUsersDto {
   role?: UserRole;
 
   @ApiPropertyOptional({
-    enum: UserStatus,
+    enum: FilterUserStatus,
     description: 'Filter by account status',
   })
-  @IsEnum(UserStatus)
+  @IsEnum(FilterUserStatus)
   @IsOptional()
-  status?: UserStatus;
+  status?: FilterUserStatus;
 
   @ApiPropertyOptional({ default: 1, minimum: 1 })
   @IsNumber()

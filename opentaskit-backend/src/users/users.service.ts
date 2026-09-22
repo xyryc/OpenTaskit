@@ -21,8 +21,12 @@ export class UsersService {
       where.role = role;
     }
 
-    if (status) {
+    if (status === 'ACTIVE' || status === 'SUSPENDED') {
       where.status = status;
+    } else if (status === 'PENDING_VERIFICATION') {
+      where.kycVerifications = {
+        some: { status: 'PENDING' },
+      };
     }
 
     if (search && search.trim()) {
@@ -34,7 +38,7 @@ export class UsersService {
       ];
     }
 
-    const [data, total, totalUsers, totalAdmins, totalSuspended] =
+    const [data, total, totalUsers, totalAdmins, totalSuspended, totalVerified, totalPendingKyc] =
       await Promise.all([
         this.prisma.user.findMany({
           where,
@@ -48,8 +52,23 @@ export class UsersService {
             phoneNumber: true,
             role: true,
             status: true,
+            avatarUrl: true,
+            rating: true,
+            reviewCount: true,
+            isVerified: true,
+            location: true,
             createdAt: true,
             updatedAt: true,
+            kycVerifications: {
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+              select: {
+                id: true,
+                status: true,
+                documentType: true,
+                createdAt: true,
+              },
+            },
             _count: {
               select: {
                 tasks: true,
@@ -62,6 +81,8 @@ export class UsersService {
         this.prisma.user.count({ where: { role: 'USER' } }),
         this.prisma.user.count({ where: { role: 'ADMIN' } }),
         this.prisma.user.count({ where: { status: 'SUSPENDED' } }),
+        this.prisma.user.count({ where: { isVerified: true } }),
+        this.prisma.kycVerification.count({ where: { status: 'PENDING' } }),
       ]);
 
     return {
@@ -75,6 +96,8 @@ export class UsersService {
         totalRegularUsers: totalUsers,
         totalAdmins,
         totalSuspended,
+        totalVerified,
+        totalPendingKyc,
       },
     };
   }
@@ -90,9 +113,35 @@ export class UsersService {
         phoneNumber: true,
         role: true,
         status: true,
+        avatarUrl: true,
+        headline: true,
+        bio: true,
+        location: true,
+        skills: true,
+        rating: true,
+        reviewCount: true,
+        isVerified: true,
         termsAcceptedAt: true,
         createdAt: true,
         updatedAt: true,
+        kycVerifications: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: {
+            id: true,
+            documentType: true,
+            idNumber: true,
+            fullName: true,
+            frontPhotoUrl: true,
+            backPhotoUrl: true,
+            selfieUrl: true,
+            status: true,
+            rejectionReason: true,
+            reviewNotes: true,
+            createdAt: true,
+            reviewedAt: true,
+          },
+        },
         _count: {
           select: {
             tasks: true,
@@ -142,7 +191,24 @@ export class UsersService {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
 
-    return user;
+    const tasksCompletedCount = await this.prisma.task.count({
+      where: {
+        OR: [
+          { userId: id, status: 'COMPLETED' },
+          {
+            offers: {
+              some: { userId: id, status: 'ACCEPTED' },
+            },
+            status: 'COMPLETED',
+          },
+        ],
+      },
+    });
+
+    return {
+      ...user,
+      tasksCompletedCount,
+    };
   }
 
   // 3. Admin Update User Status (Suspend / Reactivate)
