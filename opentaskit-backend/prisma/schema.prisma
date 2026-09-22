@@ -176,6 +176,9 @@ model Review {
   toUserId String
   toUser   User   @relation("ReviewsReceived", fields: [toUserId], references: [id], onDelete: Cascade)
 
+  isHidden         Boolean @default(false)
+  moderationReason String? @db.Text
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

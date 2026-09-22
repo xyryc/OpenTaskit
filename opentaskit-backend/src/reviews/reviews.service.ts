@@ -9,6 +9,12 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { TaskStatus, OfferStatus } from '../../generated/prisma/enums';
 import { FilterReviewsDto } from './dto/filter-reviews.dto';
+import {
+  FilterAdminReviewsDto,
+  AdminReviewStatusFilter,
+} from './dto/filter-admin-reviews.dto';
+import { ModerateReviewDto } from './dto/moderate-review.dto';
+import { Prisma } from '../../generated/prisma/client';
 
 @Injectable()
 export class ReviewsService {
@@ -278,6 +284,199 @@ export class ReviewsService {
       given,
       totalReceived: received.length,
       totalGiven: given.length,
+    };
+  }
+
+  // 5. Admin List & Filter All Reviews with Summary Metrics
+  async findAllAdmin(query: FilterAdminReviewsDto) {
+    const {
+      search,
+      rating,
+      status = AdminReviewStatusFilter.ALL,
+      page = 1,
+      limit = 10,
+    } = query;
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.ReviewWhereInput = {};
+
+    if (rating) {
+      where.rating = rating;
+    }
+
+    if (status === AdminReviewStatusFilter.PUBLISHED) {
+      where.isHidden = false;
+    } else if (status === AdminReviewStatusFilter.HIDDEN) {
+      where.isHidden = true;
+    }
+
+    if (search && search.trim()) {
+      const term = search.trim();
+      where.OR = [
+        { text: { contains: term, mode: 'insensitive' } },
+        { task: { title: { contains: term, mode: 'insensitive' } } },
+        { fromUser: { fullName: { contains: term, mode: 'insensitive' } } },
+        { toUser: { fullName: { contains: term, mode: 'insensitive' } } },
+      ];
+    }
+
+    const [
+      data,
+      total,
+      totalReviews,
+      avgAggregate,
+      fiveStarCount,
+      hiddenCount,
+    ] = await Promise.all([
+      this.prisma.review.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          fromUser: {
+            select: {
+              id: true,
+              fullName: true,
+              avatarUrl: true,
+              role: true,
+              email: true,
+            },
+          },
+          toUser: {
+            select: {
+              id: true,
+              fullName: true,
+              avatarUrl: true,
+              role: true,
+              email: true,
+            },
+          },
+          task: {
+            select: {
+              id: true,
+              title: true,
+              status: true,
+              budget: true,
+            },
+          },
+        },
+      }),
+      this.prisma.review.count({ where }),
+      this.prisma.review.count(),
+      this.prisma.review.aggregate({
+        _avg: { rating: true },
+      }),
+      this.prisma.review.count({
+        where: { rating: 5 },
+      }),
+      this.prisma.review.count({
+        where: { isHidden: true },
+      }),
+    ]);
+
+    const averageRating = avgAggregate._avg.rating
+      ? Math.round(avgAggregate._avg.rating * 10) / 10
+      : 5.0;
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1,
+      stats: {
+        totalReviews,
+        averageRating,
+        fiveStarCount,
+        hiddenCount,
+      },
+    };
+  }
+
+  // 6. Admin Moderate Review (Hide / Restore)
+  async moderate(id: string, dto: ModerateReviewDto) {
+    const review = await this.prisma.review.findUnique({
+      where: { id },
+    });
+
+    if (!review) {
+      throw new NotFoundException(`Review with ID ${id} not found`);
+    }
+
+    const updated = await this.prisma.review.update({
+      where: { id },
+      data: {
+        isHidden: dto.isHidden,
+        moderationReason: dto.moderationReason ?? null,
+      },
+      include: {
+        fromUser: { select: { id: true, fullName: true, avatarUrl: true } },
+        toUser: { select: { id: true, fullName: true, avatarUrl: true } },
+        task: { select: { id: true, title: true } },
+      },
+    });
+
+    // Recalculate target user average rating considering only non-hidden reviews
+    const aggregate = await this.prisma.review.aggregate({
+      where: { toUserId: review.toUserId, isHidden: false },
+      _avg: { rating: true },
+      _count: { rating: true },
+    });
+
+    const newAvgRating = aggregate._avg.rating
+      ? Math.round(aggregate._avg.rating * 10) / 10
+      : 0;
+    const totalCount = aggregate._count.rating || 0;
+
+    await this.prisma.user.update({
+      where: { id: review.toUserId },
+      data: {
+        rating: newAvgRating,
+        reviewCount: totalCount,
+      },
+    });
+
+    return updated;
+  }
+
+  // 7. Admin Permanently Delete a Review
+  async deleteReview(id: string) {
+    const review = await this.prisma.review.findUnique({
+      where: { id },
+    });
+
+    if (!review) {
+      throw new NotFoundException(`Review with ID ${id} not found`);
+    }
+
+    await this.prisma.review.delete({
+      where: { id },
+    });
+
+    // Recalculate target user average rating after review deletion
+    const aggregate = await this.prisma.review.aggregate({
+      where: { toUserId: review.toUserId, isHidden: false },
+      _avg: { rating: true },
+      _count: { rating: true },
+    });
+
+    const newAvgRating = aggregate._avg.rating
+      ? Math.round(aggregate._avg.rating * 10) / 10
+      : 0;
+    const totalCount = aggregate._count.rating || 0;
+
+    await this.prisma.user.update({
+      where: { id: review.toUserId },
+      data: {
+        rating: newAvgRating,
+        reviewCount: totalCount,
+      },
+    });
+
+    return {
+      success: true,
+      message: 'Review permanently deleted and user rating recalculated',
     };
   }
 }
