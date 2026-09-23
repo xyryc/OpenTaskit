@@ -23,6 +23,30 @@ export interface UpdateMyProfilePayload {
   skills?: string[];
 }
 
+export interface ProviderServiceRecord {
+  id: string;
+  name: string;
+  fromPrice: number;
+  createdAt: string;
+}
+
+export interface PortfolioItemRecord {
+  id: string;
+  title: string;
+  imageUrl: string;
+  createdAt: string;
+}
+
+export interface CreateServicePayload {
+  name: string;
+  fromPrice: number;
+}
+
+export interface CreatePortfolioItemPayload {
+  title: string;
+  imageUrl: string;
+}
+
 export interface MyProfileResponse {
   id: string;
   fullName: string;
@@ -39,6 +63,8 @@ export interface MyProfileResponse {
   reviewCount: number;
   isVerified: boolean;
   createdAt: string;
+  services: ProviderServiceRecord[];
+  portfolio: PortfolioItemRecord[];
   stats: MyProfileStats;
 }
 
@@ -429,6 +455,8 @@ export interface PublicProfileResponse {
   reviewCount: number;
   createdAt: string;
   memberSince: string;
+  services: ProviderServiceRecord[];
+  portfolio: PortfolioItemRecord[];
   stats: {
     tasksCompleted: number;
     tasksPosted: number;

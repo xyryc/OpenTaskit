@@ -61,8 +61,33 @@ model User {
   messagesSent     Message[]         @relation("MessagesSent")
   messagesReceived Message[]         @relation("MessagesReceived")
 
+  providerServices ProviderService[]
+  portfolioItems   PortfolioItem[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model ProviderService {
+  id        String   @id @default(uuid())
+  name      String
+  fromPrice Int
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model PortfolioItem {
+  id        String   @id @default(uuid())
+  title     String
+  imageUrl  String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model KycVerification {

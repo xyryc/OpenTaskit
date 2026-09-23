@@ -1,10 +1,12 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
   Patch,
+  Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -20,6 +22,8 @@ import { FilterUsersDto } from './dto/filter-users.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 import { UpdateMyProfileDto } from './dto/update-my-profile.dto';
+import { CreateServiceDto } from './dto/create-service.dto';
+import { CreatePortfolioItemDto } from './dto/create-portfolio-item.dto';
 
 @ApiTags('Users')
 @ApiBearerAuth('JWT-auth')
@@ -81,6 +85,43 @@ export class UsersController {
     @Body() dto: UpdateMyProfileDto,
   ) {
     return this.usersService.updateMyProfile(userId, dto);
+  }
+
+  // POST /api/v1/users/me/services - Add a service to the authenticated user profile
+  @ApiOperation({ summary: 'Add a service to the authenticated user profile' })
+  @Post('me/services')
+  addService(@CurrentUser('id') userId: string, @Body() dto: CreateServiceDto) {
+    return this.usersService.addService(userId, dto);
+  }
+
+  // DELETE /api/v1/users/me/services/:serviceId - Remove one of my services
+  @ApiOperation({ summary: 'Remove a service from the authenticated user profile' })
+  @Delete('me/services/:serviceId')
+  removeService(
+    @CurrentUser('id') userId: string,
+    @Param('serviceId', ParseUUIDPipe) serviceId: string,
+  ) {
+    return this.usersService.removeService(userId, serviceId);
+  }
+
+  // POST /api/v1/users/me/portfolio - Add a portfolio item to the authenticated user profile
+  @ApiOperation({ summary: 'Add a portfolio item to the authenticated user profile' })
+  @Post('me/portfolio')
+  addPortfolioItem(
+    @CurrentUser('id') userId: string,
+    @Body() dto: CreatePortfolioItemDto,
+  ) {
+    return this.usersService.addPortfolioItem(userId, dto);
+  }
+
+  // DELETE /api/v1/users/me/portfolio/:itemId - Remove one of my portfolio items
+  @ApiOperation({ summary: 'Remove a portfolio item from the authenticated user profile' })
+  @Delete('me/portfolio/:itemId')
+  removePortfolioItem(
+    @CurrentUser('id') userId: string,
+    @Param('itemId', ParseUUIDPipe) itemId: string,
+  ) {
+    return this.usersService.removePortfolioItem(userId, itemId);
   }
 
   // GET /api/v1/users/:id/profile - Public Profile Card

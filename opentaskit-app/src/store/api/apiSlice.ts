@@ -51,6 +51,10 @@ import type {
   ReviewItem,
   UpdateMyProfilePayload,
   UpdateTaskPayload,
+  CreateServicePayload,
+  CreatePortfolioItemPayload,
+  ProviderServiceRecord,
+  PortfolioItemRecord,
   RefreshPayload,
   RefreshResponse,
   RegisterPayload,
@@ -410,6 +414,24 @@ export const apiSlice = createApi({
 
     updateMyProfile: builder.mutation<MyProfileResponse, UpdateMyProfilePayload>({
       query: (body) => ({ url: "/users/me", method: "PATCH", body }),
+      invalidatesTags: [{ type: "User", id: "ME" }],
+    }),
+
+    addService: builder.mutation<ProviderServiceRecord, CreateServicePayload>({
+      query: (body) => ({ url: "/users/me/services", method: "POST", body }),
+      invalidatesTags: [{ type: "User", id: "ME" }],
+    }),
+    removeService: builder.mutation<{ success: boolean }, string>({
+      query: (serviceId) => ({ url: `/users/me/services/${serviceId}`, method: "DELETE" }),
+      invalidatesTags: [{ type: "User", id: "ME" }],
+    }),
+
+    addPortfolioItem: builder.mutation<PortfolioItemRecord, CreatePortfolioItemPayload>({
+      query: (body) => ({ url: "/users/me/portfolio", method: "POST", body }),
+      invalidatesTags: [{ type: "User", id: "ME" }],
+    }),
+    removePortfolioItem: builder.mutation<{ success: boolean }, string>({
+      query: (itemId) => ({ url: `/users/me/portfolio/${itemId}`, method: "DELETE" }),
       invalidatesTags: [{ type: "User", id: "ME" }],
     }),
 
@@ -930,6 +952,10 @@ export const {
   useChangePasswordMutation,
   useGetMyProfileQuery,
   useUpdateMyProfileMutation,
+  useAddServiceMutation,
+  useRemoveServiceMutation,
+  useAddPortfolioItemMutation,
+  useRemovePortfolioItemMutation,
   useGetSavedTasksQuery,
   useSaveTaskMutation,
   useUnsaveTaskMutation,

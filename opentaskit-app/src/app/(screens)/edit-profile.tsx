@@ -36,8 +36,11 @@ import {
   useGetMyProfileQuery,
   useUpdateMyProfileMutation,
   useUploadImagesMutation,
+  useAddServiceMutation,
+  useRemoveServiceMutation,
+  useAddPortfolioItemMutation,
+  useRemovePortfolioItemMutation,
 } from '@/store/api/apiSlice';
-import type { PortfolioItem } from '@/types';
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -46,6 +49,11 @@ export default function EditProfileScreen() {
   const { data: profile } = useGetMyProfileQuery();
   const [updateMyProfile, { isLoading: isUpdatingProfile }] = useUpdateMyProfileMutation();
   const [uploadImagesApi, { isLoading: isUploadingAvatar }] = useUploadImagesMutation();
+  const [addServiceApi, { isLoading: isAddingService }] = useAddServiceMutation();
+  const [removeServiceApi] = useRemoveServiceMutation();
+  const [addPortfolioItemApi, { isLoading: isSavingPortfolioItem }] = useAddPortfolioItemMutation();
+  const [removePortfolioItemApi] = useRemovePortfolioItemMutation();
+  const [uploadPortfolioImageApi, { isLoading: isUploadingPortfolioImage }] = useUploadImagesMutation();
 
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [name, setName] = useState(me.name);
@@ -54,8 +62,8 @@ export default function EditProfileScreen() {
   const [location, setLocation] = useState(me.location ?? '');
   const [skills, setSkills] = useState<string[]>(me.skills);
   const [newSkill, setNewSkill] = useState('');
-  const [services, setServices] = useState(me.services);
-  const [portfolio, setPortfolio] = useState<PortfolioItem[]>(me.portfolio);
+  const services = profile?.services ?? [];
+  const portfolio = profile?.portfolio ?? [];
 
   // Seed the editable fields from the real profile once it loads, without
   // clobbering fields the API doesn't support (services/portfolio stay mock-only).
@@ -166,7 +174,7 @@ export default function EditProfileScreen() {
     setSkills((prev) => prev.filter((s) => s !== skillToRemove));
   };
 
-  const handleAddService = () => {
+  const handleAddService = async () => {
     if (!newServiceName.trim()) {
       setServiceError('Enter a service name');
       return;
@@ -176,16 +184,28 @@ export default function EditProfileScreen() {
       setServiceError('Enter a valid starting rate (min Rs 500)');
       return;
     }
-    setServices((prev) => [...prev, { name: newServiceName.trim(), from: priceNum }]);
-    setNewServiceName('');
-    setNewServicePrice('');
-    setServiceError('');
-    setServiceModalOpen(false);
-    toast({ title: 'Service added', variant: 'success' });
+    try {
+      await addServiceApi({ name: newServiceName.trim(), fromPrice: priceNum }).unwrap();
+      setNewServiceName('');
+      setNewServicePrice('');
+      setServiceError('');
+      setServiceModalOpen(false);
+      toast({ title: 'Service added', variant: 'success' });
+    } catch (err) {
+      setServiceError(getApiErrorMessage(err, 'Could not add service.'));
+    }
   };
 
-  const handleRemoveService = (indexToRemove: number) => {
-    setServices((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+  const handleRemoveService = async (serviceId: string) => {
+    try {
+      await removeServiceApi(serviceId).unwrap();
+    } catch (err) {
+      toast({
+        title: 'Could not remove service',
+        description: getApiErrorMessage(err),
+        variant: 'error',
+      });
+    }
   };
 
   const handlePickPortfolioImage = async () => {
@@ -208,30 +228,47 @@ export default function EditProfileScreen() {
     }
   };
 
-  const handleSavePortfolioItem = () => {
+  const handleSavePortfolioItem = async () => {
     if (!portfolioTitle.trim()) {
       setPortfolioError('Enter a project title');
       return;
     }
     if (!portfolioImageUri) return;
 
-    setPortfolio((prev) => [
-      ...prev,
-      {
-        id: `pf-${Date.now()}`,
-        title: portfolioTitle.trim(),
-        image: portfolioImageUri,
-      },
-    ]);
-    setPortfolioTitle('');
-    setPortfolioImageUri(null);
-    setPortfolioError('');
-    setPortfolioModalOpen(false);
-    toast({ title: 'Project added to portfolio', variant: 'success' });
+    try {
+      let imageUrl = portfolioImageUri;
+      if (!portfolioImageUri.startsWith('http')) {
+        const formData = new FormData();
+        const filename = portfolioImageUri.split('/').pop() || `portfolio-${Date.now()}.jpg`;
+        const match = /\.(\w+)$/.exec(filename);
+        const ext = match ? match[1].toLowerCase() : 'jpg';
+        const type = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+        formData.append('files', { uri: portfolioImageUri, name: filename, type } as any);
+        const uploadRes = await uploadPortfolioImageApi(formData).unwrap();
+        imageUrl = uploadRes.urls[0];
+      }
+
+      await addPortfolioItemApi({ title: portfolioTitle.trim(), imageUrl }).unwrap();
+      setPortfolioTitle('');
+      setPortfolioImageUri(null);
+      setPortfolioError('');
+      setPortfolioModalOpen(false);
+      toast({ title: 'Project added to portfolio', variant: 'success' });
+    } catch (err) {
+      setPortfolioError(getApiErrorMessage(err, 'Could not add this project.'));
+    }
   };
 
-  const handleRemovePortfolioItem = (idToRemove: string) => {
-    setPortfolio((prev) => prev.filter((p) => p.id !== idToRemove));
+  const handleRemovePortfolioItem = async (idToRemove: string) => {
+    try {
+      await removePortfolioItemApi(idToRemove).unwrap();
+    } catch (err) {
+      toast({
+        title: 'Could not remove project',
+        description: getApiErrorMessage(err),
+        variant: 'error',
+      });
+    }
   };
 
   const isSaving = isUpdatingProfile || isUploadingAvatar;
@@ -306,8 +343,6 @@ export default function EditProfileScreen() {
         about: about.trim(),
         location: location.trim(),
         skills,
-        services,
-        portfolio,
       });
 
       toast({
@@ -457,9 +492,14 @@ export default function EditProfileScreen() {
                 Services & rates
               </Text>
               <View className="divide-y divide-ink-100 rounded-3xl border border-ink-200 bg-white px-4">
-                {services.map((service, idx) => (
+                {services.length === 0 && (
+                  <Text className="py-3.5 font-geist text-[13px] text-ink-400">
+                    No services added yet.
+                  </Text>
+                )}
+                {services.map((service) => (
                   <View
-                    key={`${service.name}-${idx}`}
+                    key={service.id}
                     className="flex-row items-center justify-between py-3.5"
                   >
                     <View className="flex-1 min-w-0 mr-2">
@@ -470,12 +510,12 @@ export default function EditProfileScreen() {
                         {service.name}
                       </Text>
                       <Text className="mt-0.5 font-geist-medium text-[12.5px] text-ink-500">
-                        from {money(service.from)}
+                        from {money(service.fromPrice)}
                       </Text>
                     </View>
 
                     <Pressable
-                      onPress={() => handleRemoveService(idx)}
+                      onPress={() => handleRemoveService(service.id)}
                       hitSlop={8}
                       className="h-8 w-8 items-center justify-center rounded-full active:bg-danger/10"
                     >
@@ -509,7 +549,7 @@ export default function EditProfileScreen() {
                     className="relative aspect-square w-[30.5%] overflow-hidden rounded-2xl border border-ink-200 bg-white"
                   >
                     <Image
-                      source={resolveImageSource(item.image)}
+                      source={resolveImageSource(item.imageUrl)}
                       style={{ width: '100%', height: '100%' }}
                       contentFit="cover"
                     />
@@ -543,12 +583,6 @@ export default function EditProfileScreen() {
                 </Pressable>
               </View>
             </View>
-
-            {/* Profile Completion Chips */}
-            <View className="flex-row flex-wrap gap-2 pt-1" style={{ gap: 8 }}>
-              <Chip tone="brand">Profile 85% complete</Chip>
-              <Chip tone="neutral">Add 1 more portfolio item</Chip>
-            </View>
           </View>
         </ScrollView>
 
@@ -581,7 +615,14 @@ export default function EditProfileScreen() {
         title="Add a service"
         description="List tasks you offer and your minimum baseline fee."
         footer={
-          <Button full size="lg" variant="brand" onPress={handleAddService}>
+          <Button
+            full
+            size="lg"
+            variant="brand"
+            loading={isAddingService}
+            disabled={isAddingService}
+            onPress={handleAddService}
+          >
             Add service
           </Button>
         }
@@ -635,8 +676,15 @@ export default function EditProfileScreen() {
         title="Add to portfolio"
         description="Give your project photo a descriptive title."
         footer={
-          <Button full size="lg" variant="brand" onPress={handleSavePortfolioItem}>
-            Add project
+          <Button
+            full
+            size="lg"
+            variant="brand"
+            loading={isSavingPortfolioItem || isUploadingPortfolioImage}
+            disabled={isSavingPortfolioItem || isUploadingPortfolioImage}
+            onPress={handleSavePortfolioItem}
+          >
+            {isUploadingPortfolioImage ? 'Uploading photo...' : 'Add project'}
           </Button>
         }
       >

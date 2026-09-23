@@ -5,6 +5,8 @@ import { Prisma } from '../../generated/prisma/client';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 import { UpdateMyProfileDto } from './dto/update-my-profile.dto';
+import { CreateServiceDto } from './dto/create-service.dto';
+import { CreatePortfolioItemDto } from './dto/create-portfolio-item.dto';
 
 @Injectable()
 export class UsersService {
@@ -273,6 +275,14 @@ export class UsersService {
         reviewCount: true,
         isVerified: true,
         createdAt: true,
+        providerServices: {
+          orderBy: { createdAt: 'asc' },
+          select: { id: true, name: true, fromPrice: true, createdAt: true },
+        },
+        portfolioItems: {
+          orderBy: { createdAt: 'asc' },
+          select: { id: true, title: true, imageUrl: true, createdAt: true },
+        },
       },
     });
 
@@ -303,8 +313,12 @@ export class UsersService {
         }),
       ]);
 
+    const { providerServices, portfolioItems, ...rest } = user;
+
     return {
-      ...user,
+      ...rest,
+      services: providerServices,
+      portfolio: portfolioItems,
       stats: {
         tasksPosted,
         offersSubmitted,
@@ -312,6 +326,41 @@ export class UsersService {
         unreadNotifications,
       },
     };
+  }
+
+  // 5b. Services & portfolio management for the authenticated user
+  async addService(userId: string, dto: CreateServiceDto) {
+    return this.prisma.providerService.create({
+      data: { userId, name: dto.name.trim(), fromPrice: dto.fromPrice },
+    });
+  }
+
+  async removeService(userId: string, serviceId: string) {
+    const service = await this.prisma.providerService.findUnique({
+      where: { id: serviceId },
+    });
+    if (!service || service.userId !== userId) {
+      throw new NotFoundException('Service not found');
+    }
+    await this.prisma.providerService.delete({ where: { id: serviceId } });
+    return { success: true };
+  }
+
+  async addPortfolioItem(userId: string, dto: CreatePortfolioItemDto) {
+    return this.prisma.portfolioItem.create({
+      data: { userId, title: dto.title.trim(), imageUrl: dto.imageUrl },
+    });
+  }
+
+  async removePortfolioItem(userId: string, itemId: string) {
+    const item = await this.prisma.portfolioItem.findUnique({
+      where: { id: itemId },
+    });
+    if (!item || item.userId !== userId) {
+      throw new NotFoundException('Portfolio item not found');
+    }
+    await this.prisma.portfolioItem.delete({ where: { id: itemId } });
+    return { success: true };
   }
 
   // 6. Update authenticated user's profile
@@ -370,6 +419,14 @@ export class UsersService {
         reviewCount: true,
         createdAt: true,
         status: true,
+        providerServices: {
+          orderBy: { createdAt: 'asc' },
+          select: { id: true, name: true, fromPrice: true, createdAt: true },
+        },
+        portfolioItems: {
+          orderBy: { createdAt: 'asc' },
+          select: { id: true, title: true, imageUrl: true, createdAt: true },
+        },
       },
     });
 
@@ -423,10 +480,12 @@ export class UsersService {
       }),
     ]);
 
-    const { status: _status, ...publicData } = user;
+    const { status: _status, providerServices, portfolioItems, ...publicData } = user;
 
     return {
       ...publicData,
+      services: providerServices,
+      portfolio: portfolioItems,
       memberSince: user.createdAt,
       stats: {
         tasksCompleted,

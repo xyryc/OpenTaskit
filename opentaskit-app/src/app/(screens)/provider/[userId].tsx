@@ -48,8 +48,8 @@ export default function ProviderProfileScreen() {
   const fallbackUser = userById(targetId);
 
   // Merge the real public-profile card onto the mock user so fields the
-  // backend doesn't return yet (services, portfolio, response/success rate,
-  // distance, availability) stay as clearly-dummy placeholders.
+  // backend doesn't return yet (response/success rate, distance,
+  // availability) stay as clearly-dummy placeholders.
   const user = React.useMemo(() => {
     if (!profile) return fallbackUser;
     return {
@@ -67,6 +67,9 @@ export default function ProviderProfileScreen() {
       memberSince: monthYear(profile.memberSince),
     };
   }, [profile, fallbackUser]);
+
+  const services = profile?.services ?? [];
+  const portfolio = profile?.portfolio ?? [];
 
   const reviews = profile?.recentReviews ?? [];
 
@@ -220,31 +223,32 @@ export default function ProviderProfileScreen() {
           )}
 
           {/* Services Offered Section */}
-          {user.services.length > 0 && (
+          {services.length > 0 && (
             <View>
-              <SectionHeader title="Services offered" />
+              <SectionHeader title="Services & rates" />
               <View className="divide-y divide-ink-100 rounded-3xl border border-ink-200 bg-white px-4">
-                {user.services.map((service) => (
+                {services.map((service) => (
                   <View
-                    key={service.name}
-                    className="flex-row items-center gap-2.5 py-3.5"
-                    style={{ gap: 10 }}
+                    key={service.id}
+                    className="flex-row items-center justify-between py-3.5"
                   >
-                    <View className="h-2 w-2 rounded-full bg-brand" />
                     <Text className="font-geist text-[14px] text-ink">
                       {service.name}
+                    </Text>
+                    <Text className="font-geist-medium text-[13px] text-ink-500">
+                      from {money(service.fromPrice)}
                     </Text>
                   </View>
                 ))}
               </View>
               <Text className="mt-2 px-1 font-geist text-[12px] leading-relaxed text-ink-400">
-                Post a task to get a price for exactly what you need.
+                Final price depends on the details of your task.
               </Text>
             </View>
           )}
 
           {/* Portfolio Section */}
-          {user.portfolio.length > 0 && (
+          {portfolio.length > 0 && (
             <View>
               <SectionHeader title="Portfolio" />
               <ScrollView
@@ -253,10 +257,10 @@ export default function ProviderProfileScreen() {
                 className="-mx-5 px-5"
               >
                 <View className="flex-row gap-2.5" style={{ gap: 10 }}>
-                  {user.portfolio.map((item) => (
+                  {portfolio.map((item) => (
                     <View key={item.id} className="w-[170px]">
                       <Image
-                        source={resolveImageSource(item.image)}
+                        source={resolveImageSource(item.imageUrl)}
                         style={{ width: 170, height: 112, borderRadius: 16 }}
                         contentFit="cover"
                       />
