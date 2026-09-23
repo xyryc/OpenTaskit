@@ -23,6 +23,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { BankAccountsModule } from './bank-accounts/bank-accounts.module';
 import { PayoutsModule } from './payouts/payouts.module';
 import { MessagesModule } from './messages/messages.module';
+import { LegalModule } from './legal/legal.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { MessagesModule } from './messages/messages.module';
     BankAccountsModule,
     PayoutsModule,
     MessagesModule,
+    LegalModule,
   ],
   controllers: [AppController],
   providers: [

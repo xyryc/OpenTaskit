@@ -7,110 +7,173 @@ import {
   Trash2,
   Save,
   CheckCircle2,
-  Smartphone,
-  RotateCcw,
+  AlertTriangle,
   Eye,
-  Layers,
-  Sparkles,
   GitBranch,
+  Loader2,
 } from "lucide-react";
 
-import { MOCK_LEGAL_DOCS, LegalDocRecord, LegalDocSection } from "@/data/mock-data";
+import { LegalDocRecord, LegalDocSection } from "@/data/mock-data";
+import { adminFetch } from "@/lib/api-client";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-// Helper to auto-bump semantic patch version
-function bumpPatchVersion(versionStr: string): string {
-  const parts = versionStr.split(".").map((p) => parseInt(p, 10));
-  if (parts.length === 3 && !parts.some(isNaN)) {
-    return `${parts[0]}.${parts[1]}.${parts[2] + 1}`;
-  }
-  return `${versionStr}.1`;
-}
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function LegalPage() {
-  const [docs, setDocs] = React.useState<Record<"terms" | "privacy", LegalDocRecord>>(MOCK_LEGAL_DOCS);
+  const [docs, setDocs] = React.useState<Record<"terms" | "privacy", LegalDocRecord> | null>(null);
   const [activeTab, setActiveTab] = React.useState<"terms" | "privacy">("terms");
+  const [loading, setLoading] = React.useState(true);
+  const [loadError, setLoadError] = React.useState<string | null>(null);
+  const [publishing, setPublishing] = React.useState(false);
+  const [publishError, setPublishError] = React.useState<string | null>(null);
   const [savedSuccess, setSavedSuccess] = React.useState<boolean>(false);
   const [lastPublishedVersion, setLastPublishedVersion] = React.useState<string>("");
 
-  const currentDoc = docs[activeTab];
+  const fetchDocs = React.useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const res = await adminFetch("/api/backend/legal");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to load legal documents (HTTP ${res.status})`);
+      }
+      const data: LegalDocRecord[] = await res.json();
+      const bySlug = Object.fromEntries(data.map((d) => [d.slug, d])) as Record<
+        "terms" | "privacy",
+        LegalDocRecord
+      >;
+      setDocs(bySlug);
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Failed to load legal documents");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    fetchDocs();
+  }, [fetchDocs]);
+
+  const currentDoc = docs?.[activeTab] ?? null;
 
   const handleUpdateHeading = (sectionId: string, heading: string) => {
-    setDocs((prev) => ({
-      ...prev,
-      [activeTab]: {
-        ...prev[activeTab],
-        sections: prev[activeTab].sections.map((s) =>
-          s.id === sectionId ? { ...s, heading } : s
-        ),
-      },
-    }));
+    setDocs((prev) =>
+      prev && {
+        ...prev,
+        [activeTab]: {
+          ...prev[activeTab],
+          sections: prev[activeTab].sections.map((s) =>
+            s.id === sectionId ? { ...s, heading } : s
+          ),
+        },
+      }
+    );
   };
 
   const handleUpdateBody = (sectionId: string, body: string) => {
-    setDocs((prev) => ({
-      ...prev,
-      [activeTab]: {
-        ...prev[activeTab],
-        sections: prev[activeTab].sections.map((s) =>
-          s.id === sectionId ? { ...s, body } : s
-        ),
-      },
-    }));
+    setDocs((prev) =>
+      prev && {
+        ...prev,
+        [activeTab]: {
+          ...prev[activeTab],
+          sections: prev[activeTab].sections.map((s) =>
+            s.id === sectionId ? { ...s, body } : s
+          ),
+        },
+      }
+    );
   };
 
   const handleAddSection = () => {
+    if (!currentDoc) return;
     const newSection: LegalDocSection = {
       id: `sec-${Date.now()}`,
       heading: `${currentDoc.sections.length + 1}. New Policy Clause`,
       body: "Describe the policy clause or legal requirement here...",
     };
-    setDocs((prev) => ({
-      ...prev,
-      [activeTab]: {
-        ...prev[activeTab],
-        sections: [...prev[activeTab].sections, newSection],
-      },
-    }));
+    setDocs((prev) =>
+      prev && {
+        ...prev,
+        [activeTab]: {
+          ...prev[activeTab],
+          sections: [...prev[activeTab].sections, newSection],
+        },
+      }
+    );
   };
 
   const handleDeleteSection = (sectionId: string) => {
-    setDocs((prev) => ({
-      ...prev,
-      [activeTab]: {
-        ...prev[activeTab],
-        sections: prev[activeTab].sections.filter((s) => s.id !== sectionId),
-      },
-    }));
+    setDocs((prev) =>
+      prev && {
+        ...prev,
+        [activeTab]: {
+          ...prev[activeTab],
+          sections: prev[activeTab].sections.filter((s) => s.id !== sectionId),
+        },
+      }
+    );
   };
 
-  const handlePublish = () => {
-    const nextVersion = bumpPatchVersion(currentDoc.version);
-    setDocs((prev) => ({
-      ...prev,
-      [activeTab]: {
-        ...prev[activeTab],
-        version: nextVersion,
-        updatedAt: new Date().toISOString(),
-      },
-    }));
-    setLastPublishedVersion(nextVersion);
-    setSavedSuccess(true);
-    setTimeout(() => {
-      setSavedSuccess(false);
-    }, 4000);
+  const handlePublish = async () => {
+    if (!currentDoc) return;
+    setPublishing(true);
+    setPublishError(null);
+    try {
+      const res = await adminFetch(`/api/backend/legal/${activeTab}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: currentDoc.title,
+          sections: currentDoc.sections,
+        }),
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to publish (HTTP ${res.status})`);
+      }
+      const updated: LegalDocRecord = await res.json();
+      setDocs((prev) => prev && { ...prev, [activeTab]: updated });
+      setLastPublishedVersion(updated.version);
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 4000);
+    } catch (err) {
+      setPublishError(err instanceof Error ? err.message : "Failed to publish changes");
+    } finally {
+      setPublishing(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 py-24 text-muted-foreground">
+        <Loader2 className="h-6 w-6 animate-spin" />
+        <p className="text-sm">Loading legal documents…</p>
+      </div>
+    );
+  }
+
+  if (loadError || !docs) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 py-24 max-w-md mx-auto text-center">
+        <AlertTriangle className="h-8 w-8 text-destructive" />
+        <p className="text-sm font-semibold text-foreground">Couldn&apos;t load legal documents</p>
+        <p className="text-xs text-muted-foreground">{loadError}</p>
+        <Button type="button" size="sm" variant="outline" onClick={fetchDocs}>
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
+  if (!currentDoc) return null;
 
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto w-full">
@@ -133,22 +196,35 @@ export default function LegalPage() {
           <Button
             type="button"
             size="sm"
+            disabled={publishing}
             className="h-9 px-5 bg-[#0094F7] hover:bg-[#007cd6] text-white text-xs gap-1.5 font-semibold shadow-sm"
             onClick={handlePublish}
           >
-            <Save className="h-3.5 w-3.5" />
-            <span>Publish & Bump Version</span>
+            {publishing ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Save className="h-3.5 w-3.5" />
+            )}
+            <span>{publishing ? "Publishing…" : "Publish & Bump Version"}</span>
           </Button>
         </div>
       </div>
 
       {/* Save Success Alert */}
-      {savedSuccess && (
+      {savedSuccess && currentDoc && (
         <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center gap-2.5 text-emerald-700 dark:text-emerald-400 text-xs font-medium">
           <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
           <span>
-            Successfully published <strong>{currentDoc.title}</strong> as version <strong>v{lastPublishedVersion}</strong>! Mobile clients will receive this update immediately.
+            Successfully published <strong>{currentDoc.title}</strong> as version <strong>v{lastPublishedVersion}</strong>! The app will pick this up the next time it loads the document.
           </span>
+        </div>
+      )}
+
+      {/* Publish Error Alert */}
+      {publishError && (
+        <div className="p-3.5 bg-destructive/10 border border-destructive/30 rounded-xl flex items-center gap-2.5 text-destructive text-xs font-medium">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span>{publishError}</span>
         </div>
       )}
 

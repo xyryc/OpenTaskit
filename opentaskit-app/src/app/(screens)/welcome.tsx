@@ -122,14 +122,24 @@ export default function WelcomeScreen() {
         <Text className="font-geist text-center text-[11.5px] leading-relaxed text-ink-400">
           By continuing you agree to our{' '}
           <Text
-            onPress={() => router.push('/settings/legal/terms' as any)}
+            onPress={() =>
+              router.push({
+                pathname: '/(screens)/legal/[doc]',
+                params: { doc: 'terms' },
+              } as any)
+            }
             className="font-geist-medium font-medium text-ink-700 underline"
           >
             Terms
           </Text>{' '}
           and{' '}
           <Text
-            onPress={() => router.push('/settings/legal/privacy' as any)}
+            onPress={() =>
+              router.push({
+                pathname: '/(screens)/legal/[doc]',
+                params: { doc: 'privacy' },
+              } as any)
+            }
             className="font-geist-medium font-medium text-ink-700 underline"
           >
             Privacy Policy

@@ -55,6 +55,7 @@ import type {
   CreatePortfolioItemPayload,
   ProviderServiceRecord,
   PortfolioItemRecord,
+  LegalDocumentResponse,
   RefreshPayload,
   RefreshResponse,
   RegisterPayload,
@@ -347,6 +348,7 @@ export const apiSlice = createApi({
     "Payment",
     "Notification",
     "Message",
+    "Legal",
   ],
   // Two-sided marketplace state (task/offer status) changes from the OTHER
   // party's device, which this client has no way to know about until it
@@ -433,6 +435,12 @@ export const apiSlice = createApi({
     removePortfolioItem: builder.mutation<{ success: boolean }, string>({
       query: (itemId) => ({ url: `/users/me/portfolio/${itemId}`, method: "DELETE" }),
       invalidatesTags: [{ type: "User", id: "ME" }],
+    }),
+
+    // Legal documents (admin-editable Terms of Service / Privacy Policy)
+    getLegalDocument: builder.query<LegalDocumentResponse, string>({
+      query: (slug) => `/legal/${slug}`,
+      providesTags: (_result, _error, slug) => [{ type: "Legal", id: slug }],
     }),
 
     // Tasks Marketplace
@@ -956,6 +964,7 @@ export const {
   useRemoveServiceMutation,
   useAddPortfolioItemMutation,
   useRemovePortfolioItemMutation,
+  useGetLegalDocumentQuery,
   useGetSavedTasksQuery,
   useSaveTaskMutation,
   useUnsaveTaskMutation,

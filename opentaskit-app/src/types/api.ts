@@ -13,6 +13,20 @@ export interface MyProfileStats {
   unreadNotifications: number;
 }
 
+export interface LegalDocSection {
+  id: string;
+  heading: string;
+  body: string;
+}
+
+export interface LegalDocumentResponse {
+  slug: string;
+  title: string;
+  version: string;
+  sections: LegalDocSection[];
+  updatedAt: string;
+}
+
 export interface UpdateMyProfilePayload {
   fullName?: string;
   phoneNumber?: string;

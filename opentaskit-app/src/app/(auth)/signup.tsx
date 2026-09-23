@@ -174,8 +174,30 @@ export default function SignUpScreen() {
 
               <Text className="font-geist text-[13px] leading-snug text-ink-700 flex-1">
                 I agree to the{' '}
-                <Text className="font-geist-semibold font-semibold underline text-ink">Terms of Service</Text> and{' '}
-                <Text className="font-geist-semibold font-semibold underline text-ink">Privacy Policy</Text>, including how my identity is verified.
+                <Text
+                  onPress={() =>
+                    router.push({
+                      pathname: '/(screens)/legal/[doc]',
+                      params: { doc: 'terms' },
+                    } as any)
+                  }
+                  className="font-geist-semibold font-semibold underline text-ink"
+                >
+                  Terms of Service
+                </Text>{' '}
+                and{' '}
+                <Text
+                  onPress={() =>
+                    router.push({
+                      pathname: '/(screens)/legal/[doc]',
+                      params: { doc: 'privacy' },
+                    } as any)
+                  }
+                  className="font-geist-semibold font-semibold underline text-ink"
+                >
+                  Privacy Policy
+                </Text>
+                , including how my identity is verified.
               </Text>
             </Pressable>
 

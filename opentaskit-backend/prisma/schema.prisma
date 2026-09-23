@@ -515,7 +515,23 @@ model PayoutRequest {
 model PlatformConfig {
   id                 String   @id @default("singleton")
   platformFeePercent Float    @default(10)
+  minTaskBudgetLkr   Float    @default(1000)
+  supportEmail       String   @default("support@opentaskit.com")
+  supportHotline     String   @default("+94 11 234 5678")
   updatedAt          DateTime @updatedAt
+}
+
+// Admin-editable legal content (Terms of Service, Privacy Policy) rendered
+// directly in the mobile app. `slug` is a plain string ("terms" | "privacy")
+// rather than an enum so new documents don't require a migration.
+model LegalDocument {
+  id        String   @id @default(uuid())
+  slug      String   @unique
+  title     String
+  version   String   @default("1.0.0")
+  sections  Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum PaymentStatus {
