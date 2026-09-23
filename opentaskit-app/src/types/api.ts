@@ -510,6 +510,49 @@ export interface MyDisputesResponse {
 }
 
 // ---------------------------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------------------------
+
+export type NotificationTypeValue =
+  | 'OFFER'
+  | 'TASK'
+  | 'MESSAGE'
+  | 'REVIEW'
+  | 'PAYMENT'
+  | 'DISPUTE'
+  | 'SYSTEM';
+
+export interface NotificationRecord {
+  id: string;
+  type: NotificationTypeValue;
+  title: string;
+  body: string;
+  isRead: boolean;
+  taskId: string | null;
+  actionUrl: string | null;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NotificationsQuery {
+  unreadOnly?: boolean;
+  page?: number;
+  limit?: number;
+}
+
+export interface NotificationsResponse {
+  unreadCount: number;
+  notifications: NotificationRecord[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Payments & Escrow
 // ---------------------------------------------------------------------------
 

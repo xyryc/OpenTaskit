@@ -38,6 +38,8 @@ import type {
   MyReviewsQuery,
   MyReviewsResponse,
   MyWalletResponse,
+  NotificationsQuery,
+  NotificationsResponse,
   OfferItem,
   PaginatedTasksResponse,
   PaymentTaskStatus,
@@ -336,6 +338,7 @@ export const apiSlice = createApi({
     "BankAccount",
     "Payout",
     "Payment",
+    "Notification",
   ],
   // Two-sided marketplace state (task/offer status) changes from the OTHER
   // party's device, which this client has no way to know about until it
@@ -698,6 +701,33 @@ export const apiSlice = createApi({
       queryFn: (formData, api) => multipartUpload("/uploads", formData, api),
     }),
 
+    // Notifications
+    getNotifications: builder.query<NotificationsResponse, NotificationsQuery | void>({
+      query: (params) => ({ url: '/notifications', params: params ?? undefined }),
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.notifications.map(({ id }) => ({ type: 'Notification' as const, id })),
+              { type: 'Notification' as const, id: 'LIST' },
+            ]
+          : [{ type: 'Notification' as const, id: 'LIST' }],
+    }),
+
+    markNotificationRead: builder.mutation<{ message: string }, string>({
+      query: (id) => ({ url: `/notifications/${id}/read`, method: 'PATCH' }),
+      invalidatesTags: [{ type: 'Notification', id: 'LIST' }],
+    }),
+
+    markAllNotificationsRead: builder.mutation<{ message: string; count: number }, void>({
+      query: () => ({ url: '/notifications/read-all', method: 'PATCH' }),
+      invalidatesTags: [{ type: 'Notification', id: 'LIST' }],
+    }),
+
+    deleteNotification: builder.mutation<{ message: string; id: string }, string>({
+      query: (id) => ({ url: `/notifications/${id}`, method: 'DELETE' }),
+      invalidatesTags: [{ type: 'Notification', id: 'LIST' }],
+    }),
+
     // Payments / Escrow
     initiateCheckout: builder.mutation<InitiateCheckoutResponse, string>({
       query: (taskId) => ({ url: `/payments/checkout/${taskId}`, method: 'POST' }),
@@ -830,6 +860,10 @@ export const {
   useGetDisputesForTaskQuery,
   useGetMyDisputesQuery,
   useUploadImagesMutation,
+  useGetNotificationsQuery,
+  useMarkNotificationReadMutation,
+  useMarkAllNotificationsReadMutation,
+  useDeleteNotificationMutation,
   useInitiateCheckoutMutation,
   useGetPaymentStatusQuery,
   useLazyGetPaymentStatusQuery,

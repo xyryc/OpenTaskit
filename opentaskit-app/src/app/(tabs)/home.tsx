@@ -20,7 +20,7 @@ import {
 
 import { useApp } from "@/contexts/AppContext";
 import { useAppSelector } from "@/store";
-import { useGetCategoriesQuery, useGetMyProfileQuery, useGetTasksQuery } from "@/store/api/apiSlice";
+import { useGetCategoriesQuery, useGetMyProfileQuery, useGetNotificationsQuery, useGetTasksQuery } from "@/store/api/apiSlice";
 import { getCachedCategories, setCachedCategories } from "@/utils/categoryCache";
 import { greetingKey } from "@/utils/i18n";
 import { initialsOf } from "@/utils/format";
@@ -45,7 +45,6 @@ export default function HomeScreen() {
     me,
     mode,
     setMode,
-    unreadNotifications,
     unreadMessages,
     currentLocation,
     requireAccount,
@@ -53,6 +52,8 @@ export default function HomeScreen() {
 
   const guest = useAppSelector((state) => state.auth.guest);
   const { data: profile } = useGetMyProfileQuery(undefined, { skip: guest });
+  const { data: notificationsData } = useGetNotificationsQuery(undefined, { skip: guest });
+  const unreadNotifications = notificationsData?.unreadCount ?? 0;
   const displayName = profile?.fullName ?? me.name;
   const firstName = displayName.split(" ")[0];
 

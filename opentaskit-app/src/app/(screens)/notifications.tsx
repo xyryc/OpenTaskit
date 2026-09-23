@@ -11,58 +11,20 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   BellOff,
   CheckCheck,
-  CircleDollarSign,
-  Gavel,
-  MessageCircle,
-  Send,
-  Settings2,
-  Sparkles,
-  Star,
 } from 'lucide-react-native';
 
-import { useApp } from '@/contexts/AppContext';
 import { timeAgo } from '@/utils/format';
-import type { NotificationKind } from '@/types';
+import { notificationKind, resolveNotificationRoute } from '@/utils/notifications';
+import { NOTIFICATION_KIND_META } from '@/components/notifications/notificationMeta';
+import type { NotificationKind, NotificationRecord } from '@/types';
+import {
+  useGetNotificationsQuery,
+  useMarkNotificationReadMutation,
+  useMarkAllNotificationsReadMutation,
+} from '@/store/api/apiSlice';
 import { Screen, ScreenHeader } from '@/components/layout/Screen';
-import { EmptyState } from '@/components/ui/Feedback';
+import { EmptyState, ListSkeleton } from '@/components/ui/Feedback';
 import { SelectChip } from '@/components/ui/Chip';
-
-const KIND_META: Record<
-  NotificationKind,
-  {
-    icon: React.ReactNode;
-    iconBg: string;
-  }
-> = {
-  offer: {
-    icon: <Send size={18} color="#0094F7" />,
-    iconBg: 'bg-brand-tint',
-  },
-  message: {
-    icon: <MessageCircle size={18} color="#0072C4" />,
-    iconBg: 'bg-info/10',
-  },
-  task: {
-    icon: <Sparkles size={18} color="#0094F7" />,
-    iconBg: 'bg-brand-tint',
-  },
-  payment: {
-    icon: <CircleDollarSign size={18} color="#0E9F6E" />,
-    iconBg: 'bg-success/10',
-  },
-  dispute: {
-    icon: <Gavel size={18} color="#C7382F" />,
-    iconBg: 'bg-danger/10',
-  },
-  review: {
-    icon: <Star size={18} color="#C27803" />,
-    iconBg: 'bg-warning/15',
-  },
-  system: {
-    icon: <Settings2 size={18} color="#2B3A41" />,
-    iconBg: 'bg-ink-100',
-  },
-};
 
 const FILTERS: { key: NotificationKind | 'all'; label: string }[] = [
   { key: 'all', label: 'All' },
@@ -78,18 +40,29 @@ const FILTERS: { key: NotificationKind | 'all'; label: string }[] = [
 export default function NotificationsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const {
-    notifications,
-    markNotificationRead,
-    markAllNotificationsRead,
-    unreadNotifications,
-  } = useApp();
+
+  const { data, isLoading } = useGetNotificationsQuery({ limit: 50 });
+  const [markNotificationRead] = useMarkNotificationReadMutation();
+  const [markAllNotificationsRead] = useMarkAllNotificationsReadMutation();
 
   const [filter, setFilter] = useState<NotificationKind | 'all'>('all');
 
+  const notifications = data?.notifications ?? [];
+  const unreadNotifications = data?.unreadCount ?? 0;
+
   const list = notifications.filter(
-    (item) => filter === 'all' || item.kind === filter
+    (item) => filter === 'all' || notificationKind(item) === filter
   );
+
+  const handlePress = (item: NotificationRecord) => {
+    if (!item.isRead) {
+      markNotificationRead(item.id);
+    }
+    const route = resolveNotificationRoute(item);
+    if (route) {
+      router.push(route as any);
+    }
+  };
 
   return (
     <Screen tone="canvas" edges={['top']}>
@@ -106,7 +79,7 @@ export default function NotificationsScreen() {
         actions={
           unreadNotifications > 0 ? (
             <Pressable
-              onPress={markAllNotificationsRead}
+              onPress={() => markAllNotificationsRead()}
               className="flex-row items-center gap-1.5 rounded-full bg-ink-100 px-3 py-1.5 active:bg-ink-200"
               style={{ gap: 6 }}
             >
@@ -148,7 +121,9 @@ export default function NotificationsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View className="px-5 pt-4">
-          {list.length === 0 ? (
+          {isLoading ? (
+            <ListSkeleton count={5} />
+          ) : list.length === 0 ? (
             <View className="py-12">
               <EmptyState
                 icon={<BellOff size={32} color="#8A959B" />}
@@ -161,18 +136,13 @@ export default function NotificationsScreen() {
           ) : (
             <View className="gap-2.5" style={{ gap: 10 }}>
               {list.map((item) => {
-                const meta = KIND_META[item.kind] ?? KIND_META.system;
+                const meta = NOTIFICATION_KIND_META[notificationKind(item)] ?? NOTIFICATION_KIND_META.system;
                 return (
                   <Pressable
                     key={item.id}
-                    onPress={() => {
-                      markNotificationRead(item.id);
-                      if (item.actionTo) {
-                        router.push(item.actionTo as any);
-                      }
-                    }}
+                    onPress={() => handlePress(item)}
                     className={`flex-row gap-3 rounded-3xl border p-4 active:bg-ink-100/60 ${
-                      item.read
+                      item.isRead
                         ? 'border-ink-200 bg-white'
                         : 'border-brand/40 bg-brand-tint/30'
                     }`}
@@ -192,7 +162,7 @@ export default function NotificationsScreen() {
                         >
                           {item.title}
                         </Text>
-                        {!item.read && (
+                        {!item.isRead && (
                           <View className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand" />
                         )}
                       </View>
@@ -206,13 +176,8 @@ export default function NotificationsScreen() {
 
                       <View className="mt-2 flex-row items-center gap-2">
                         <Text className="font-geist text-[11.5px] text-ink-400">
-                          {timeAgo(item.at)}
+                          {timeAgo(item.createdAt)}
                         </Text>
-                        {item.actionLabel && (
-                          <Text className="font-geist-medium text-[11.5px] text-brand">
-                            · {item.actionLabel}
-                          </Text>
-                        )}
                       </View>
                     </View>
                   </Pressable>

@@ -10,13 +10,18 @@ import {
   User as UserIcon,
 } from 'lucide-react-native';
 import { useApp } from '@/contexts/AppContext';
+import { useAppSelector } from '@/store';
+import { useGetNotificationsQuery } from '@/store/api/apiSlice';
 
 const TAB_KEYS = ['home', 'discover', 'activity', 'profile'];
 
 function CustomTabBar({ state, navigation }: any) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { t, unreadNotifications, pendingOfferCount, unreadMessages, requireAccount } = useApp();
+  const { t, pendingOfferCount, unreadMessages, requireAccount } = useApp();
+  const { guest } = useAppSelector((s) => s.auth);
+  const { data: notificationsData } = useGetNotificationsQuery(undefined, { skip: guest });
+  const unreadNotifications = notificationsData?.unreadCount ?? 0;
 
   const currentRouteName = state.routes[state.index]?.name || 'home';
   const activeIndex = Math.max(0, TAB_KEYS.indexOf(currentRouteName));

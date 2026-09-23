@@ -316,7 +316,7 @@ export default function ProfileScreen() {
               icon={<Bell size={18} color="#0072C4" />}
               label="Alerts"
               note={`${profile?.stats.unreadNotifications ?? 0}`}
-              onPress={() => toast({ title: 'Notifications', description: `You have ${profile?.stats.unreadNotifications ?? 0} unread notification(s).`, variant: 'info' })}
+              onPress={() => router.push('/(screens)/notifications' as any)}
             />
             <Tile
               icon={<MessageCircle size={18} color="#0072C4" />}
