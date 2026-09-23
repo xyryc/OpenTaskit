@@ -46,7 +46,9 @@
         {
           "locationWhenInUsePermission": "Allow OpenTaskit to access your location to find nearby tasks and set task locations."
         }
-      ]
+      ],
+      "expo-image",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,

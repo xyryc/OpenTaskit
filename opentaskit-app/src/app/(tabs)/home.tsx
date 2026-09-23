@@ -21,6 +21,7 @@ import {
 import { useApp } from "@/contexts/AppContext";
 import { useAppSelector } from "@/store";
 import { useGetCategoriesQuery, useGetMyProfileQuery, useGetNotificationsQuery, useGetTasksQuery } from "@/store/api/apiSlice";
+import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 import { getCachedCategories, setCachedCategories } from "@/utils/categoryCache";
 import { greetingKey } from "@/utils/i18n";
 import { initialsOf } from "@/utils/format";
@@ -45,7 +46,6 @@ export default function HomeScreen() {
     me,
     mode,
     setMode,
-    unreadMessages,
     currentLocation,
     requireAccount,
   } = useApp();
@@ -54,6 +54,7 @@ export default function HomeScreen() {
   const { data: profile } = useGetMyProfileQuery(undefined, { skip: guest });
   const { data: notificationsData } = useGetNotificationsQuery(undefined, { skip: guest });
   const unreadNotifications = notificationsData?.unreadCount ?? 0;
+  const unreadMessages = useUnreadMessages();
   const displayName = profile?.fullName ?? me.name;
   const firstName = displayName.split(" ")[0];
 
@@ -170,7 +171,7 @@ export default function HomeScreen() {
           </View>
 
           <Pressable
-            onPress={() => router.push("/messages" as any)}
+            onPress={() => router.push("/(screens)/chats" as any)}
             className="relative h-10 w-10 items-center justify-center rounded-full border border-ink-200/70 bg-white"
           >
             <MessageCircle size={18} color="#0C1417" />

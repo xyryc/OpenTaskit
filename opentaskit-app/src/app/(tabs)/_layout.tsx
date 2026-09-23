@@ -12,16 +12,18 @@ import {
 import { useApp } from '@/contexts/AppContext';
 import { useAppSelector } from '@/store';
 import { useGetNotificationsQuery } from '@/store/api/apiSlice';
+import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 
 const TAB_KEYS = ['home', 'discover', 'activity', 'profile'];
 
 function CustomTabBar({ state, navigation }: any) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { t, pendingOfferCount, unreadMessages, requireAccount } = useApp();
+  const { t, pendingOfferCount, requireAccount } = useApp();
   const { guest } = useAppSelector((s) => s.auth);
   const { data: notificationsData } = useGetNotificationsQuery(undefined, { skip: guest });
   const unreadNotifications = notificationsData?.unreadCount ?? 0;
+  const unreadMessages = useUnreadMessages();
 
   const currentRouteName = state.routes[state.index]?.name || 'home';
   const activeIndex = Math.max(0, TAB_KEYS.indexOf(currentRouteName));

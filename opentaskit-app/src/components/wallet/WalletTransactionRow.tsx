@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
+import { useRouter } from 'expo-router';
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -40,11 +41,13 @@ export function WalletTransactionRow({
 }: {
   transaction: WalletTransactionItem;
 }) {
+  const router = useRouter();
   const meta = TYPE_META[transaction.type] ?? TYPE_META.ADJUSTMENT;
 
   return (
-    <View
-      className="flex-row items-center gap-3 rounded-2xl p-2"
+    <Pressable
+      onPress={() => router.push(`/(screens)/wallet/transaction/${transaction.id}` as any)}
+      className="flex-row items-center gap-3 rounded-2xl p-2 active:bg-ink-100/60"
       style={{ gap: 12 }}
     >
       <View
@@ -71,6 +74,6 @@ export function WalletTransactionRow({
           {signedMoney(transaction.amount)}
         </Text>
       </View>
-    </View>
+    </Pressable>
   );
 }

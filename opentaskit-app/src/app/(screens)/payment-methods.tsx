@@ -23,6 +23,12 @@ import {
 } from 'lucide-react-native';
 
 import { useApp } from '@/contexts/AppContext';
+import {
+  useGetMyBankAccountsQuery,
+  useCreateBankAccountMutation,
+  useDeleteBankAccountMutation,
+  useGetMyWalletQuery,
+} from '@/store/api/apiSlice';
 import { money } from '@/utils/format';
 import { Screen, ScreenHeader } from '@/components/layout/Screen';
 import { Button } from '@/components/ui/Button';
@@ -30,67 +36,77 @@ import { Chip } from '@/components/ui/Chip';
 import { TextField } from '@/components/ui/Input';
 import { BottomSheet, ConfirmDialog } from '@/components/ui/Overlay';
 
-interface BankAccount {
-  id: string;
-  bankName: string;
-  accountNumber: string;
-  accountName: string;
-}
-
 export default function PaymentMethodsScreen() {
   const router = useRouter();
-  const { wallet, toast } = useApp();
+  const { toast } = useApp();
 
-  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([
-    {
-      id: 'bank-1',
-      bankName: 'Commercial Bank of Ceylon',
-      accountNumber: '••••4417',
-      accountName: 'Personal Checking',
-    },
-  ]);
+  const { data: bankAccounts = [], isLoading: isAccountsLoading } = useGetMyBankAccountsQuery();
+  const { data: walletData } = useGetMyWalletQuery();
+  const [createBankAccount, { isLoading: isCreating }] = useCreateBankAccountMutation();
+  const [deleteBankAccount, { isLoading: isDeleting }] = useDeleteBankAccountMutation();
 
   const [addBankOpen, setAddBankOpen] = useState(false);
   const [newBankName, setNewBankName] = useState('');
+  const [newBranch, setNewBranch] = useState('');
   const [newAccountNumber, setNewAccountNumber] = useState('');
   const [newAccountName, setNewAccountName] = useState('');
   const [removeBankId, setRemoveBankId] = useState<string | null>(null);
 
-  const handleAddBank = () => {
-    if (!newBankName.trim() || !newAccountNumber.trim() || !newAccountName.trim()) {
-      Alert.alert('Incomplete details', 'Please fill in all bank account fields.');
+  const handleAddBank = async () => {
+    if (
+      !newBankName.trim() ||
+      !newBranch.trim() ||
+      !newAccountNumber.trim() ||
+      !newAccountName.trim()
+    ) {
+      Alert.alert('Incomplete details', 'Please fill in all bank account fields including branch.');
       return;
     }
 
-    const last4 = newAccountNumber.trim().slice(-4) || '1234';
-    const newAccount: BankAccount = {
-      id: `bank-${Date.now()}`,
-      bankName: newBankName.trim(),
-      accountNumber: `••••${last4}`,
-      accountName: newAccountName.trim(),
-    };
+    try {
+      const created = await createBankAccount({
+        bankName: newBankName.trim(),
+        branch: newBranch.trim(),
+        accountNumber: newAccountNumber.trim(),
+        accountHolderName: newAccountName.trim(),
+      }).unwrap();
 
-    setBankAccounts([...bankAccounts, newAccount]);
-    setAddBankOpen(false);
-    setNewBankName('');
-    setNewAccountNumber('');
-    setNewAccountName('');
+      setAddBankOpen(false);
+      setNewBankName('');
+      setNewBranch('');
+      setNewAccountNumber('');
+      setNewAccountName('');
 
-    toast({
-      title: 'Bank account added',
-      description: `${newAccount.bankName} has been linked for withdrawals.`,
-      variant: 'success',
-    });
+      toast({
+        title: 'Bank account added',
+        description: `${created.bankName} has been linked for withdrawals.`,
+        variant: 'success',
+      });
+    } catch (err: any) {
+      toast({
+        title: 'Failed to link account',
+        description: err?.data?.message || 'Could not add bank account. Please check details.',
+        variant: 'error',
+      });
+    }
   };
 
-  const handleConfirmRemoveBank = () => {
+  const handleConfirmRemoveBank = async () => {
     if (!removeBankId) return;
-    setBankAccounts(bankAccounts.filter((b) => b.id !== removeBankId));
-    setRemoveBankId(null);
-    toast({
-      title: 'Bank account removed',
-      variant: 'info',
-    });
+    try {
+      await deleteBankAccount(removeBankId).unwrap();
+      setRemoveBankId(null);
+      toast({
+        title: 'Bank account removed',
+        variant: 'info',
+      });
+    } catch (err: any) {
+      toast({
+        title: 'Failed to remove account',
+        description: err?.data?.message || 'Could not remove bank account.',
+        variant: 'error',
+      });
+    }
   };
 
   return (
@@ -100,7 +116,7 @@ export default function PaymentMethodsScreen() {
       {/* Screen Header */}
       <ScreenHeader
         title="Payment methods"
-        subtitle={`Wallet balance ${money(wallet.available)}`}
+        subtitle={`Wallet balance ${money(walletData?.availableBalance ?? 0)}`}
       />
 
       <ScrollView
@@ -157,37 +173,46 @@ export default function PaymentMethodsScreen() {
                     Digital wallet
                   </Text>
                   <Text className="mt-0.5 font-geist text-[12.5px] text-ink-500">
-                    {money(wallet.available)} available · instant task settlement
+                    {money(walletData?.availableBalance ?? 0)} available · instant task settlement
                   </Text>
                 </View>
                 <CheckCircle2 size={20} color="#0094F7" />
               </View>
 
               {/* Connected Bank Accounts */}
-              {bankAccounts.map((bank) => (
-                <View key={bank.id} className="flex-row items-center gap-3.5 p-4" style={{ gap: 14 }}>
-                  <View className="h-11 w-11 items-center justify-center rounded-2xl bg-ink-100">
-                    <Landmark size={20} color="#2B3A41" />
-                  </View>
-                  <View className="flex-1 min-w-0">
-                    <Text className="text-[14.5px] font-geist-semibold text-ink">
-                      {bank.bankName} {bank.accountNumber}
-                    </Text>
-                    <Text className="mt-0.5 font-geist text-[12.5px] text-ink-500">
-                      Used for top-ups and withdrawals
-                    </Text>
-                  </View>
-                  <Pressable
-                    onPress={() => setRemoveBankId(bank.id)}
-                    hitSlop={8}
-                    className="p-1 active:opacity-60"
-                  >
-                    <Text className="font-geist-medium text-[12.5px] text-danger">
-                      Remove
-                    </Text>
-                  </Pressable>
+              {bankAccounts.length === 0 ? (
+                <View className="p-4 items-center justify-center">
+                  <Text className="font-geist text-[13px] text-ink-400 text-center">
+                    No bank accounts linked yet. Add an account for withdrawals.
+                  </Text>
                 </View>
-              ))}
+              ) : (
+                bankAccounts.map((bank) => (
+                  <View key={bank.id} className="flex-row items-center gap-3.5 p-4" style={{ gap: 14 }}>
+                    <View className="h-11 w-11 items-center justify-center rounded-2xl bg-ink-100">
+                      <Landmark size={20} color="#2B3A41" />
+                    </View>
+                    <View className="flex-1 min-w-0">
+                      <Text className="text-[14.5px] font-geist-semibold text-ink">
+                        {bank.bankName} {bank.branch ? `(${bank.branch})` : ''}
+                      </Text>
+                      <Text className="mt-0.5 font-geist text-[12.5px] text-ink-500">
+                        ••••{bank.accountNumber.slice(-4) || '••••'} · {bank.accountHolderName}
+                      </Text>
+                    </View>
+                    <Pressable
+                      onPress={() => setRemoveBankId(bank.id)}
+                      hitSlop={8}
+                      className="p-1 active:opacity-60"
+                      disabled={isDeleting}
+                    >
+                      <Text className="font-geist-medium text-[12.5px] text-danger">
+                        Remove
+                      </Text>
+                    </Pressable>
+                  </View>
+                ))
+              )}
             </View>
           </View>
 
@@ -269,7 +294,7 @@ export default function PaymentMethodsScreen() {
         title="Add a payout account"
         description="Link a Sri Lankan bank account to withdraw your task earnings."
         footer={
-          <Button full size="lg" variant="brand" onPress={handleAddBank}>
+          <Button full size="lg" variant="brand" loading={isCreating} onPress={handleAddBank}>
             Link bank account
           </Button>
         }
@@ -280,6 +305,12 @@ export default function PaymentMethodsScreen() {
             placeholder="e.g. Commercial Bank, HNB, Sampath"
             value={newBankName}
             onChangeText={setNewBankName}
+          />
+          <TextField
+            label="Branch / City"
+            placeholder="e.g. Colombo Fort, Kandy"
+            value={newBranch}
+            onChangeText={setNewBranch}
           />
           <TextField
             label="Account holder name"

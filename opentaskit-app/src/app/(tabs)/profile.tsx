@@ -41,6 +41,7 @@ import { useAuthActions } from '@/hooks/useAuthActions';
 import { useAppSelector } from '@/store';
 import { useGetMyProfileQuery, useGetMyKycQuery } from '@/store/api/apiSlice';
 import { useSavedTasks } from '@/hooks/useSavedTasks';
+import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -49,11 +50,11 @@ export default function ProfileScreen() {
   const {
     me,
     wallet,
-    unreadMessages,
     available,
     toggleAvailable,
     toast,
   } = useApp();
+  const unreadMessages = useUnreadMessages();
 
   const { data: profile, refetch: refetchProfile } = useGetMyProfileQuery(undefined, { skip: guest });
   const { data: kycData, refetch: refetchKyc } = useGetMyKycQuery(undefined, { skip: guest });
@@ -321,7 +322,8 @@ export default function ProfileScreen() {
             <Tile
               icon={<MessageCircle size={18} color="#0072C4" />}
               label="Chats"
-              note={`${unreadMessages}`}
+              note={unreadMessages > 0 ? `${unreadMessages} unread` : 'View chats'}
+              badge={unreadMessages}
               onPress={() => router.push('/(screens)/chats')}
             />
           </View>
@@ -449,11 +451,13 @@ function Tile({
   icon,
   label,
   note,
+  badge,
   onPress,
 }: {
   icon: React.ReactNode;
   label: string;
   note: string;
+  badge?: number;
   onPress: () => void;
 }) {
   return (
@@ -461,8 +465,15 @@ function Tile({
       onPress={onPress}
       className="flex-1 items-center gap-1.5 rounded-3xl border border-ink-200 bg-white py-3.5 active:bg-ink-100"
     >
-      <View className="h-9 w-9 items-center justify-center rounded-xl bg-brand-tint">
+      <View className="relative h-9 w-9 items-center justify-center rounded-xl bg-brand-tint">
         {icon}
+        {!!badge && badge > 0 && (
+          <View className="absolute -right-1.5 -top-1.5 h-4 min-w-[16px] items-center justify-center rounded-full bg-danger px-1">
+            <Text className="text-[10px] font-geist-bold font-bold text-white">
+              {badge}
+            </Text>
+          </View>
+        )}
       </View>
       <Text className="font-geist-medium text-[11.5px] text-ink">{label}</Text>
       <Text

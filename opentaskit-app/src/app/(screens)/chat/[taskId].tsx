@@ -8,85 +8,186 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
+  Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import {
   Camera,
   ChevronLeft,
+  ChevronRight,
   ImagePlus,
+  MapPin,
   MessageCircle,
   Paperclip,
   Send,
   X,
 } from 'lucide-react-native';
 
-import { useApp } from '@/contexts/AppContext';
-import { ME } from '@/data/users';
-import { counterpartyId } from '@/utils/conversations';
-import { money } from '@/utils/format';
-import { IMG } from '@/data/images';
+import { useAppSelector } from '@/store';
+import {
+  useGetMessageThreadQuery,
+  useSendMessageMutation,
+  useUploadImagesMutation,
+} from '@/store/api/apiSlice';
+import { getApiErrorMessage } from '@/utils/apiError';
+import { money, timeAgo } from '@/utils/format';
+import { API_TASK_STATUS_MAP } from '@/utils/taskFilters';
 import { Screen } from '@/components/layout/Screen';
 import { Avatar } from '@/components/ui/Avatar';
 import { BottomSheet } from '@/components/ui/Overlay';
-import { EmptyState } from '@/components/ui/Feedback';
-import { ChatBubble, TypingBubble } from '@/components/chat/ChatBubble';
+import { EmptyState, ListSkeleton } from '@/components/ui/Feedback';
+import { StatusChip } from '@/components/ui/Chip';
 import { CategoryBadge } from '@/components/CategoryIcon';
+import { ChatBubble } from '@/components/chat/ChatBubble';
+import type { Message as MockMessage } from '@/types';
+import type { MessageRecord } from '@/types';
+
+const ONLINE_THRESHOLD_MS = 2 * 60 * 1000;
+
+function toMockMessage(record: MessageRecord): MockMessage {
+  return {
+    id: record.id,
+    taskId: record.taskId,
+    senderId: record.senderId,
+    text: record.text ?? '',
+    at: record.createdAt,
+    attachment: record.attachmentUrl ?? undefined,
+    status: record.isRead ? 'seen' : 'delivered',
+  };
+}
 
 export default function ChatThreadScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { taskId } = useLocalSearchParams<{ taskId: string }>();
-  const { taskById, offers, userById, messagesForTask, sendMessage } = useApp();
+  const { taskId, otherUserId } = useLocalSearchParams<{
+    taskId: string;
+    otherUserId?: string;
+  }>();
+  const authUser = useAppSelector((s) => s.auth.user);
+
+  const {
+    data: thread,
+    isLoading,
+    error,
+  } = useGetMessageThreadQuery(
+    { taskId: taskId!, withUserId: otherUserId },
+    { skip: !taskId, pollingInterval: 4000 }
+  );
+  const [sendMessage, { isLoading: isSending }] = useSendMessageMutation();
+  const [uploadImages, { isLoading: isUploading }] = useUploadImagesMutation();
 
   const [draft, setDraft] = useState('');
-  const [attachment, setAttachment] = useState<string | null>(null);
+  const [localAttachment, setLocalAttachment] = useState<string | null>(null);
   const [attachOpen, setAttachOpen] = useState(false);
-  const [typing, setTyping] = useState(false);
+  const [headerBlockHeight, setHeaderBlockHeight] = useState(0);
   const scrollViewRef = useRef<ScrollView | null>(null);
 
-  const task = taskId ? taskById(taskId) : undefined;
-  const thread = taskId ? messagesForTask(taskId) : [];
+  const messages = thread?.messages.map(toMockMessage) ?? [];
 
   useEffect(() => {
     scrollViewRef.current?.scrollToEnd({ animated: true });
-  }, [thread.length, typing]);
+  }, [messages.length]);
 
-  if (!task) {
+  if (!taskId) {
+    return null;
+  }
+
+  if (isLoading) {
     return (
       <Screen tone="canvas" edges={['top']}>
         <StatusBar style="dark" />
-        <View className="flex-1 items-center justify-center p-6">
-          <Text className="text-[16px] font-geist-bold font-bold text-ink">Task not found</Text>
-          <Pressable
-            onPress={() => router.back()}
-            className="mt-4 rounded-xl bg-brand px-4 py-2"
-          >
-            <Text className="font-geist-semibold font-semibold text-white">Go back</Text>
-          </Pressable>
+        <View className="px-5 pt-4">
+          <ListSkeleton count={5} />
         </View>
       </Screen>
     );
   }
 
-  const other = userById(counterpartyId(task, offers));
-  const canSend = Boolean(draft.trim() || attachment);
+  if (error || !thread) {
+    return (
+      <Screen tone="canvas" edges={['top']}>
+        <StatusBar style="dark" />
+        <View className="flex-1 items-center justify-center p-6">
+          <EmptyState
+            icon={<MessageCircle size={32} color="#8A959B" />}
+            title="Can't open this conversation"
+            message={getApiErrorMessage(error, 'Something went wrong.')}
+            actionLabel="Go back"
+            onAction={() => router.back()}
+          />
+        </View>
+      </Screen>
+    );
+  }
 
-  const submit = () => {
+  const { task, otherUser } = thread;
+  const canSend = Boolean(draft.trim() || localAttachment) && !isSending && !isUploading;
+  const isOnline = Date.now() - new Date(otherUser.lastActiveAt).getTime() < ONLINE_THRESHOLD_MS;
+
+  const pickFromLibrary = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Photo access is required to attach an image.');
+      return;
+    }
+    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
+    if (!res.canceled && res.assets[0]?.uri) {
+      setLocalAttachment(res.assets[0].uri);
+    }
+    setAttachOpen(false);
+  };
+
+  const takePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Camera access is required to take a photo.');
+      return;
+    }
+    const res = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.8 });
+    if (!res.canceled && res.assets[0]?.uri) {
+      setLocalAttachment(res.assets[0].uri);
+    }
+    setAttachOpen(false);
+  };
+
+  const submit = async () => {
     if (!canSend) return;
-    sendMessage(task.id, draft.trim(), attachment ?? undefined);
-    setDraft('');
-    setAttachment(null);
-    setTyping(true);
-    setTimeout(() => setTyping(false), 2600);
+    try {
+      let attachmentUrl: string | undefined;
+      if (localAttachment) {
+        const formData = new FormData();
+        const filename = localAttachment.split('/').pop() || `chat-${Date.now()}.jpg`;
+        const match = /\.(\w+)$/.exec(filename);
+        const ext = match ? match[1].toLowerCase() : 'jpg';
+        const type = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+        formData.append('files', { uri: localAttachment, name: filename, type } as any);
+        const uploadRes = await uploadImages(formData).unwrap();
+        attachmentUrl = uploadRes.urls[0];
+      }
+
+      await sendMessage({
+        taskId,
+        text: draft.trim() || undefined,
+        attachmentUrl,
+        toUserId: otherUserId,
+      }).unwrap();
+
+      setDraft('');
+      setLocalAttachment(null);
+    } catch (err) {
+      Alert.alert('Message not sent', getApiErrorMessage(err, 'Please try again.'));
+    }
   };
 
   return (
     <Screen tone="canvas" edges={['top']}>
       <StatusBar style="dark" />
 
+      <View onLayout={(e) => setHeaderBlockHeight(e.nativeEvent.layout.height)}>
       {/* Screen Header */}
       <View className="z-20 shrink-0 bg-white border-b border-ink-100 px-3 py-3">
         <View className="flex-row items-center gap-2">
@@ -99,26 +200,79 @@ export default function ChatThreadScreen() {
           </Pressable>
 
           <Pressable
-            onPress={() => router.push(`/provider/${other.id}` as any)}
+            onPress={() => router.push(`/(screens)/provider/${otherUser.id}` as any)}
             className="flex-1 flex-row items-center gap-2.5 min-w-0"
           >
-            <Avatar user={other} size="sm" showVerified online />
+            <Avatar
+              user={{
+                name: otherUser.fullName,
+                initials: otherUser.fullName.slice(0, 2).toUpperCase(),
+                avatarUrl: otherUser.avatarUrl ?? undefined,
+                tone: 'bg-brand-tint',
+                verified: false,
+              }}
+              online={isOnline}
+              size="sm"
+            />
             <View className="flex-1 min-w-0">
               <Text numberOfLines={1} className="text-[15px] font-geist-bold font-bold text-ink">
-                {other.name}
+                {otherUser.fullName}
               </Text>
-              <Text className="text-[11.5px] font-geist-medium font-medium text-success">
-                Online now
+              <Text numberOfLines={1} className="font-geist text-[11px] text-ink-400">
+                {isOnline ? 'Active now' : `Active ${timeAgo(otherUser.lastActiveAt)}`}
               </Text>
             </View>
           </Pressable>
+
+          <StatusChip status={API_TASK_STATUS_MAP[task.status] ?? 'posted'} />
         </View>
+      </View>
+
+      {/* Fixed Task Reference Card */}
+      <View className="z-10 shrink-0 border-b border-ink-100 bg-canvas px-4 pt-3 pb-3">
+        <Pressable
+          onPress={() => router.push(`/(screens)/task/${task.id}` as any)}
+          className="flex-row items-center gap-3 rounded-3xl border border-ink-200 bg-white p-3.5"
+          style={{
+            gap: 12,
+            elevation: 1,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.05,
+            shadowRadius: 2,
+          }}
+        >
+          <CategoryBadge
+            categoryId={task.category?.id}
+            iconName={task.category?.icon}
+            size="md"
+          />
+
+          <View className="flex-1 min-w-0">
+            <Text numberOfLines={1} className="text-[13.5px] font-geist-bold font-bold text-ink">
+              {task.title}
+            </Text>
+            <View className="mt-0.5 flex-row items-center gap-1.5" style={{ gap: 6 }}>
+              <Text className="text-[12px] font-geist-semibold text-brand-dark">
+                {money(task.budget)}
+              </Text>
+              <Text className="text-ink-300">·</Text>
+              <MapPin size={11} color="#8A959B" />
+              <Text numberOfLines={1} className="flex-1 font-geist text-[12px] text-ink-500">
+                {task.address || (task.locationType === 'REMOTE' ? 'Remote' : 'In Person')}
+              </Text>
+            </View>
+          </View>
+
+          <ChevronRight size={18} color="#8A959B" />
+        </Pressable>
+      </View>
       </View>
 
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + headerBlockHeight : 0}
       >
         {/* Messages List */}
         <ScrollView
@@ -126,33 +280,10 @@ export default function ChatThreadScreen() {
           className="flex-1 px-4 pt-3"
           contentContainerStyle={{ paddingBottom: 20 }}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          {/* Top Task Reference Card */}
-          <Pressable
-            onPress={() => router.push(`/task/${task.id}` as any)}
-            className="mb-4 flex-row items-center gap-3 rounded-3xl border border-ink-200 bg-white p-3.5"
-            style={{
-              elevation: 1,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.05,
-              shadowRadius: 2,
-            }}
-          >
-            <CategoryBadge categoryId={task.categoryId} size="md" />
-            <View className="flex-1 min-w-0">
-              <Text numberOfLines={1} className="text-[13.5px] font-geist-bold font-bold text-ink">
-                {task.title}
-              </Text>
-              <Text className="font-geist mt-0.5 text-[12px] text-ink-500">
-                {money(task.budget)} · {task.location}
-              </Text>
-            </View>
-            <Text className="text-[12.5px] font-geist-semibold font-semibold text-brand">Open</Text>
-          </Pressable>
-
           {/* Thread messages */}
-          {thread.length === 0 ? (
+          {messages.length === 0 ? (
             <View className="py-8">
               <EmptyState
                 icon={<MessageCircle size={32} color="#0094F7" />}
@@ -162,22 +293,14 @@ export default function ChatThreadScreen() {
               />
             </View>
           ) : (
-            <>
-              <Text className="my-2 text-center text-[11px] font-geist-bold font-bold uppercase tracking-wider text-ink-400">
-                Today
-              </Text>
-
-              {thread.map((message) => (
-                <ChatBubble
-                  key={message.id}
-                  message={message}
-                  mine={message.senderId === ME}
-                />
-              ))}
-            </>
+            messages.map((message) => (
+              <ChatBubble
+                key={message.id}
+                message={message}
+                mine={message.senderId === authUser?.id}
+              />
+            ))
           )}
-
-          {typing && <TypingBubble name={other.name} />}
         </ScrollView>
 
         {/* Bottom Input Toolbar */}
@@ -188,15 +311,15 @@ export default function ChatThreadScreen() {
           ]}
         >
           {/* Attachment Preview if selected */}
-          {attachment && (
+          {localAttachment && (
             <View className="relative mb-2.5 ml-1 self-start">
               <Image
-                source={{ uri: attachment }}
+                source={{ uri: localAttachment }}
                 style={styles.previewImage}
                 contentFit="cover"
               />
               <Pressable
-                onPress={() => setAttachment(null)}
+                onPress={() => setLocalAttachment(null)}
                 hitSlop={6}
                 className="absolute -right-2 -top-2 h-6 w-6 items-center justify-center rounded-full bg-ink"
               >
@@ -258,10 +381,7 @@ export default function ChatThreadScreen() {
       >
         <View className="flex-row gap-3 pb-4">
           <Pressable
-            onPress={() => {
-              setAttachment(IMG.plumbing);
-              setAttachOpen(false);
-            }}
+            onPress={takePhoto}
             className="flex-1 items-center gap-2 rounded-3xl border border-ink-200 bg-white py-6"
           >
             <View className="h-12 w-12 items-center justify-center rounded-2xl bg-brand-tint">
@@ -271,10 +391,7 @@ export default function ChatThreadScreen() {
           </Pressable>
 
           <Pressable
-            onPress={() => {
-              setAttachment(IMG.cleaning);
-              setAttachOpen(false);
-            }}
+            onPress={pickFromLibrary}
             className="flex-1 items-center gap-2 rounded-3xl border border-ink-200 bg-white py-6"
           >
             <View className="h-12 w-12 items-center justify-center rounded-2xl bg-brand-tint">

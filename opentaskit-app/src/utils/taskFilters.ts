@@ -85,16 +85,18 @@ export function applyFilters(tasks: Task[], filters: TaskFilters, query = ''): T
   return sorted;
 }
 
+export const API_TASK_STATUS_MAP: Record<string, Task['status']> = {
+  OPEN: 'posted',
+  ASSIGNED: 'assigned',
+  IN_PROGRESS: 'in_progress',
+  AWAITING_CONFIRMATION: 'awaiting_completion',
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled',
+  DISPUTED: 'disputed',
+};
+
 export function mapApiTaskToTask(item: import('@/types/api').TaskItem): Task {
-  const statusMap: Record<string, Task['status']> = {
-    OPEN: 'posted',
-    ASSIGNED: 'assigned',
-    IN_PROGRESS: 'in_progress',
-    AWAITING_CONFIRMATION: 'awaiting_completion',
-    COMPLETED: 'completed',
-    CANCELLED: 'cancelled',
-    DISPUTED: 'disputed',
-  };
+  const statusMap = API_TASK_STATUS_MAP;
 
   const scheduleTypeMap: Record<string, Task['schedule']['type']> = {
     ASAP: 'asap',

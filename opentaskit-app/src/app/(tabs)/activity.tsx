@@ -33,6 +33,7 @@ import {
   useDeleteTaskMutation,
 } from '@/store/api/apiSlice';
 import { useSavedTasks } from '@/hooks/useSavedTasks';
+import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 
 type Tab = 'requests' | 'offers' | 'jobs';
 
@@ -52,12 +53,12 @@ export default function ActivityScreen() {
   const { savedCount } = useSavedTasks();
   const {
     tasks,
-    unreadMessages,
     deleteTask,
     requireAccount,
     toast,
   } = useApp();
   const guest = useAppSelector((state) => state.auth.guest);
+  const unreadMessages = useUnreadMessages();
 
   const [tab, setTab] = useState<Tab>(params.tab || 'requests');
   const [status, setStatus] = useState<TaskStatus | 'all'>('all');

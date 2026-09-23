@@ -4,24 +4,25 @@ import {
   Text,
   ScrollView,
   Pressable,
+  RefreshControl,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Inbox, SlidersHorizontal } from 'lucide-react-native';
 
-import { useApp } from '@/contexts/AppContext';
-import { ME } from '@/data/users';
+import { useGetCategoriesQuery, useGetTasksQuery } from '@/store/api/apiSlice';
 import { categoryById } from '@/data/categories';
 import {
   applyFilters,
   defaultFilters,
   sortOptions,
   activeFilterCount,
+  mapApiTaskToTask,
   type TaskFilters,
 } from '@/utils/taskFilters';
 import { Screen, ScreenHeader } from '@/components/layout/Screen';
-import { EmptyState } from '@/components/ui/Feedback';
+import { EmptyState, ListSkeleton } from '@/components/ui/Feedback';
 import { TaskCard } from '@/components/task/TaskCard';
 import { FilterSheet } from '@/components/task/FilterSheet';
 import { CategoryBadge } from '@/components/CategoryIcon';
@@ -32,26 +33,54 @@ export default function CategoryTasksScreen() {
   }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { tasks } = useApp();
 
-  const category = categoryById(categoryId);
+  const { data: categories = [] } = useGetCategoriesQuery();
+  const fallbackCategory = categoryById(categoryId);
+  const activeCategory =
+    categories.find((c) => c.id === categoryId || c.slug === categoryId) || fallbackCategory;
+  const backendCategoryId = activeCategory?.id;
+
   const [filters, setFilters] = useState<TaskFilters>({
     ...defaultFilters,
     categoryIds: [categoryId],
   });
   const [open, setOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const {
+    data: tasksData,
+    isLoading: tasksLoading,
+    refetch: refetchTasks,
+  } = useGetTasksQuery({
+    categoryId: backendCategoryId || undefined,
+    minBudget: filters.budgetMin > 0 ? filters.budgetMin : undefined,
+    maxBudget: filters.budgetMax < 30000 ? filters.budgetMax : undefined,
+  });
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refetchTasks();
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const liveTasks = useMemo(() => {
+    return tasksData?.data ? tasksData.data.map(mapApiTaskToTask) : [];
+  }, [tasksData]);
+
+  const openTasks = useMemo(
+    () =>
+      liveTasks.filter((task) =>
+        ['posted', 'receiving_offers'].includes(task.status)
+      ),
+    [liveTasks]
+  );
 
   const results = useMemo(
-    () =>
-      applyFilters(
-        tasks.filter(
-          (task) =>
-            task.requesterId !== ME &&
-            ['posted', 'receiving_offers'].includes(task.status)
-        ),
-        filters
-      ),
-    [tasks, filters]
+    () => applyFilters(openTasks, filters),
+    [openTasks, filters]
   );
 
   const filterCount = activeFilterCount(filters);
@@ -62,10 +91,14 @@ export default function CategoryTasksScreen() {
 
       {/* Screen Header */}
       <ScreenHeader
-        title={category.name}
-        subtitle={`${results.length} open ${
-          results.length === 1 ? 'task' : 'tasks'
-        }`}
+        title={activeCategory.name}
+        subtitle={
+          tasksLoading
+            ? 'Loading tasks...'
+            : `${results.length} open ${
+                results.length === 1 ? 'task' : 'tasks'
+              }`
+        }
         actions={
           <Pressable
             onPress={() => setOpen(true)}
@@ -89,6 +122,13 @@ export default function CategoryTasksScreen() {
           paddingBottom: Math.max(insets.bottom, 20) + 16,
         }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#0094F7"
+          />
+        }
       >
         <View className="px-5 pt-4">
           {/* Category Banner Card */}
@@ -96,10 +136,10 @@ export default function CategoryTasksScreen() {
             className="mb-4 flex-row items-center rounded-3xl border border-ink-200 bg-white p-4"
             style={{ gap: 12 }}
           >
-            <CategoryBadge categoryId={categoryId} size="lg" />
+            <CategoryBadge categoryId={(activeCategory as any)?.slug || categoryId} size="lg" />
             <View className="flex-1 min-w-0">
               <Text className="text-[14.5px] font-geist-semibold text-ink">
-                {category.name} tasks near you
+                {activeCategory.name} tasks near you
               </Text>
               <Text className="mt-0.5 font-geist text-[12.5px] text-ink-500">
                 Sorted by{' '}
@@ -111,7 +151,9 @@ export default function CategoryTasksScreen() {
           </View>
 
           {/* Task Results List */}
-          {results.length > 0 ? (
+          {tasksLoading ? (
+            <ListSkeleton count={3} />
+          ) : results.length > 0 ? (
             <View className="gap-3" style={{ gap: 12 }}>
               {results.map((task) => (
                 <TaskCard key={task.id} task={task} />
@@ -121,7 +163,7 @@ export default function CategoryTasksScreen() {
             <View className="py-12">
               <EmptyState
                 icon={<Inbox size={32} color="#8A959B" />}
-                title={`No open ${category.name.toLowerCase()} tasks`}
+                title={`No open ${activeCategory.name.toLowerCase()} tasks`}
                 message="Nothing here right now. Widen your filters or check another category."
                 actionLabel="Browse all tasks"
                 onAction={() => router.push('/(tabs)/discover')}

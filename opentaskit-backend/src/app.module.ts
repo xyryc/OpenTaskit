@@ -22,6 +22,7 @@ import { WalletModule } from './wallet/wallet.module';
 import { PaymentsModule } from './payments/payments.module';
 import { BankAccountsModule } from './bank-accounts/bank-accounts.module';
 import { PayoutsModule } from './payouts/payouts.module';
+import { MessagesModule } from './messages/messages.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { PayoutsModule } from './payouts/payouts.module';
     PaymentsModule,
     BankAccountsModule,
     PayoutsModule,
+    MessagesModule,
   ],
   controllers: [AppController],
   providers: [

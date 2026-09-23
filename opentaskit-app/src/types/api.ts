@@ -510,6 +510,66 @@ export interface MyDisputesResponse {
 }
 
 // ---------------------------------------------------------------------------
+// Messages / Chat
+// ---------------------------------------------------------------------------
+
+export interface ChatUserSummary {
+  id: string;
+  fullName: string;
+  avatarUrl: string | null;
+  lastActiveAt: string;
+}
+
+export interface MessageRecord {
+  id: string;
+  taskId: string;
+  senderId: string;
+  receiverId: string;
+  text: string | null;
+  attachmentUrl: string | null;
+  isRead: boolean;
+  createdAt: string;
+  sender?: ChatUserSummary;
+}
+
+export interface CreateMessagePayload {
+  text?: string;
+  attachmentUrl?: string;
+  toUserId?: string;
+}
+
+export interface MessageThreadResponse {
+  task: {
+    id: string;
+    title: string;
+    status: string;
+    budget: number;
+    address: string | null;
+    locationType: 'IN_PERSON' | 'REMOTE';
+    category: { id: string; name: string; slug: string; icon: string | null } | null;
+  };
+  otherUser: ChatUserSummary;
+  messages: MessageRecord[];
+}
+
+export interface ConversationLastMessage {
+  id: string;
+  text: string | null;
+  attachmentUrl: string | null;
+  senderId: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface ConversationItem {
+  taskId: string;
+  task: { id: string; title: string; status: string; budget: number };
+  otherUser: ChatUserSummary;
+  lastMessage: ConversationLastMessage;
+  unreadCount: number;
+}
+
+// ---------------------------------------------------------------------------
 // Notifications
 // ---------------------------------------------------------------------------
 

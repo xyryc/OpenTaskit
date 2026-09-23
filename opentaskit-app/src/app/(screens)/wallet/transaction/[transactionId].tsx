@@ -11,10 +11,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronRight, Copy, Receipt } from 'lucide-react-native';
 
 import { useApp } from '@/contexts/AppContext';
+import { useGetMyWalletQuery, useGetTaskByIdQuery } from '@/store/api/apiSlice';
 import { clockTime, dayLabel, money, signedMoney } from '@/utils/format';
 import { Screen, ScreenHeader } from '@/components/layout/Screen';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
+import { ListSkeleton } from '@/components/ui/Feedback';
+
+const TYPE_LABELS: Record<string, string> = {
+  ESCROW_RELEASE: 'Escrow release',
+  PLATFORM_FEE: 'Platform commission fee',
+  WITHDRAWAL: 'Withdrawal payout',
+  ADJUSTMENT: 'Wallet adjustment',
+};
 
 export default function TransactionDetailScreen() {
   const { transactionId = '' } = useLocalSearchParams<{
@@ -22,9 +31,25 @@ export default function TransactionDetailScreen() {
   }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { transactions, taskById, toast } = useApp();
+  const { toast } = useApp();
 
-  const transaction = transactions.find((item) => item.id === transactionId);
+  const { data: wallet, isLoading } = useGetMyWalletQuery();
+  const transaction = wallet?.transactions.find((item) => item.id === transactionId);
+
+  const { data: task } = useGetTaskByIdQuery(transaction?.taskId ?? '', {
+    skip: !transaction?.taskId,
+  });
+
+  if (isLoading) {
+    return (
+      <Screen tone="canvas" edges={['top']}>
+        <ScreenHeader title="Transaction" />
+        <View className="p-6">
+          <ListSkeleton count={3} />
+        </View>
+      </Screen>
+    );
+  }
 
   if (!transaction) {
     return (
@@ -39,8 +64,11 @@ export default function TransactionDetailScreen() {
     );
   }
 
-  const task = transaction.taskId ? taskById(transaction.taskId) : undefined;
-  const refCode = `NX-${transaction.id.toUpperCase()}`;
+  const title = TYPE_LABELS[transaction.type] ?? 'Transaction';
+  const subtitle =
+    transaction.description ||
+    (transaction.amount > 0 ? 'Credit to available balance' : 'Debit from available balance');
+  const refCode = `TX-${transaction.id.slice(0, 8).toUpperCase()}`;
 
   const handleCopy = () => {
     toast({ title: 'Reference copied: ' + refCode, variant: 'success' });
@@ -51,7 +79,7 @@ export default function TransactionDetailScreen() {
       <StatusBar style="dark" />
 
       {/* Screen Header */}
-      <ScreenHeader title="Transaction" subtitle={transaction.title} />
+      <ScreenHeader title="Transaction" subtitle={title} />
 
       <ScrollView
         className="flex-1"
@@ -76,41 +104,37 @@ export default function TransactionDetailScreen() {
             </Text>
 
             <Text className="mt-1 text-center font-geist text-[13.5px] text-ink-500">
-              {transaction.subtitle}
+              {subtitle}
             </Text>
 
             <View className="mt-3">
-              <Chip
-                tone={
-                  transaction.status === 'completed'
-                    ? 'success'
-                    : transaction.status === 'pending'
-                    ? 'warning'
-                    : 'danger'
-                }
-              >
-                {transaction.status}
+              <Chip tone={transaction.amount >= 0 ? 'success' : 'neutral'}>
+                {transaction.type.replace('_', ' ')}
               </Chip>
             </View>
           </View>
 
           {/* Details Breakdown */}
           <View className="divide-y divide-ink-100 rounded-3xl border border-ink-200 bg-white px-4 shadow-sm">
-            <ReceiptRow label="Type" value={transaction.title} />
+            <ReceiptRow label="Type" value={title} />
             <ReceiptRow
               label="Date"
-              value={`${dayLabel(transaction.at)} · ${clockTime(
-                transaction.at
+              value={`${dayLabel(transaction.createdAt)} · ${clockTime(
+                transaction.createdAt
               )}`}
             />
-            {transaction.method && (
-              <ReceiptRow label="Method" value={transaction.method} />
-            )}
+            <ReceiptRow label="Balance after" value={money(transaction.balanceAfter)} />
             <ReceiptRow label="Reference" value={refCode} />
-            {transaction.kind === 'commission' && (
+            {transaction.escrowHoldId && (
               <ReceiptRow
-                label="Commission rate"
-                value="12% of job value"
+                label="Escrow ID"
+                value={`ESC-${transaction.escrowHoldId.slice(0, 8).toUpperCase()}`}
+              />
+            )}
+            {transaction.payoutRequestId && (
+              <ReceiptRow
+                label="Payout ID"
+                value={`PAY-${transaction.payoutRequestId.slice(0, 8).toUpperCase()}`}
               />
             )}
           </View>
@@ -120,8 +144,8 @@ export default function TransactionDetailScreen() {
             <Pressable
               onPress={() =>
                 router.push({
-                  pathname: '/(screens)/job/[taskId]',
-                  params: { taskId: task.id },
+                  pathname: '/task/[id]',
+                  params: { id: task.id },
                 } as any)
               }
               className="flex-row items-center gap-3 rounded-3xl border border-ink-200 bg-white p-4 shadow-sm active:bg-ink-100/60"
@@ -138,7 +162,7 @@ export default function TransactionDetailScreen() {
                   {task.title}
                 </Text>
                 <Text className="mt-0.5 font-geist text-[12.5px] text-ink-500">
-                  {money(task.budget)} · {task.location}
+                  {money(task.budget)} · {task.address || task.locationType}
                 </Text>
               </View>
               <ChevronRight size={18} color="#8A959B" />

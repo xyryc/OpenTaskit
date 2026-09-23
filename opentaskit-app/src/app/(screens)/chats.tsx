@@ -1,21 +1,30 @@
-import React from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, Pressable, ScrollView, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { MessagesSquare } from 'lucide-react-native';
 
-import { useApp } from '@/contexts/AppContext';
-import { conversationList } from '@/utils/conversations';
-import { timeAgo } from '@/utils/format';
+import { useGetConversationsQuery } from '@/store/api/apiSlice';
+import { timeAgo, initialsOf } from '@/utils/format';
+import { API_TASK_STATUS_MAP } from '@/utils/taskFilters';
 import { statusLabel } from '@/components/ui/Chip';
 import { Screen, ScreenHeader } from '@/components/layout/Screen';
 import { Avatar } from '@/components/ui/Avatar';
-import { EmptyState } from '@/components/ui/Feedback';
+import { EmptyState, ListSkeleton } from '@/components/ui/Feedback';
 
 export default function ChatListScreen() {
   const router = useRouter();
-  const { tasks, messages, offers, userById, taskById } = useApp();
-  const conversations = conversationList(tasks, messages, offers);
+  const { data: conversations, isLoading, refetch } = useGetConversationsQuery();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   return (
     <Screen tone="canvas" edges={['top']}>
@@ -23,12 +32,18 @@ export default function ChatListScreen() {
 
       <ScreenHeader
         title="Messages"
-        subtitle={`${conversations.length} ${
-          conversations.length === 1 ? 'conversation' : 'conversations'
-        }`}
+        subtitle={
+          conversations
+            ? `${conversations.length} ${conversations.length === 1 ? 'conversation' : 'conversations'}`
+            : undefined
+        }
       />
 
-      {conversations.length === 0 ? (
+      {isLoading ? (
+        <View className="flex-1 px-5 pt-4">
+          <ListSkeleton count={5} />
+        </View>
+      ) : !conversations || conversations.length === 0 ? (
         <View className="flex-1 justify-center px-6">
           <EmptyState
             icon={<MessagesSquare size={32} color="#0094F7" />}
@@ -43,87 +58,94 @@ export default function ChatListScreen() {
           className="flex-1 px-5 pt-3"
           contentContainerStyle={{ paddingBottom: 40 }}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
         >
           <View className="gap-2.5">
-            {conversations.map((conversation) => {
-              const other = userById(conversation.otherId);
-              const task = taskById(conversation.taskId);
-
-              return (
-                <Pressable
-                  key={conversation.taskId}
-                  onPress={() => router.push(`/chat/${conversation.taskId}` as any)}
-                  className="flex-row items-center gap-3 rounded-3xl border border-ink-200 bg-white p-3.5"
-                  style={{
-                    elevation: 1,
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: 0.05,
-                    shadowRadius: 2,
+            {conversations.map((conversation) => (
+              <Pressable
+                key={`${conversation.taskId}:${conversation.otherUser.id}`}
+                onPress={() =>
+                  router.push({
+                    pathname: '/(screens)/chat/[taskId]',
+                    params: {
+                      taskId: conversation.taskId,
+                      otherUserId: conversation.otherUser.id,
+                    },
+                  } as any)
+                }
+                className="flex-row items-center gap-3 rounded-3xl border border-ink-200 bg-white p-3.5"
+                style={{
+                  elevation: 1,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.05,
+                  shadowRadius: 2,
+                }}
+              >
+                <Avatar
+                  user={{
+                    name: conversation.otherUser.fullName,
+                    initials: initialsOf(conversation.otherUser.fullName),
+                    avatarUrl: conversation.otherUser.avatarUrl ?? undefined,
+                    tone: 'bg-brand-tint',
+                    verified: false,
                   }}
-                >
-                  <Avatar
-                    user={other}
-                    size="md"
-                    showVerified
-                    online={conversation.unread > 0}
-                  />
+                  size="md"
+                />
 
-                  <View className="flex-1 min-w-0">
-                    <View className="flex-row items-baseline justify-between gap-2">
-                      <Text
-                        numberOfLines={1}
-                        className="flex-1 text-[14.5px] font-geist-bold font-bold text-ink"
-                      >
-                        {other.name}
-                      </Text>
-                      <Text className="font-geist shrink-0 text-[11px] text-ink-400">
-                        {timeAgo(conversation.lastMessage.at)}
-                      </Text>
-                    </View>
-
+                <View className="flex-1 min-w-0">
+                  <View className="flex-row items-baseline justify-between gap-2">
                     <Text
                       numberOfLines={1}
-                      className="mt-0.5 text-[12px] font-geist-semibold font-semibold text-brand-dark"
+                      className="flex-1 text-[14.5px] font-geist-bold font-bold text-ink"
                     >
-                      {task?.title ?? 'Task'}
+                      {conversation.otherUser.fullName}
+                    </Text>
+                    <Text className="font-geist shrink-0 text-[11px] text-ink-400">
+                      {timeAgo(conversation.lastMessage.createdAt)}
+                    </Text>
+                  </View>
+
+                  <Text
+                    numberOfLines={1}
+                    className="mt-0.5 text-[12px] font-geist-semibold font-semibold text-brand-dark"
+                  >
+                    {conversation.task.title}
+                  </Text>
+
+                  <View className="mt-1 flex-row items-center justify-between gap-2">
+                    <Text
+                      numberOfLines={1}
+                      className={`flex-1 text-[13px] ${
+                        conversation.unreadCount > 0
+                          ? 'font-geist-semibold font-semibold text-ink'
+                          : 'text-ink-500'
+                      }`}
+                    >
+                      {conversation.lastMessage.attachmentUrl && !conversation.lastMessage.text
+                        ? '📷 Photo'
+                        : conversation.lastMessage.text}
                     </Text>
 
-                    <View className="mt-1 flex-row items-center justify-between gap-2">
-                      <Text
-                        numberOfLines={1}
-                        className={`flex-1 text-[13px] ${
-                          conversation.unread > 0
-                            ? 'font-geist-semibold font-semibold text-ink'
-                            : 'text-ink-500'
-                        }`}
-                      >
-                        {conversation.lastMessage.attachment &&
-                        !conversation.lastMessage.text
-                          ? '📷 Photo'
-                          : conversation.lastMessage.text}
-                      </Text>
-
-                      {conversation.unread > 0 && (
-                        <View className="h-5 min-w-[20px] items-center justify-center rounded-full bg-brand px-1.5">
-                          <Text className="text-[11px] font-geist-bold font-bold text-white">
-                            {conversation.unread}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-
-                    {task && (
-                      <View className="mt-1.5 self-start rounded-full bg-ink-100 px-2 py-0.5">
-                        <Text className="text-[10.5px] font-geist-medium font-medium text-ink-500">
-                          {statusLabel(task.status)}
+                    {conversation.unreadCount > 0 && (
+                      <View className="h-5 min-w-[20px] items-center justify-center rounded-full bg-brand px-1.5">
+                        <Text className="text-[11px] font-geist-bold font-bold text-white">
+                          {conversation.unreadCount}
                         </Text>
                       </View>
                     )}
                   </View>
-                </Pressable>
-              );
-            })}
+
+                  <View className="mt-1.5 self-start rounded-full bg-ink-100 px-2 py-0.5">
+                    <Text className="text-[10.5px] font-geist-medium font-medium text-ink-500">
+                      {statusLabel(API_TASK_STATUS_MAP[conversation.task.status] ?? 'posted')}
+                    </Text>
+                  </View>
+                </View>
+              </Pressable>
+            ))}
           </View>
         </ScrollView>
       )}

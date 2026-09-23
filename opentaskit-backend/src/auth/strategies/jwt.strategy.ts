@@ -27,6 +27,15 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       throw new UnauthorizedException('Account is deactivated');
     }
 
+    // Cheap presence tracking: only touch the row if it's been a while,
+    // since this runs on every authenticated request.
+    const ACTIVITY_UPDATE_THRESHOLD_MS = 60_000;
+    if (Date.now() - user.lastActiveAt.getTime() > ACTIVITY_UPDATE_THRESHOLD_MS) {
+      this.prisma.user
+        .update({ where: { id: user.id }, data: { lastActiveAt: new Date() } })
+        .catch(() => {});
+    }
+
     const {
       password: _password,
       hashedRefreshToken: _hashedRefreshToken,

@@ -17,8 +17,10 @@ import type {
   CategoryItem,
   ChangePasswordPayload,
   CompleteTaskResponse,
+  ConversationItem,
   CreateBankAccountPayload,
   CreateDisputePayload,
+  CreateMessagePayload,
   CreateOfferPayload,
   CreatePayoutRequestPayload,
   CreateReviewPayload,
@@ -33,6 +35,7 @@ import type {
   LoginPayload,
   LogoutPayload,
   MessageResponse,
+  MessageThreadResponse,
   MyKycResponse,
   MyProfileResponse,
   MyReviewsQuery,
@@ -339,6 +342,7 @@ export const apiSlice = createApi({
     "Payout",
     "Payment",
     "Notification",
+    "Message",
   ],
   // Two-sided marketplace state (task/offer status) changes from the OTHER
   // party's device, which this client has no way to know about until it
@@ -728,6 +732,46 @@ export const apiSlice = createApi({
       invalidatesTags: [{ type: 'Notification', id: 'LIST' }],
     }),
 
+    // Messages / Chat
+    getConversations: builder.query<ConversationItem[], void>({
+      query: () => '/messages/conversations',
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map(({ taskId, otherUser }) => ({
+                type: 'Message' as const,
+                id: `CONV_${taskId}_${otherUser.id}`,
+              })),
+              { type: 'Message' as const, id: 'CONVERSATIONS' },
+            ]
+          : [{ type: 'Message' as const, id: 'CONVERSATIONS' }],
+    }),
+
+    getMessageThread: builder.query<MessageThreadResponse, { taskId: string; withUserId?: string }>({
+      query: ({ taskId, withUserId }) => ({
+        url: `/tasks/${taskId}/messages`,
+        params: withUserId ? { withUserId } : undefined,
+      }),
+      providesTags: (_result, _error, { taskId, withUserId }) => [
+        { type: 'Message', id: `THREAD_${taskId}_${withUserId ?? 'auto'}` },
+      ],
+    }),
+
+    sendMessage: builder.mutation<
+      { id: string },
+      { taskId: string } & CreateMessagePayload
+    >({
+      query: ({ taskId, ...body }) => ({
+        url: `/tasks/${taskId}/messages`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (_result, _error, { taskId, toUserId }) => [
+        { type: 'Message', id: `THREAD_${taskId}_${toUserId ?? 'auto'}` },
+        { type: 'Message', id: 'CONVERSATIONS' },
+      ],
+    }),
+
     // Payments / Escrow
     initiateCheckout: builder.mutation<InitiateCheckoutResponse, string>({
       query: (taskId) => ({ url: `/payments/checkout/${taskId}`, method: 'POST' }),
@@ -864,6 +908,9 @@ export const {
   useMarkNotificationReadMutation,
   useMarkAllNotificationsReadMutation,
   useDeleteNotificationMutation,
+  useGetConversationsQuery,
+  useGetMessageThreadQuery,
+  useSendMessageMutation,
   useInitiateCheckoutMutation,
   useGetPaymentStatusQuery,
   useLazyGetPaymentStatusQuery,

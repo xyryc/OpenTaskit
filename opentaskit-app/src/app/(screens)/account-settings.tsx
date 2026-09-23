@@ -19,7 +19,12 @@ import {
 
 import { useAuthActions } from '@/hooks/useAuthActions';
 import { useApp } from '@/contexts/AppContext';
-import { useGetMyKycQuery } from '@/store/api/apiSlice';
+import {
+  useGetMyKycQuery,
+  useGetMyProfileQuery,
+  useUpdateMyProfileMutation,
+  getStoredUser,
+} from '@/store/api/apiSlice';
 import { Screen, ScreenHeader } from '@/components/layout/Screen';
 import { Button } from '@/components/ui/Button';
 import { TextField } from '@/components/ui/Input';
@@ -31,26 +36,43 @@ export default function AccountSettingsScreen() {
   const { signOut } = useAuthActions();
   const { me, updateMe, toast } = useApp();
   const { data: kycData } = useGetMyKycQuery();
+  const { data: profile } = useGetMyProfileQuery();
+  const [updateProfile, { isLoading: isUpdating }] = useUpdateMyProfileMutation();
+  const storedUser = getStoredUser();
+
   const isVerified = kycData?.status === 'VERIFIED';
 
-  const [name, setName] = useState(me.name);
-  const [email, setEmail] = useState('kavindu@opentaskit.lk');
-  const [phone, setPhone] = useState('+94 77 123 4567');
-  const [saving, setSaving] = useState(false);
+  const [name, setName] = useState(profile?.fullName ?? me.name ?? '');
+  const [phone, setPhone] = useState(profile?.phoneNumber ?? '');
   const [deleteOpen, setDeleteOpen] = useState(false);
 
-  const handleSave = () => {
+  React.useEffect(() => {
+    if (profile) {
+      if (profile.fullName) setName(profile.fullName);
+      if (profile.phoneNumber) setPhone(profile.phoneNumber);
+    }
+  }, [profile]);
+
+  const handleSave = async () => {
     if (name.trim().length < 3) {
       toast({ title: 'Enter a valid name', variant: 'error' });
       return;
     }
-    setSaving(true);
-    setTimeout(() => {
+    try {
+      await updateProfile({
+        fullName: name.trim(),
+        phoneNumber: phone.trim() || undefined,
+      }).unwrap();
       updateMe({ name: name.trim() });
-      setSaving(false);
       toast({ title: 'Details saved', variant: 'success' });
       router.back();
-    }, 600);
+    } catch (err: any) {
+      toast({
+        title: 'Failed to save',
+        description: err?.data?.message || 'Could not update personal details.',
+        variant: 'error',
+      });
+    }
   };
 
   return (
@@ -73,8 +95,8 @@ export default function AccountSettingsScreen() {
             <View>
               <TextField
                 label="Email"
-                value={email}
-                onChangeText={setEmail}
+                value={profile?.email || storedUser?.email || ''}
+                editable={false}
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
@@ -89,16 +111,8 @@ export default function AccountSettingsScreen() {
                 value={phone}
                 onChangeText={setPhone}
                 keyboardType="phone-pad"
+                placeholder="+94 7X XXX XXXX"
               />
-              <Pressable
-                onPress={() => toast({ title: 'Phone verified', variant: 'success' })}
-                hitSlop={8}
-                className="absolute right-3 top-[38px]"
-              >
-                <Text className="font-geist-semibold text-[13px] text-brand">
-                  Verify
-                </Text>
-              </Pressable>
             </View>
           </View>
 
@@ -150,7 +164,7 @@ export default function AccountSettingsScreen() {
               full
               size="lg"
               variant="brand"
-              loading={saving}
+              loading={isUpdating}
               onPress={handleSave}
             >
               Save changes

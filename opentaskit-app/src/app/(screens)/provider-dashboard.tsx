@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, Pressable, ScrollView, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -11,13 +11,17 @@ import {
   Wallet2,
 } from 'lucide-react-native';
 
-import { useApp } from '@/contexts/AppContext';
-import { ME } from '@/data/users';
+import {
+  useGetMyWalletQuery,
+  useGetMyOffersQuery,
+  useGetMyAssignedTasksQuery,
+  useGetMyProfileQuery,
+} from '@/store/api/apiSlice';
+import { mapApiTaskToTask } from '@/utils/taskFilters';
 import { money } from '@/utils/format';
 import { Screen, ScreenHeader, SectionHeader } from '@/components/layout/Screen';
 import { Button } from '@/components/ui/Button';
 import { StatusChip } from '@/components/ui/Chip';
-import { Toggle } from '@/components/ui/Input';
 import { TrustStats } from '@/components/task/TrustStats';
 import { EmptyState } from '@/components/ui/Feedback';
 import { CategoryBadge } from '@/components/CategoryIcon';
@@ -26,16 +30,56 @@ import { ProviderAvailabilityCard } from '@/components/provider/ProviderAvailabi
 
 export default function ProviderDashboardScreen() {
   const router = useRouter();
-  const { wallet, offers, tasks, me, available, toggleAvailable } = useApp();
+  const [refreshing, setRefreshing] = useState(false);
 
-  const activeOffers = offers.filter(
-    (offer) => offer.providerId === ME && offer.status === 'pending'
+  const { data: walletData, refetch: refetchWallet } = useGetMyWalletQuery();
+  const { data: offersData = [], refetch: refetchOffers } = useGetMyOffersQuery();
+  const { data: assignedTasksData = [], refetch: refetchAssignedTasks } = useGetMyAssignedTasksQuery();
+  const { data: profile, refetch: refetchProfile } = useGetMyProfileQuery();
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        refetchWallet(),
+        refetchOffers(),
+        refetchAssignedTasks(),
+        refetchProfile(),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const activeOffers = useMemo(
+    () => offersData.filter((offer) => offer.status === 'PENDING'),
+    [offersData]
   );
-  const jobs = tasks.filter((task) => task.assignedProviderId === ME);
-  const upcoming = jobs.filter((task) =>
-    ['assigned', 'in_progress', 'awaiting_completion'].includes(task.status)
+
+  const mappedAssigned = useMemo(
+    () => assignedTasksData.map(mapApiTaskToTask),
+    [assignedTasksData]
   );
-  const completed = jobs.filter((task) => task.status === 'completed');
+
+  const upcoming = useMemo(
+    () =>
+      mappedAssigned.filter((task) =>
+        ['assigned', 'in_progress', 'awaiting_completion'].includes(task.status)
+      ),
+    [mappedAssigned]
+  );
+
+  const completed = useMemo(
+    () => mappedAssigned.filter((task) => task.status === 'completed'),
+    [mappedAssigned]
+  );
+
+  const totalEarnings = useMemo(() => {
+    if (!walletData?.transactions) return 0;
+    return walletData.transactions
+      .filter((tr) => tr.type === 'ESCROW_RELEASE')
+      .reduce((sum, tr) => sum + tr.amount, 0);
+  }, [walletData]);
 
   return (
     <Screen tone="canvas" edges={['top', 'bottom']}>
@@ -51,6 +95,13 @@ export default function ProviderDashboardScreen() {
         className="flex-1 px-5 pt-4"
         contentContainerStyle={{ paddingBottom: 36 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#0094F7"
+          />
+        }
       >
         {/* Balance Card */}
         <View className="relative overflow-hidden rounded-4xl bg-brand p-5 shadow-lg border border-[#0074CB]/30">
@@ -59,7 +110,7 @@ export default function ProviderDashboardScreen() {
             Available balance
           </Text>
           <Text className="mt-1 text-[34px] font-geist-bold tracking-tight text-white">
-            {money(wallet.available)}
+            {money(walletData?.availableBalance ?? 0)}
           </Text>
 
           <View className="mt-4 flex-row gap-2">
@@ -94,22 +145,22 @@ export default function ProviderDashboardScreen() {
           <Action
             icon={<Compass size={20} color="#0072C4" />}
             label="Find tasks"
-            onPress={() => router.push('/discover' as any)}
+            onPress={() => router.push('/(tabs)/discover')}
           />
           <Action
             icon={<Send size={20} color="#0072C4" />}
             label="My offers"
-            onPress={() => router.push('/activity' as any)}
+            onPress={() => router.push('/(tabs)/activity')}
           />
           <Action
             icon={<Briefcase size={20} color="#0072C4" />}
             label="Upcoming jobs"
-            onPress={() => router.push('/activity' as any)}
+            onPress={() => router.push('/(tabs)/activity')}
           />
           <Action
             icon={<Wallet2 size={20} color="#0072C4" />}
             label="Wallet"
-            onPress={() => router.push('/wallet' as any)}
+            onPress={() => router.push('/(screens)/wallet')}
           />
         </View>
 
@@ -118,10 +169,10 @@ export default function ProviderDashboardScreen() {
           <SectionHeader title="Earnings & reputation" />
           <TrustStats
             stats={[
-              { label: 'Total earnings', value: money(wallet.earnings) },
+              { label: 'Total earnings', value: money(totalEarnings) },
               { label: 'Jobs completed', value: `${completed.length}` },
-              { label: 'Rating', value: `${me.rating.toFixed(1)} ★` },
-              { label: 'Success rate', value: `${me.successRate}%` },
+              { label: 'Rating', value: `${(profile?.rating ?? 5.0).toFixed(1)} ★` },
+              { label: 'Reviews', value: `${profile?.reviewCount ?? 0}` },
             ]}
           />
         </View>
@@ -131,7 +182,7 @@ export default function ProviderDashboardScreen() {
           <SectionHeader
             title="Upcoming jobs"
             action="All jobs"
-            onAction={() => router.push('/activity' as any)}
+            onAction={() => router.push('/(tabs)/activity')}
           />
           {upcoming.length > 0 ? (
             <View className="gap-2.5">
@@ -199,7 +250,7 @@ export default function ProviderDashboardScreen() {
           variant="outline"
           className="mt-6"
           icon={<Star size={16} color="#E0A400" fill="#E0A400" />}
-          onPress={() => router.push(`/reviews/${ME}` as any)}
+          onPress={() => router.push('/(screens)/my-reviews' as any)}
         >
           See my reviews
         </Button>
@@ -220,7 +271,7 @@ function Action({
   return (
     <Pressable
       onPress={onPress}
-      className="flex-1 min-w-[140px] flex-row items-center gap-3 rounded-3xl border border-ink-200/70 bg-white p-4 shadow-sm"
+      className="flex-1 min-w-[140px] flex-row items-center gap-3 rounded-3xl border border-ink-200/70 bg-white p-4 shadow-sm active:bg-ink-100/60"
     >
       <View className="h-10 w-10 items-center justify-center rounded-xl bg-brand-tint">
         {icon}
