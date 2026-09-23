@@ -17,6 +17,11 @@ import { ReviewsModule } from './reviews/reviews.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { DisputesModule } from './disputes/disputes.module';
 import { KycModule } from './kyc/kyc.module';
+import { PlatformConfigModule } from './platform-config/platform-config.module';
+import { WalletModule } from './wallet/wallet.module';
+import { PaymentsModule } from './payments/payments.module';
+import { BankAccountsModule } from './bank-accounts/bank-accounts.module';
+import { PayoutsModule } from './payouts/payouts.module';
 
 @Module({
   imports: [
@@ -40,6 +45,11 @@ import { KycModule } from './kyc/kyc.module';
     NotificationsModule,
     UploadsModule,
     DisputesModule,
+    PlatformConfigModule,
+    WalletModule,
+    PaymentsModule,
+    BankAccountsModule,
+    PayoutsModule,
   ],
   controllers: [AppController],
   providers: [

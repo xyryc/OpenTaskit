@@ -23,9 +23,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { adminFetch } from "@/lib/api-client";
 
 export default function SettingsPage() {
-  // Financial & Commission settings
+  // Financial & Commission settings - platformCommissionPercent is real
+  // (GET/PATCH /admin/platform-config). The rest below have no backend
+  // counterpart yet and remain local-only placeholders.
   const [platformCommissionPercent, setPlatformCommissionPercent] = React.useState<string>("10");
   const [minTaskBudgetLkr, setMinTaskBudgetLkr] = React.useState<string>("1000");
   const [escrowAutoReleaseDays, setEscrowAutoReleaseDays] = React.useState<string>("3");
@@ -35,13 +38,45 @@ export default function SettingsPage() {
   const [supportHotline, setSupportHotline] = React.useState<string>("+94 11 234 5678");
 
   const [savedSuccess, setSavedSuccess] = React.useState<boolean>(false);
+  const [saveError, setSaveError] = React.useState<string | null>(null);
+  const [isSaving, setIsSaving] = React.useState<boolean>(false);
+  const [isLoadingFee, setIsLoadingFee] = React.useState<boolean>(true);
 
-  const handleSave = (e: React.FormEvent) => {
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const res = await adminFetch("/api/backend/admin/platform-config");
+        if (res.ok) {
+          const data = await res.json();
+          setPlatformCommissionPercent(String(data.platformFeePercent));
+        }
+      } finally {
+        setIsLoadingFee(false);
+      }
+    })();
+  }, []);
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSavedSuccess(true);
-    setTimeout(() => {
-      setSavedSuccess(false);
-    }, 3000);
+    setSaveError(null);
+    setIsSaving(true);
+    try {
+      const res = await adminFetch("/api/backend/admin/platform-config", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ platformFeePercent: Number(platformCommissionPercent) }),
+      });
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => null);
+        throw new Error(errJson?.message || `Failed to save platform fee (HTTP ${res.status})`);
+      }
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 3000);
+    } catch (err: unknown) {
+      setSaveError(err instanceof Error ? err.message : "Failed to save platform fee.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleResetDefaults = () => {
@@ -79,10 +114,11 @@ export default function SettingsPage() {
           <Button
             type="submit"
             size="sm"
+            disabled={isSaving}
             className="h-9 gap-1.5 text-xs bg-[#0094F7] hover:bg-[#007cd6] text-white font-semibold"
           >
             <Save className="h-3.5 w-3.5" />
-            <span>Save Changes</span>
+            <span>{isSaving ? "Saving..." : "Save Changes"}</span>
           </Button>
         </div>
       </div>
@@ -91,7 +127,12 @@ export default function SettingsPage() {
       {savedSuccess && (
         <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center gap-2.5 text-emerald-700 dark:text-emerald-400 text-xs font-medium">
           <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
-          <span>Platform configuration settings successfully updated!</span>
+          <span>Platform fee updated successfully!</span>
+        </div>
+      )}
+      {saveError && (
+        <div className="p-3.5 bg-red-500/10 border border-red-500/30 rounded-xl text-red-700 dark:text-red-400 text-xs font-medium">
+          {saveError}
         </div>
       )}
 
@@ -118,14 +159,17 @@ export default function SettingsPage() {
           <div className="space-y-1.5">
             <label className="font-semibold text-foreground flex items-center justify-between">
               <span>Platform Take-Rate (%)</span>
-              <span className="text-muted-foreground font-normal">Default: 10%</span>
+              <span className="text-muted-foreground font-normal">
+                {isLoadingFee ? "Loading..." : "Live"}
+              </span>
             </label>
             <div className="relative">
               <Input
                 type="number"
                 min="0"
-                max="50"
+                max="100"
                 step="0.5"
+                disabled={isLoadingFee}
                 value={platformCommissionPercent}
                 onChange={(e) => setPlatformCommissionPercent(e.target.value)}
                 className="h-9 text-xs pr-8"

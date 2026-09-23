@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { EscrowService } from '../payments/escrow.service';
 import { CreateDisputeDto } from './dto/create-dispute.dto';
 import {
   DisputeResolution,
@@ -19,7 +20,10 @@ import { ResolveDisputeDto } from './dto/resolve-dispute.dto';
 
 @Injectable()
 export class DisputesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly escrowService: EscrowService,
+  ) {}
 
   // 1. File / Raise a Dispute
   async create(taskId: string, userId: string, dto: CreateDisputeDto) {
@@ -348,10 +352,7 @@ export class DisputesService {
       dto.resolution === DisputeResolution.CANCELLED_NO_PENALTY
     ) {
       targetTaskStatus = TaskStatus.CANCELLED;
-    } else if (
-      dto.resolution === DisputeResolution.PAY_TASKER ||
-      dto.resolution === DisputeResolution.SPLIT_PAYMENT
-    ) {
+    } else if (dto.resolution === DisputeResolution.PAY_TASKER) {
       targetTaskStatus = TaskStatus.COMPLETED;
     } else {
       // If DISMISSED, restore task to ASSIGNED
@@ -363,7 +364,7 @@ export class DisputesService {
         ? DisputeStatus.DISMISSED
         : DisputeStatus.RESOLVED;
 
-    return this.prisma.$transaction(async (tx) => {
+    const updatedDispute = await this.prisma.$transaction(async (tx) => {
       // 1. Update dispute record
       const updatedDispute = await tx.dispute.update({
         where: { id },
@@ -422,5 +423,24 @@ export class DisputesService {
 
       return updatedDispute;
     });
+
+    // Escrow settlement runs after the dispute/task transaction commits -
+    // EscrowService manages its own transaction and can't be nested inside
+    // the one above. If this task was never funded through escrow (cash
+    // payment), these are safe no-ops.
+    if (
+      dto.resolution === DisputeResolution.REFUND_POSTER ||
+      dto.resolution === DisputeResolution.CANCELLED_NO_PENALTY
+    ) {
+      await this.escrowService.refundForTask(
+        dispute.taskId,
+        'DISPUTE',
+        `Dispute resolved: ${dto.resolution}. ${dto.resolutionNotes}`,
+      );
+    } else if (dto.resolution === DisputeResolution.PAY_TASKER) {
+      await this.escrowService.releaseForTask(dispute.taskId, 'DISPUTE');
+    }
+
+    return updatedDispute;
   }
 }

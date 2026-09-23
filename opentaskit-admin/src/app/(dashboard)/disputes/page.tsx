@@ -9,7 +9,6 @@ import {
   Gavel,
   RotateCcw,
   Ban,
-  Split,
   Wallet,
   RefreshCw,
   Inbox,
@@ -71,7 +70,6 @@ const REASON_LABELS: Record<string, string> = {
 const RESOLUTION_LABELS: Record<DisputeResolution, string> = {
   REFUND_POSTER: "Refunded to poster",
   PAY_TASKER: "Paid to tasker",
-  SPLIT_PAYMENT: "Payment split",
   CANCELLED_NO_PENALTY: "Cancelled, no penalty",
   DISMISSED: "Dismissed",
 };
@@ -676,16 +674,6 @@ export default function DisputesPage() {
                   >
                     <Wallet className="h-3.5 w-3.5" />
                     <span>Refund poster</span>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="h-9 px-3.5 text-xs text-purple-600 border-purple-500/30 hover:bg-purple-500/10 gap-1.5"
-                    disabled={isResolving}
-                    onClick={() => submitResolution(selectedDispute.id, "SPLIT_PAYMENT")}
-                  >
-                    <Split className="h-3.5 w-3.5" />
-                    <span>Split payment</span>
                   </Button>
                   <Button
                     type="button"

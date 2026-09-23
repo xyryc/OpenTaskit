@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { EscrowService } from '../payments/escrow.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { FilterTasksDto, TaskStatus } from './dto/filter-tasks.dto';
 import { OfferStatus } from '../../generated/prisma/enums';
@@ -12,7 +13,10 @@ import { UpdateTaskDto } from './dto/update-task.dto';
 
 @Injectable()
 export class TasksService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly escrowService: EscrowService,
+  ) {}
 
   // Create a new task
   async create(userId: string, dto: CreateTaskDto) {
@@ -499,6 +503,11 @@ export class TasksService {
       },
     });
 
+    if (nextStatus === TaskStatus.COMPLETED) {
+      // No-op if this task was never funded through escrow (cash payment).
+      await this.escrowService.releaseForTask(taskId, 'COMPLETION');
+    }
+
     return {
       message:
         nextStatus === TaskStatus.COMPLETED
@@ -547,7 +556,7 @@ export class TasksService {
     }
 
     // Atomic transaction: Cancel task and mark active offers as WITHDRAWN;
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const cancelledTask = await tx.task.update({
         where: { id: taskId },
         data: { status: TaskStatus.CANCELLED },
@@ -572,5 +581,14 @@ export class TasksService {
         task: cancelledTask,
       };
     });
+
+    // No-op if this task was never funded through escrow (cash payment).
+    await this.escrowService.refundForTask(
+      taskId,
+      'CANCELLATION',
+      'Task was cancelled before completion',
+    );
+
+    return result;
   }
 }

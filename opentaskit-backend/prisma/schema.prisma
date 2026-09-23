@@ -51,6 +51,11 @@ model User {
   disputesAgainst  Dispute[]         @relation("DisputesAgainst")
   disputesResolved Dispute[]         @relation("DisputesResolved")
 
+  wallet           Wallet?
+  payments         Payment[]
+  bankAccounts     BankAccount[]
+  payoutsProcessed PayoutRequest[]   @relation("PayoutsProcessed")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -123,10 +128,12 @@ model Task {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  savedBy  SavedTask[]
-  offers   Offer[]
-  reviews  Review[]
-  disputes Dispute[]
+  savedBy    SavedTask[]
+  offers     Offer[]
+  reviews    Review[]
+  disputes   Dispute[]
+  payments   Payment[]
+  escrowHold EscrowHold?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -267,7 +274,6 @@ enum DisputeStatus {
 enum DisputeResolution {
   REFUND_POSTER
   PAY_TASKER
-  SPLIT_PAYMENT
   CANCELLED_NO_PENALTY
   DISMISSED
 }
@@ -324,4 +330,161 @@ enum PaymentMethod {
   CASH
   CARD
   WALLET
+}
+
+// ---------------------------------------------------------------------------
+// Payments & Escrow
+// ---------------------------------------------------------------------------
+
+model Wallet {
+  id               String @id @default(uuid())
+  userId           String @unique
+  user             User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  availableBalance Float  @default(0)
+
+  transactions   WalletTransaction[]
+  payoutRequests PayoutRequest[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model WalletTransaction {
+  id       String                @id @default(uuid())
+  walletId String
+  wallet   Wallet                @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  type     WalletTransactionType
+
+  // Positive = credit to wallet, negative = debit.
+  amount       Float
+  balanceAfter Float
+
+  taskId          String?
+  escrowHoldId    String?
+  payoutRequestId String?
+  description     String?
+
+  createdAt DateTime @default(now())
+
+  @@index([walletId])
+}
+
+// One row per PayHere hosted-checkout attempt for funding a task's escrow.
+model Payment {
+  id      String        @id @default(uuid())
+  taskId  String
+  task    Task          @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  payerId String
+  payer   User          @relation(fields: [payerId], references: [id], onDelete: Cascade)
+  amount  Float
+  currency String       @default("LKR")
+  status  PaymentStatus @default(INITIATED)
+
+  // PayHere identifiers - orderId is ours (generated), paymentId is theirs (from IPN).
+  payhereOrderId    String @unique
+  payherePaymentId  String?
+  payhereRawPayload Json?
+
+  escrowHold EscrowHold?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([taskId])
+  @@index([payerId])
+}
+
+// Funds held against a single assigned task until release/refund.
+model EscrowHold {
+  id        String  @id @default(uuid())
+  taskId    String  @unique
+  task      Task    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  paymentId String  @unique
+  payment   Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  amount      Float // full amount held (the accepted offer amount)
+  platformFee Float @default(0) // computed at release time from PlatformConfig
+
+  status EscrowStatus @default(HELD)
+
+  releasedAt       DateTime?
+  refundedAt       DateTime?
+  resolutionSource String? // COMPLETION | DISPUTE | CANCELLATION
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BankAccount {
+  id                String  @id @default(uuid())
+  userId            String
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bankName          String
+  branch            String
+  accountHolderName String
+  accountNumber     String
+  isDefault         Boolean @default(true)
+
+  payoutRequests PayoutRequest[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model PayoutRequest {
+  id            String      @id @default(uuid())
+  walletId      String
+  wallet        Wallet      @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  bankAccountId String
+  bankAccount   BankAccount @relation(fields: [bankAccountId], references: [id])
+  amount        Float
+  status        PayoutStatus @default(PENDING)
+
+  processedById String?
+  processedBy   User?     @relation("PayoutsProcessed", fields: [processedById], references: [id])
+  processedAt   DateTime?
+  adminNotes    String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([walletId])
+  @@index([status])
+}
+
+// Singleton row holding platform-wide, admin-configurable payment settings.
+model PlatformConfig {
+  id                 String   @id @default("singleton")
+  platformFeePercent Float    @default(10)
+  updatedAt          DateTime @updatedAt
+}
+
+enum PaymentStatus {
+  INITIATED
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum EscrowStatus {
+  HELD
+  RELEASED
+  REFUNDED
+}
+
+enum WalletTransactionType {
+  ESCROW_RELEASE
+  PLATFORM_FEE
+  WITHDRAWAL
+  ADJUSTMENT
+}
+
+enum PayoutStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
 }

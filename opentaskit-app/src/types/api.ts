@@ -447,7 +447,6 @@ export type DisputeStatusValue = 'OPEN' | 'UNDER_REVIEW' | 'RESOLVED' | 'DISMISS
 export type DisputeResolutionValue =
   | 'REFUND_POSTER'
   | 'PAY_TASKER'
-  | 'SPLIT_PAYMENT'
   | 'CANCELLED_NO_PENALTY'
   | 'DISMISSED';
 
@@ -508,6 +507,124 @@ export interface MyDisputesResponse {
     total: number;
     totalPages: number;
   };
+}
+
+// ---------------------------------------------------------------------------
+// Payments & Escrow
+// ---------------------------------------------------------------------------
+
+export type WalletTransactionType =
+  | 'ESCROW_RELEASE'
+  | 'PLATFORM_FEE'
+  | 'WITHDRAWAL'
+  | 'ADJUSTMENT';
+
+export interface WalletTransactionItem {
+  id: string;
+  walletId: string;
+  type: WalletTransactionType;
+  amount: number;
+  balanceAfter: number;
+  taskId: string | null;
+  escrowHoldId: string | null;
+  payoutRequestId: string | null;
+  description: string | null;
+  createdAt: string;
+}
+
+export interface MyWalletResponse {
+  id: string;
+  userId: string;
+  availableBalance: number;
+  transactions: WalletTransactionItem[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type PaymentStatusValue =
+  | 'INITIATED'
+  | 'PENDING'
+  | 'COMPLETED'
+  | 'FAILED'
+  | 'CANCELLED';
+
+export type EscrowStatusValue = 'HELD' | 'RELEASED' | 'REFUNDED';
+
+export interface EscrowHoldSummary {
+  id: string;
+  taskId: string;
+  amount: number;
+  platformFee: number;
+  status: EscrowStatusValue;
+  releasedAt: string | null;
+  refundedAt: string | null;
+}
+
+export interface PaymentTaskStatus {
+  id: string;
+  taskId: string;
+  amount: number;
+  currency: string;
+  status: PaymentStatusValue;
+  createdAt: string;
+  escrowHold: EscrowHoldSummary | null;
+}
+
+export interface InitiateCheckoutResponse {
+  checkoutUrl: string;
+  merchant_id: string;
+  return_url: string;
+  cancel_url: string;
+  notify_url: string;
+  order_id: string;
+  items: string;
+  currency: string;
+  amount: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  country: string;
+  hash: string;
+}
+
+export interface BankAccountItem {
+  id: string;
+  userId: string;
+  bankName: string;
+  branch: string;
+  accountHolderName: string;
+  accountNumber: string;
+  isDefault: boolean;
+  createdAt: string;
+}
+
+export interface CreateBankAccountPayload {
+  bankName: string;
+  branch: string;
+  accountHolderName: string;
+  accountNumber: string;
+}
+
+export type PayoutStatusValue = 'PENDING' | 'APPROVED' | 'REJECTED' | 'PAID';
+
+export interface PayoutRequestItem {
+  id: string;
+  walletId: string;
+  bankAccountId: string;
+  amount: number;
+  status: PayoutStatusValue;
+  processedAt: string | null;
+  adminNotes: string | null;
+  createdAt: string;
+  bankAccount?: BankAccountItem;
+}
+
+export interface CreatePayoutRequestPayload {
+  bankAccountId: string;
+  amount: number;
 }
 
 export interface ApiErrorResponse {

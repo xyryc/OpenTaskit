@@ -47,6 +47,8 @@ import {
   useGetOffersForTaskQuery,
   useGetReviewsForTaskQuery,
   useGetDisputesForTaskQuery,
+  useGetPaymentStatusQuery,
+  useInitiateCheckoutMutation,
   useStartTaskMutation,
   useCompleteTaskMutation,
   useCancelTaskMutation,
@@ -105,7 +107,13 @@ export default function JobDetailScreen() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await Promise.all([refetchTask(), refetchOffers(), refetchReviews(), refetchDisputes()]);
+      await Promise.all([
+        refetchTask(),
+        refetchOffers(),
+        refetchReviews(),
+        refetchDisputes(),
+        refetchPaymentStatus?.(),
+      ]);
     } catch {
       // Ignored
     } finally {
@@ -137,6 +145,33 @@ export default function JobDetailScreen() {
   const isProvider = authUser?.id
     ? (acceptedOffer ? acceptedOffer.userId === authUser.id : task?.assignedProviderId === ME)
     : task?.assignedProviderId === ME;
+
+  // Only the poster, and only while a task is freshly assigned, ever needs to
+  // know the funding status - skip the lookup everywhere else to avoid noisy
+  // 404s for cash-paid tasks that were never funded through escrow.
+  const shouldCheckPayment = isOwner && task?.status === 'assigned';
+  const { data: paymentStatus, refetch: refetchPaymentStatus } = useGetPaymentStatusQuery(
+    taskId,
+    { skip: !taskId || !shouldCheckPayment }
+  );
+  const [initiateCheckout, { isLoading: isInitiatingCheckout }] = useInitiateCheckoutMutation();
+  const isFunded = paymentStatus?.status === 'COMPLETED';
+
+  const handleFundEscrow = async () => {
+    try {
+      const result = await initiateCheckout(taskId).unwrap();
+      router.push({
+        pathname: '/(screens)/payments/checkout',
+        params: { checkoutParams: JSON.stringify(result) },
+      } as any);
+    } catch (err: any) {
+      toast({
+        title: 'Could not start payment',
+        description: getApiErrorMessage(err, 'Please try again.'),
+        variant: 'error',
+      });
+    }
+  };
 
   const handleConfirmStart = async () => {
     if (!task) return;
@@ -613,6 +648,29 @@ export default function JobDetailScreen() {
             >
               Start task
             </Button>
+          ) : shouldCheckPayment && !isFunded ? (
+            <View className="flex-row gap-2.5" style={{ gap: 10 }}>
+              {canCancel && (
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="flex-1"
+                  onPress={() => setConfirmCancel(true)}
+                >
+                  Cancel task
+                </Button>
+              )}
+              <Button
+                size="lg"
+                variant="brand"
+                className="flex-1"
+                icon={<Wallet2 size={18} color="#FFFFFF" />}
+                loading={isInitiatingCheckout}
+                onPress={handleFundEscrow}
+              >
+                Fund this job
+              </Button>
+            </View>
           ) : (
             <View className="flex-row gap-2.5" style={{ gap: 10 }}>
               {canCancel && (

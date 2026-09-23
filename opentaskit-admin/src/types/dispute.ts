@@ -11,7 +11,6 @@ export type DisputeStatus = "OPEN" | "UNDER_REVIEW" | "RESOLVED" | "DISMISSED";
 export type DisputeResolution =
   | "REFUND_POSTER"
   | "PAY_TASKER"
-  | "SPLIT_PAYMENT"
   | "CANCELLED_NO_PENALTY"
   | "DISMISSED";
 

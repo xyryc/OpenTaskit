@@ -12,7 +12,6 @@ export const DISPUTE_REASON_LABELS: Record<DisputeReason, string> = {
 export const DISPUTE_RESOLUTION_LABELS: Record<DisputeResolutionValue, string> = {
   REFUND_POSTER: 'Poster refunded',
   PAY_TASKER: 'Tasker paid in full',
-  SPLIT_PAYMENT: 'Payment split between both parties',
   CANCELLED_NO_PENALTY: 'Task cancelled, no penalty',
   DISMISSED: 'Dispute dismissed',
 };

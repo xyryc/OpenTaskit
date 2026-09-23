@@ -12,17 +12,21 @@ import type {
   AcceptOfferResponse,
   AuthResponse,
   AuthUser,
+  BankAccountItem,
   CancelTaskResponse,
   CategoryItem,
   ChangePasswordPayload,
   CompleteTaskResponse,
+  CreateBankAccountPayload,
   CreateDisputePayload,
   CreateOfferPayload,
+  CreatePayoutRequestPayload,
   CreateReviewPayload,
   CreateTaskPayload,
   DisputeItem,
   FilterTasksQuery,
   ForgotPasswordPayload,
+  InitiateCheckoutResponse,
   KycVerificationRecord,
   MyDisputesQuery,
   MyDisputesResponse,
@@ -33,8 +37,11 @@ import type {
   MyProfileResponse,
   MyReviewsQuery,
   MyReviewsResponse,
+  MyWalletResponse,
   OfferItem,
   PaginatedTasksResponse,
+  PaymentTaskStatus,
+  PayoutRequestItem,
   RejectOfferResponse,
   ReviewItem,
   UpdateMyProfilePayload,
@@ -316,7 +323,20 @@ const baseQueryWithReauth: BaseQueryFn<
 export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithReauth,
-  tagTypes: ["Category", "Task", "User", "SavedTask", "Offer", "Review", "Kyc", "Dispute"],
+  tagTypes: [
+    "Category",
+    "Task",
+    "User",
+    "SavedTask",
+    "Offer",
+    "Review",
+    "Kyc",
+    "Dispute",
+    "Wallet",
+    "BankAccount",
+    "Payout",
+    "Payment",
+  ],
   // Two-sided marketplace state (task/offer status) changes from the OTHER
   // party's device, which this client has no way to know about until it
   // re-asks the server - so re-check on every screen focus/mount rather than
@@ -678,6 +698,62 @@ export const apiSlice = createApi({
       queryFn: (formData, api) => multipartUpload("/uploads", formData, api),
     }),
 
+    // Payments / Escrow
+    initiateCheckout: builder.mutation<InitiateCheckoutResponse, string>({
+      query: (taskId) => ({ url: `/payments/checkout/${taskId}`, method: 'POST' }),
+      invalidatesTags: (_result, _error, taskId) => [{ type: 'Payment', id: taskId }],
+    }),
+
+    getPaymentStatus: builder.query<PaymentTaskStatus, string>({
+      query: (taskId) => `/payments/task/${taskId}`,
+      providesTags: (_result, _error, taskId) => [{ type: 'Payment', id: taskId }],
+    }),
+
+    // Wallet
+    getMyWallet: builder.query<MyWalletResponse, void>({
+      query: () => '/wallet/me',
+      providesTags: ['Wallet'],
+    }),
+
+    // Bank Accounts
+    getMyBankAccounts: builder.query<BankAccountItem[], void>({
+      query: () => '/bank-accounts/me',
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map(({ id }) => ({ type: 'BankAccount' as const, id })),
+              { type: 'BankAccount' as const, id: 'LIST' },
+            ]
+          : [{ type: 'BankAccount' as const, id: 'LIST' }],
+    }),
+
+    createBankAccount: builder.mutation<BankAccountItem, CreateBankAccountPayload>({
+      query: (body) => ({ url: '/bank-accounts', method: 'POST', body }),
+      invalidatesTags: [{ type: 'BankAccount', id: 'LIST' }],
+    }),
+
+    deleteBankAccount: builder.mutation<{ message: string }, string>({
+      query: (id) => ({ url: `/bank-accounts/${id}`, method: 'DELETE' }),
+      invalidatesTags: [{ type: 'BankAccount', id: 'LIST' }],
+    }),
+
+    // Payouts (withdrawals)
+    getMyPayouts: builder.query<PayoutRequestItem[], void>({
+      query: () => '/payouts/me',
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map(({ id }) => ({ type: 'Payout' as const, id })),
+              { type: 'Payout' as const, id: 'LIST' },
+            ]
+          : [{ type: 'Payout' as const, id: 'LIST' }],
+    }),
+
+    createPayoutRequest: builder.mutation<PayoutRequestItem, CreatePayoutRequestPayload>({
+      query: (body) => ({ url: '/payouts', method: 'POST', body }),
+      invalidatesTags: [{ type: 'Payout', id: 'LIST' }, 'Wallet'],
+    }),
+
     // KYC / Identity Verification
     getMyKyc: builder.query<MyKycResponse, void>({
       query: () => "/kyc/me",
@@ -754,6 +830,15 @@ export const {
   useGetDisputesForTaskQuery,
   useGetMyDisputesQuery,
   useUploadImagesMutation,
+  useInitiateCheckoutMutation,
+  useGetPaymentStatusQuery,
+  useLazyGetPaymentStatusQuery,
+  useGetMyWalletQuery,
+  useGetMyBankAccountsQuery,
+  useCreateBankAccountMutation,
+  useDeleteBankAccountMutation,
+  useGetMyPayoutsQuery,
+  useCreatePayoutRequestMutation,
   useRegisterMutation,
   useLoginMutation,
   useRefreshMutation,
