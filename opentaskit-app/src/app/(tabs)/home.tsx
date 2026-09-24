@@ -20,7 +20,14 @@ import {
 
 import { useApp } from "@/contexts/AppContext";
 import { useAppSelector } from "@/store";
-import { useGetCategoriesQuery, useGetMyProfileQuery, useGetNotificationsQuery, useGetTasksQuery } from "@/store/api/apiSlice";
+import {
+  useGetCategoriesQuery,
+  useGetMyProfileQuery,
+  useGetNotificationsQuery,
+  useGetTasksQuery,
+  useGetMyPostedTasksQuery,
+  useGetMyAssignedTasksQuery,
+} from "@/store/api/apiSlice";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 import { getCachedCategories, setCachedCategories } from "@/utils/categoryCache";
 import { greetingKey } from "@/utils/i18n";
@@ -53,6 +60,8 @@ export default function HomeScreen() {
 
   const guest = useAppSelector((state) => state.auth.guest);
   const { data: profile, refetch: refetchProfile } = useGetMyProfileQuery(undefined, { skip: guest });
+  const { refetch: refetchPostedTasks } = useGetMyPostedTasksQuery(undefined, { skip: guest });
+  const { refetch: refetchAssignedTasks } = useGetMyAssignedTasksQuery(undefined, { skip: guest });
   const { data: notificationsData } = useGetNotificationsQuery(undefined, { skip: guest });
   const unreadNotifications = notificationsData?.unreadCount ?? 0;
   const unreadMessages = useUnreadMessages();
@@ -123,6 +132,8 @@ export default function HomeScreen() {
         refetchCategories(),
         refetchTasks(),
         refetchProfile ? refetchProfile() : Promise.resolve(),
+        !guest && refetchPostedTasks ? refetchPostedTasks() : Promise.resolve(),
+        !guest && refetchAssignedTasks ? refetchAssignedTasks() : Promise.resolve(),
       ]);
     } finally {
       setRefreshing(false);
@@ -356,15 +367,25 @@ export default function HomeScreen() {
           /* Requester side: To-do items */
           <View className="mt-7 px-5">
             <SectionHeader
-              title={t("home.todo") || "To-do"}
+              title={t("home.todo") || "Needs your attention"}
               action="All tasks"
               onAction={() => router.push("/activity" as any)}
             />
-            {loading ? <ListSkeleton count={2} /> : <PosterTodo />}
+            {loading ? <ListSkeleton count={2} /> : <PosterTodo mode="requester" />}
           </View>
         ) : (
           /* Provider side: Nearby and Recommended Tasks */
           <View>
+            {/* Provider Attention Items */}
+            <View className="mt-7 px-5">
+              <SectionHeader
+                title={t("home.todo") || "Needs your attention"}
+                action="All jobs"
+                onAction={() => router.push("/activity?tab=jobs" as any)}
+              />
+              {loading ? <ListSkeleton count={2} /> : <PosterTodo mode="provider" />}
+            </View>
+
             {/* Nearby Tasks */}
             <View className="mt-7">
               <View className="px-5">

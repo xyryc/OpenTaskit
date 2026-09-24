@@ -105,6 +105,14 @@ export default function OtpVerifyScreen() {
     }
   };
 
+  const handleFillTestOtp = () => {
+    const testDigits = ['1', '2', '3', '4', '5', '6'];
+    setDigits(testDigits);
+    setStatus('idle');
+    setErrorMessage('');
+    verifyCode('123456');
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-white" edges={['top', 'bottom']}>
       <StatusBar style="dark" />
@@ -176,6 +184,31 @@ export default function OtpVerifyScreen() {
             </Text>
           </Animated.View>
         )}
+
+        {/* Test OTP Failsafe Banner */}
+        <View className="mt-5 rounded-2xl border border-amber-200 bg-amber-50/90 p-3.5">
+          <View className="flex-row items-center justify-between gap-3">
+            <View className="flex-1">
+              <Text className="text-[13px] font-geist-semibold font-semibold text-amber-900">
+                Testing Failsafe
+              </Text>
+              <Text className="font-geist mt-0.5 text-[12px] leading-snug text-amber-800">
+                No OTP received? Fill test OTP to pass.
+              </Text>
+            </View>
+            <Pressable
+              onPress={handleFillTestOtp}
+              className="rounded-xl bg-amber-600 px-3 py-2 active:bg-amber-700"
+            >
+              <Text className="text-[12px] font-geist-bold font-bold text-white">
+                Fill test OTP
+              </Text>
+            </Pressable>
+          </View>
+          <Text className="font-geist mt-2 text-[10.5px] leading-tight text-amber-700/80 italic">
+            * Note: This will be removed after confirmation that OTP goes to that number from client.
+          </Text>
+        </View>
 
         {/* Resend OTP */}
         <View className="mt-6 flex-row items-center justify-between">

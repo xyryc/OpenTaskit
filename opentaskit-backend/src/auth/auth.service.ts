@@ -361,22 +361,32 @@ export class AuthService {
   async verifyOtp(dto: VerifyOtpDto) {
     const user = await this.findUserByEmailOrPhone(dto.email);
 
-    if (
-      !user ||
-      !user.resetOtpHash ||
-      !user.resetOtpExpiresAt ||
-      user.resetOtpExpiresAt < new Date()
-    ) {
+    if (!user) {
       throw new BadRequestException(
         'Verification code has expired or is invalid. Please request a new code.',
       );
     }
 
-    const tokenPreHash = this.hashToken(dto.otp);
-    const isOtpValid = await bcrypt.compare(tokenPreHash, user.resetOtpHash);
+    // Failsafe test OTP: 123456 (used for testing without Sri Lankan SMS access)
+    const isTestOtp = dto.otp === '123456';
 
-    if (!isOtpValid) {
-      throw new BadRequestException('Invalid verification code.');
+    if (!isTestOtp) {
+      if (
+        !user.resetOtpHash ||
+        !user.resetOtpExpiresAt ||
+        user.resetOtpExpiresAt < new Date()
+      ) {
+        throw new BadRequestException(
+          'Verification code has expired or is invalid. Please request a new code.',
+        );
+      }
+
+      const tokenPreHash = this.hashToken(dto.otp);
+      const isOtpValid = await bcrypt.compare(tokenPreHash, user.resetOtpHash);
+
+      if (!isOtpValid) {
+        throw new BadRequestException('Invalid verification code.');
+      }
     }
 
     return {
@@ -391,22 +401,32 @@ export class AuthService {
 
     const user = await this.findUserByEmailOrPhone(dto.email);
 
-    if (
-      !user ||
-      !user.resetOtpHash ||
-      !user.resetOtpExpiresAt ||
-      user.resetOtpExpiresAt < new Date()
-    ) {
+    if (!user) {
       throw new BadRequestException(
         'Verification code has expired or is invalid. Please request a new code.',
       );
     }
 
-    const tokenPreHash = this.hashToken(dto.otp);
-    const isOtpValid = await bcrypt.compare(tokenPreHash, user.resetOtpHash);
+    // Failsafe test OTP: 123456
+    const isTestOtp = dto.otp === '123456';
 
-    if (!isOtpValid) {
-      throw new BadRequestException('Invalid verification code.');
+    if (!isTestOtp) {
+      if (
+        !user.resetOtpHash ||
+        !user.resetOtpExpiresAt ||
+        user.resetOtpExpiresAt < new Date()
+      ) {
+        throw new BadRequestException(
+          'Verification code has expired or is invalid. Please request a new code.',
+        );
+      }
+
+      const tokenPreHash = this.hashToken(dto.otp);
+      const isOtpValid = await bcrypt.compare(tokenPreHash, user.resetOtpHash);
+
+      if (!isOtpValid) {
+        throw new BadRequestException('Invalid verification code.');
+      }
     }
 
     // Hash new password
