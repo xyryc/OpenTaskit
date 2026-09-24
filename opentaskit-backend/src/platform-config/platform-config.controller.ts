@@ -21,12 +21,10 @@ export class PlatformConfigController {
   }
 
   @ApiOperation({
-    summary: 'Update the platform fee percentage taken on escrow release (Admin only)',
+    summary: 'Update platform-wide settings (Admin only)',
   })
   @Patch()
   updateConfig(@Body() dto: UpdatePlatformConfigDto) {
-    return this.platformConfigService.updatePlatformFeePercent(
-      dto.platformFeePercent,
-    );
+    return this.platformConfigService.updateConfig(dto);
   }
 }

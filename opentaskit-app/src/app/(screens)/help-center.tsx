@@ -19,6 +19,7 @@ import {
 
 import { useApp } from '@/contexts/AppContext';
 import { Screen, ScreenHeader } from '@/components/layout/Screen';
+import { useGetContactConfigQuery } from '@/store/api/apiSlice';
 
 const FAQS = [
   {
@@ -46,6 +47,7 @@ const FAQS = [
 export default function HelpCenterScreen() {
   const router = useRouter();
   const { toast } = useApp();
+  const { data: contactConfig } = useGetContactConfigQuery();
   const [query, setQuery] = useState('');
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
@@ -83,24 +85,37 @@ export default function HelpCenterScreen() {
           {/* Quick Contact Cards */}
           <View className="flex-row gap-2.5" style={{ gap: 10 }}>
             <Pressable
-              onPress={() => router.push('/(screens)/support-chat')}
+              onPress={() => {
+                const whatsappNumber = contactConfig?.whatsappSupportNumber || '+94 77 123 4567';
+                const cleanNumber = whatsappNumber.replace(/[^0-9]/g, '');
+                const defaultMsg = encodeURIComponent('Hello OpenTaskit Support, I need help with my account.');
+                const url = `https://wa.me/${cleanNumber}?text=${defaultMsg}`;
+                Linking.openURL(url).catch(() => {
+                  toast({
+                    title: 'Could not open WhatsApp',
+                    description: `Please contact us at ${whatsappNumber}`,
+                    variant: 'error',
+                  });
+                });
+              }}
               className="flex-1 rounded-3xl border border-ink-200 bg-white p-4 active:bg-ink-100/60"
             >
-              <View className="h-10 w-10 items-center justify-center rounded-xl bg-brand-tint">
-                <MessageCircle size={18} color="#0094F7" />
+              <View className="h-10 w-10 items-center justify-center rounded-xl bg-emerald-50">
+                <MessageCircle size={18} color="#059669" />
               </View>
               <Text className="mt-3 font-geist-semibold text-[14px] text-ink">
-                Chat with support
+                Chat on WhatsApp
               </Text>
               <Text className="mt-0.5 font-geist text-[12px] text-ink-500">
-                Replies in ~4 min
+                Fastest reply · 24/7
               </Text>
             </Pressable>
 
             <Pressable
               onPress={() => {
-                Linking.openURL('tel:+94112345678').catch(() => {
-                  toast({ title: 'Calling +94 11 234 5678', variant: 'info' });
+                const hotline = contactConfig?.supportHotline || '+94 11 234 5678';
+                Linking.openURL(`tel:${hotline.replace(/\s+/g, '')}`).catch(() => {
+                  toast({ title: `Calling ${hotline}`, variant: 'info' });
                 });
               }}
               className="flex-1 rounded-3xl border border-ink-200 bg-white p-4 active:bg-ink-100/60"

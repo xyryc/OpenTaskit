@@ -130,13 +130,6 @@ const navGroups: NavGroup[] = [
     label: "Support & System",
     items: [
       {
-        title: "Live Support Chat",
-        url: "/support/chat",
-        icon: MessageSquare,
-        badge: "1 New",
-        badgeVariant: "default" as const,
-      },
-      {
         title: "Problem Reports",
         url: "/support",
         icon: LifeBuoy,

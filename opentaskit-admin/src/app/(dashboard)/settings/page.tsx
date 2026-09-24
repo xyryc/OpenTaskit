@@ -36,6 +36,7 @@ export default function SettingsPage() {
   // Platform contact channels
   const [supportEmail, setSupportEmail] = React.useState<string>("support@opentaskit.com");
   const [supportHotline, setSupportHotline] = React.useState<string>("+94 11 234 5678");
+  const [whatsappSupportNumber, setWhatsappSupportNumber] = React.useState<string>("+94 77 123 4567");
 
   const [savedSuccess, setSavedSuccess] = React.useState<boolean>(false);
   const [saveError, setSaveError] = React.useState<string | null>(null);
@@ -48,7 +49,11 @@ export default function SettingsPage() {
         const res = await adminFetch("/api/backend/admin/platform-config");
         if (res.ok) {
           const data = await res.json();
-          setPlatformCommissionPercent(String(data.platformFeePercent));
+          if (data.platformFeePercent != null) setPlatformCommissionPercent(String(data.platformFeePercent));
+          if (data.minTaskBudgetLkr != null) setMinTaskBudgetLkr(String(data.minTaskBudgetLkr));
+          if (data.supportEmail) setSupportEmail(data.supportEmail);
+          if (data.supportHotline) setSupportHotline(data.supportHotline);
+          if (data.whatsappSupportNumber) setWhatsappSupportNumber(data.whatsappSupportNumber);
         }
       } finally {
         setIsLoadingFee(false);
@@ -64,16 +69,22 @@ export default function SettingsPage() {
       const res = await adminFetch("/api/backend/admin/platform-config", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ platformFeePercent: Number(platformCommissionPercent) }),
+        body: JSON.stringify({
+          platformFeePercent: Number(platformCommissionPercent),
+          minTaskBudgetLkr: Number(minTaskBudgetLkr),
+          supportEmail: supportEmail.trim(),
+          supportHotline: supportHotline.trim(),
+          whatsappSupportNumber: whatsappSupportNumber.trim(),
+        }),
       });
       if (!res.ok) {
         const errJson = await res.json().catch(() => null);
-        throw new Error(errJson?.message || `Failed to save platform fee (HTTP ${res.status})`);
+        throw new Error(errJson?.message || `Failed to save platform config (HTTP ${res.status})`);
       }
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 3000);
     } catch (err: unknown) {
-      setSaveError(err instanceof Error ? err.message : "Failed to save platform fee.");
+      setSaveError(err instanceof Error ? err.message : "Failed to save platform settings.");
     } finally {
       setIsSaving(false);
     }
@@ -85,6 +96,7 @@ export default function SettingsPage() {
     setEscrowAutoReleaseDays("3");
     setSupportEmail("support@opentaskit.com");
     setSupportHotline("+94 11 234 5678");
+    setWhatsappSupportNumber("+94 77 123 4567");
   };
 
   return (
@@ -270,6 +282,25 @@ export default function SettingsPage() {
             />
             <p className="text-[11px] text-muted-foreground">
               Hotline displayed on the mobile help center contact card.
+            </p>
+          </div>
+
+          <div className="space-y-1.5 sm:col-span-2">
+            <label className="font-semibold text-foreground flex items-center justify-between">
+              <span>WhatsApp Support Number</span>
+              <Badge variant="outline" className="text-[10px] text-emerald-600 border-emerald-500/30 bg-emerald-500/5">
+                Primary Mobile Support
+              </Badge>
+            </label>
+            <Input
+              type="text"
+              value={whatsappSupportNumber}
+              onChange={(e) => setWhatsappSupportNumber(e.target.value)}
+              placeholder="+94 77 123 4567"
+              className="h-9 text-xs"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Official Sri Lankan WhatsApp business number used for 1-tap customer chat from the mobile app.
             </p>
           </div>
         </CardContent>

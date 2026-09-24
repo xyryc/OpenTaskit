@@ -69,6 +69,9 @@ import type {
   UserReviewsResponse,
   VerifyOtpPayload,
   WalletTopUpStatus,
+  CreateProblemReportPayload,
+  ProblemReportResponse,
+  ContactConfigResponse,
 } from '@/types';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -350,6 +353,7 @@ export const apiSlice = createApi({
     "Notification",
     "Message",
     "Legal",
+    "Report",
   ],
   // Two-sided marketplace state (task/offer status) changes from the OTHER
   // party's device, which this client has no way to know about until it
@@ -920,6 +924,30 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: [{ type: "SavedTask", id: "LIST" }],
     }),
+
+    submitProblemReport: builder.mutation<ProblemReportResponse, CreateProblemReportPayload>({
+      query: (body) => ({
+        url: "/reports",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: [{ type: "Report" as const, id: "LIST" }, { type: "Report" as const, id: "MY_LIST" }],
+    }),
+
+    getMyReports: builder.query<ProblemReportResponse[], void>({
+      query: () => "/reports/my",
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map(({ id }) => ({ type: "Report" as const, id })),
+              { type: "Report" as const, id: "MY_LIST" },
+            ]
+          : [{ type: "Report" as const, id: "MY_LIST" }],
+    }),
+
+    getContactConfig: builder.query<ContactConfigResponse, void>({
+      query: () => "/platform-config/contact",
+    }),
   }),
 });
 
@@ -991,6 +1019,10 @@ export const {
   useGetSavedTasksQuery,
   useSaveTaskMutation,
   useUnsaveTaskMutation,
+  useSubmitProblemReportMutation,
+  useGetMyReportsQuery,
+  useGetContactConfigQuery,
 } = apiSlice;
+
 
 

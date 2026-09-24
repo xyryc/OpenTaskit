@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { UpdatePlatformConfigDto } from './dto/update-platform-config.dto';
 
 const SINGLETON_ID = 'singleton';
 const DEFAULT_PLATFORM_FEE_PERCENT = 10;
@@ -35,6 +36,30 @@ export class PlatformConfigService {
     return this.prisma.platformConfig.update({
       where: { id: SINGLETON_ID },
       data: { platformFeePercent },
+    });
+  }
+
+  async updateConfig(dto: UpdatePlatformConfigDto) {
+    await this.getConfig();
+    return this.prisma.platformConfig.update({
+      where: { id: SINGLETON_ID },
+      data: {
+        ...(dto.platformFeePercent !== undefined && {
+          platformFeePercent: dto.platformFeePercent,
+        }),
+        ...(dto.minTaskBudgetLkr !== undefined && {
+          minTaskBudgetLkr: dto.minTaskBudgetLkr,
+        }),
+        ...(dto.supportEmail !== undefined && {
+          supportEmail: dto.supportEmail,
+        }),
+        ...(dto.supportHotline !== undefined && {
+          supportHotline: dto.supportHotline,
+        }),
+        ...(dto.whatsappSupportNumber !== undefined && {
+          whatsappSupportNumber: dto.whatsappSupportNumber,
+        }),
+      },
     });
   }
 }

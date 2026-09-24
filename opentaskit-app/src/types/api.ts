@@ -796,4 +796,43 @@ export interface ParsedApiError {
   fieldErrors: Record<string, string>;
 }
 
+export type ReportCategoryValue =
+  | 'TASK_OR_PROVIDER_ISSUE'
+  | 'PAYMENT_OR_WALLET'
+  | 'ACCOUNT_AND_LOGIN'
+  | 'SAFETY_AND_TRUST'
+  | 'APP_BUG_TECHNICAL'
+  | 'OTHER';
+
+export type ReportStatusValue = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'DISMISSED';
+
+export interface CreateProblemReportPayload {
+  category: ReportCategoryValue;
+  description: string;
+  taskRef?: string;
+  images?: string[];
+}
+
+export interface ProblemReportResponse {
+  id: string;
+  userId: string;
+  category: ReportCategoryValue;
+  description: string;
+  taskRef: string | null;
+  images: string[];
+  status: ReportStatusValue;
+  adminNotes: string | null;
+  resolvedBy: string | null;
+  resolvedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ContactConfigResponse {
+  supportEmail: string;
+  supportHotline: string;
+  whatsappSupportNumber: string;
+}
+
+
 

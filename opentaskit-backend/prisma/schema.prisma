@@ -64,6 +64,7 @@ model User {
 
   providerServices ProviderService[]
   portfolioItems   PortfolioItem[]
+  problemReports   ProblemReport[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -535,12 +536,13 @@ model PayoutRequest {
 
 // Singleton row holding platform-wide, admin-configurable payment settings.
 model PlatformConfig {
-  id                 String   @id @default("singleton")
-  platformFeePercent Float    @default(10)
-  minTaskBudgetLkr   Float    @default(1000)
-  supportEmail       String   @default("support@opentaskit.com")
-  supportHotline     String   @default("+94 11 234 5678")
-  updatedAt          DateTime @updatedAt
+  id                    String   @id @default("singleton")
+  platformFeePercent    Float    @default(10)
+  minTaskBudgetLkr      Float    @default(1000)
+  supportEmail          String   @default("support@opentaskit.com")
+  supportHotline        String   @default("+94 11 234 5678")
+  whatsappSupportNumber String   @default("+94 77 123 4567")
+  updatedAt             DateTime @updatedAt
 }
 
 // Admin-editable legal content (Terms of Service, Privacy Policy) rendered
@@ -554,6 +556,42 @@ model LegalDocument {
   sections  Json
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+enum ReportCategory {
+  TASK_OR_PROVIDER_ISSUE
+  PAYMENT_OR_WALLET
+  ACCOUNT_AND_LOGIN
+  SAFETY_AND_TRUST
+  APP_BUG_TECHNICAL
+  OTHER
+}
+
+enum ReportStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  DISMISSED
+}
+
+model ProblemReport {
+  id          String         @id @default(uuid())
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category    ReportCategory @default(OTHER)
+  taskRef     String?
+  description String         @db.Text
+  images      String[]       @default([])
+  status      ReportStatus   @default(OPEN)
+  adminNotes  String?        @db.Text
+  resolvedBy  String?
+  resolvedAt  DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 enum PaymentStatus {
