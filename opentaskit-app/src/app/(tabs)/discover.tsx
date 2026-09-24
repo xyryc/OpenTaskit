@@ -56,7 +56,7 @@ export default function DiscoverScreen() {
     search: query.trim() || undefined,
     categoryId: filters.categoryIds[0] || undefined,
     minBudget: filters.budgetMin > 0 ? filters.budgetMin : undefined,
-    maxBudget: filters.budgetMax < 30000 ? filters.budgetMax : undefined,
+    maxBudget: filters.budgetMax < defaultFilters.budgetMax ? filters.budgetMax : undefined,
     lat: userCoords?.lat,
     lng: userCoords?.lng,
     radiusKm: filters.maxDistanceKm,

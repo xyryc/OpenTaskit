@@ -15,7 +15,7 @@ export interface TaskFilters {
 export const defaultFilters: TaskFilters = {
   maxDistanceKm: 15,
   budgetMin: 0,
-  budgetMax: 30000,
+  budgetMax: 100000,
   categoryIds: [],
   date: 'any',
   sort: 'recommended'

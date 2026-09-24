@@ -29,7 +29,7 @@ interface FilterSheetProps {
   resultCount: number;
 }
 
-const DISTANCE_PRESETS = [5, 10, 15, 25, 50];
+const DISTANCE_PRESETS = [2, 5, 10, 15, 25, 50];
 
 export function FilterSheet({
   open,
