@@ -68,6 +68,7 @@ import type {
   UserReviewsQuery,
   UserReviewsResponse,
   VerifyOtpPayload,
+  WalletTopUpStatus,
 } from '@/types';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -827,6 +828,17 @@ export const apiSlice = createApi({
       providesTags: ['Wallet'],
     }),
 
+    initiateTopUp: builder.mutation<InitiateCheckoutResponse, { amount: number }>({
+      query: (body) => ({ url: '/wallet/topup/checkout', method: 'POST', body }),
+    }),
+
+    // Client-triggered fallback confirmation, mirrors verifyPayment - called
+    // right after the native PayHere SDK reports a completed top-up.
+    verifyTopUp: builder.mutation<WalletTopUpStatus, { orderId: string }>({
+      query: ({ orderId }) => ({ url: `/wallet/topup/${orderId}/verify`, method: 'POST' }),
+      invalidatesTags: ['Wallet'],
+    }),
+
     // Bank Accounts
     getMyBankAccounts: builder.query<BankAccountItem[], void>({
       query: () => '/bank-accounts/me',
@@ -954,6 +966,8 @@ export const {
   useVerifyPaymentMutation,
   useLazyGetPaymentStatusQuery,
   useGetMyWalletQuery,
+  useInitiateTopUpMutation,
+  useVerifyTopUpMutation,
   useGetMyBankAccountsQuery,
   useCreateBankAccountMutation,
   useDeleteBankAccountMutation,

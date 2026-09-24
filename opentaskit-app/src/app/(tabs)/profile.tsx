@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -39,7 +39,12 @@ import { CardBackgroundPattern } from '@/components/ui/CardBackgroundPattern';
 import { ProviderAvailabilityCard } from '@/components/provider/ProviderAvailabilityCard';
 import { useAuthActions } from '@/hooks/useAuthActions';
 import { useAppSelector } from '@/store';
-import { useGetMyProfileQuery, useGetMyKycQuery } from '@/store/api/apiSlice';
+import {
+  useGetMyProfileQuery,
+  useGetMyKycQuery,
+  useGetMyWalletQuery,
+  useGetMyPayoutsQuery,
+} from '@/store/api/apiSlice';
 import { useSavedTasks } from '@/hooks/useSavedTasks';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 
@@ -49,7 +54,6 @@ export default function ProfileScreen() {
   const { savedCount } = useSavedTasks();
   const {
     me,
-    wallet,
     available,
     toggleAvailable,
     toast,
@@ -58,6 +62,23 @@ export default function ProfileScreen() {
 
   const { data: profile, refetch: refetchProfile } = useGetMyProfileQuery(undefined, { skip: guest });
   const { data: kycData, refetch: refetchKyc } = useGetMyKycQuery(undefined, { skip: guest });
+  const { data: walletData, refetch: refetchWallet } = useGetMyWalletQuery(undefined, { skip: guest });
+  const { data: payouts } = useGetMyPayoutsQuery(undefined, { skip: guest });
+
+  const pendingPayoutTotal = useMemo(
+    () =>
+      (payouts ?? [])
+        .filter((p) => p.status === 'PENDING' || p.status === 'APPROVED')
+        .reduce((sum, p) => sum + p.amount, 0),
+    [payouts]
+  );
+  const totalEarned = useMemo(
+    () =>
+      (walletData?.transactions ?? [])
+        .filter((tr) => tr.amount > 0)
+        .reduce((sum, tr) => sum + tr.amount, 0),
+    [walletData]
+  );
   const kyc = (kycData?.status.toLowerCase() ?? 'none') as
     | 'none'
     | 'pending'
@@ -71,7 +92,7 @@ export default function ProfileScreen() {
     if (guest) return;
     setRefreshing(true);
     try {
-      await Promise.all([refetchProfile(), refetchKyc()]);
+      await Promise.all([refetchProfile(), refetchKyc(), refetchWallet()]);
     } catch {
       // Ignored
     } finally {
@@ -304,7 +325,7 @@ export default function ProfileScreen() {
             <Tile
               icon={<Wallet2 size={18} color="#0072C4" />}
               label="Wallet"
-              note={money(wallet.available)}
+              note={money(walletData?.availableBalance ?? 0)}
               onPress={() => router.push('/(screens)/wallet')}
             />
             <Tile
@@ -361,7 +382,7 @@ export default function ProfileScreen() {
                 Available balance
               </Text>
               <Text className="mt-1 text-[32px] font-geist-bold tracking-[-0.04em] text-white">
-                {money(wallet.available)}
+                {money(walletData?.availableBalance ?? 0)}
               </Text>
 
               <View className="mt-4 flex-row gap-2" style={{ gap: 8 }}>
@@ -370,7 +391,7 @@ export default function ProfileScreen() {
                     Pending
                   </Text>
                   <Text className="mt-0.5 text-[16px] font-geist-bold tracking-[-0.02em] text-white">
-                    {money(wallet.pending)}
+                    {money(pendingPayoutTotal)}
                   </Text>
                 </View>
                 <View className="flex-1 rounded-2xl bg-white/20 border border-white/30 px-3.5 py-2.5">
@@ -378,7 +399,7 @@ export default function ProfileScreen() {
                     Total earned
                   </Text>
                   <Text className="mt-0.5 text-[16px] font-geist-bold tracking-[-0.02em] text-white">
-                    {money(wallet.earnings)}
+                    {money(totalEarned)}
                   </Text>
                 </View>
               </View>

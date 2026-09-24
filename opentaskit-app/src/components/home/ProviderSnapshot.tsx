@@ -1,27 +1,44 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Briefcase, Send, Star, Wallet } from 'lucide-react-native';
+import { CheckCircle2, Send, Star, Wallet } from 'lucide-react-native';
 
 import { useApp } from '@/contexts/AppContext';
-import { ME } from '@/data/users';
+import { useAppSelector } from '@/store';
+import {
+  useGetMyProfileQuery,
+  useGetMyWalletQuery,
+  useGetMyOffersQuery,
+  useGetMyAssignedTasksQuery,
+} from '@/store/api/apiSlice';
 import { money } from '@/utils/format';
 import { CardBackgroundPattern } from '@/components/ui/CardBackgroundPattern';
 import { ProviderAvailabilityCard } from '@/components/provider/ProviderAvailabilityCard';
 
 export function ProviderSnapshot() {
   const router = useRouter();
-  const { wallet, offers, tasks, me } = useApp();
+  const { me } = useApp();
+  const guest = useAppSelector((state) => state.auth.guest);
 
-  const activeOffers = offers.filter(
-    (offer) => offer.providerId === ME && offer.status === 'pending'
-  ).length;
+  const { data: walletData } = useGetMyWalletQuery(undefined, { skip: guest });
+  const { data: profile } = useGetMyProfileQuery(undefined, { skip: guest });
+  const { data: offersData = [] } = useGetMyOffersQuery(undefined, { skip: guest });
+  const { data: assignedTasksData = [] } = useGetMyAssignedTasksQuery(undefined, { skip: guest });
 
-  const upcomingJobs = tasks.filter(
-    (task) =>
-      task.assignedProviderId === ME &&
-      ['assigned', 'in_progress', 'awaiting_completion'].includes(task.status)
+  const activeOffers = guest
+    ? 0
+    : offersData.filter((offer) => offer.status === 'PENDING').length;
+
+  const assignedCompleted = assignedTasksData.filter(
+    (t) => t.status === 'COMPLETED' || t.status.toLowerCase() === 'completed'
   ).length;
+  const completedJobs = guest
+    ? 0
+    : assignedTasksData.length > 0
+    ? assignedCompleted
+    : (profile?.stats?.tasksCompleted ?? 0);
+  const ratingValue = (profile?.rating ?? me.rating ?? 5.0).toFixed(1);
+  const availableBalance = walletData?.availableBalance ?? 0;
 
   return (
     <View
@@ -36,17 +53,20 @@ export function ProviderSnapshot() {
     >
       <CardBackgroundPattern />
       <View className="flex-row items-start justify-between">
-        <View>
+        <Pressable
+          onPress={() => router.push('/(screens)/wallet' as any)}
+          className="flex-1"
+        >
           <Text className="text-[12px] font-geist-semibold uppercase tracking-wider text-white">
             Available balance
           </Text>
           <Text className="mt-1 text-[32px] font-geist-bold tracking-tight text-white">
-            {money(wallet.available)}
+            {money(availableBalance)}
           </Text>
-        </View>
+        </Pressable>
 
         <Pressable
-          onPress={() => router.push('/wallet' as any)}
+          onPress={() => router.push('/(screens)/wallet' as any)}
           hitSlop={8}
           className="h-10 w-10 items-center justify-center rounded-full bg-white/20 active:bg-white/30 border border-white/40"
         >
@@ -54,22 +74,25 @@ export function ProviderSnapshot() {
         </Pressable>
       </View>
 
-      {/* 3 Metrics */}
+      {/* 3 Metrics: Active offers, Completed jobs, Rating */}
       <View className="mt-4 flex-row gap-2" style={{ gap: 8 }}>
         <Metric
           icon={<Send size={14} color="#FFFFFF" />}
           label="Active offers"
           value={String(activeOffers)}
+          onPress={() => router.push('/(tabs)/activity' as any)}
         />
         <Metric
-          icon={<Briefcase size={14} color="#FFFFFF" />}
-          label="Upcoming"
-          value={String(upcomingJobs)}
+          icon={<CheckCircle2 size={14} color="#FFFFFF" />}
+          label="Completed"
+          value={String(completedJobs)}
+          onPress={() => router.push('/(screens)/provider-dashboard' as any)}
         />
         <Metric
           icon={<Star size={14} color="#FFFFFF" />}
           label="Rating"
-          value={me.rating.toFixed(1)}
+          value={ratingValue}
+          onPress={() => router.push('/(tabs)/profile' as any)}
         />
       </View>
 
@@ -83,13 +106,19 @@ function Metric({
   icon,
   label,
   value,
+  onPress,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
+  onPress?: () => void;
 }) {
   return (
-    <View className="flex-1 rounded-2xl bg-white/20 border border-white/30 p-3">
+    <Pressable
+      onPress={onPress}
+      disabled={!onPress}
+      className="flex-1 rounded-2xl bg-white/20 border border-white/30 p-3 active:bg-white/30"
+    >
       <View className="flex-row items-center gap-1.5" style={{ gap: 6 }}>
         {icon}
         <Text
@@ -102,6 +131,6 @@ function Metric({
       <Text className="mt-1 text-[18px] font-geist-bold tracking-tight text-white">
         {value}
       </Text>
-    </View>
+    </Pressable>
   );
 }

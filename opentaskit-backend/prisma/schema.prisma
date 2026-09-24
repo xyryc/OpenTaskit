@@ -55,6 +55,7 @@ model User {
 
   wallet           Wallet?
   payments         Payment[]
+  walletTopUps     WalletTopUp[]
   bankAccounts     BankAccount[]
   payoutsProcessed PayoutRequest[]   @relation("PayoutsProcessed")
 
@@ -419,6 +420,7 @@ model WalletTransaction {
   taskId          String?
   escrowHoldId    String?
   payoutRequestId String?
+  walletTopUpId   String?
   description     String?
 
   createdAt DateTime @default(now())
@@ -449,6 +451,26 @@ model Payment {
 
   @@index([taskId])
   @@index([payerId])
+}
+
+// One row per PayHere checkout attempt for topping up a user's own wallet
+// (as opposed to Payment, which always funds a specific task's escrow).
+model WalletTopUp {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount Float
+  currency String        @default("LKR")
+  status   PaymentStatus @default(INITIATED)
+
+  payhereOrderId    String @unique
+  payherePaymentId  String?
+  payhereRawPayload Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }
 
 // Funds held against a single assigned task until release/refund.
@@ -553,6 +575,7 @@ enum WalletTransactionType {
   PLATFORM_FEE
   WITHDRAWAL
   ADJUSTMENT
+  TOPUP
 }
 
 enum PayoutStatus {

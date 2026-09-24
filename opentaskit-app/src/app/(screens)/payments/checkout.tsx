@@ -5,37 +5,46 @@ import { StatusBar } from 'expo-status-bar';
 import PayHere from '@payhere/payhere-mobilesdk-reactnative';
 
 import { useApp } from '@/contexts/AppContext';
-import { useVerifyPaymentMutation, useCompleteTaskMutation } from '@/store/api/apiSlice';
+import {
+  useVerifyPaymentMutation,
+  useCompleteTaskMutation,
+  useVerifyTopUpMutation,
+} from '@/store/api/apiSlice';
 import { Screen, ScreenHeader } from '@/components/layout/Screen';
 import type { InitiateCheckoutResponse } from '@/types';
 
 // PayHere's native SDK opens its own in-app checkout UI directly (no
 // WebView, no hosted-checkout domain restriction) - this screen just kicks
 // it off and reflects the outcome, it doesn't render any UI of its own.
+// Shared by two flows: paying to confirm a task's completion (mode "task",
+// requires taskId) and topping up the wallet (mode "topup").
 export default function PaymentCheckoutScreen() {
   const router = useRouter();
   const { toast } = useApp();
-  const { checkoutParams, taskId } = useLocalSearchParams<{
+  const { checkoutParams, taskId, mode } = useLocalSearchParams<{
     checkoutParams: string;
-    taskId: string;
+    taskId?: string;
+    mode?: 'task' | 'topup';
   }>();
   const [verifyPayment] = useVerifyPaymentMutation();
   const [completeTaskApi] = useCompleteTaskMutation();
+  const [verifyTopUp] = useVerifyTopUpMutation();
   const started = useRef(false);
 
-  console.log('[PayHere] checkout screen rendered, raw params:', checkoutParams, taskId);
+  const isTopUp = mode === 'topup';
 
   const params: InitiateCheckoutResponse | null = useMemo(() => {
     try {
       return checkoutParams ? JSON.parse(checkoutParams) : null;
-    } catch (e) {
-      console.error('[PayHere] failed to parse checkoutParams:', e);
+    } catch {
       return null;
     }
   }, [checkoutParams]);
 
+  const ready = !!params && (isTopUp || !!taskId);
+
   useEffect(() => {
-    if (!params || !taskId || started.current) return;
+    if (!ready || !params || started.current) return;
     started.current = true;
 
     const paymentObject = {
@@ -55,25 +64,30 @@ export default function PaymentCheckoutScreen() {
       country: params.country,
     };
 
-    console.log('[PayHere] starting payment with object:', paymentObject);
-    console.log('[PayHere] native module present:', typeof PayHere?.startPayment === 'function');
-
     try {
       PayHere.startPayment(
         paymentObject,
         async () => {
-          console.log('[PayHere] onCompleted fired');
           // PayHere confirmed completion client-side. Ask our server to
           // double-check directly with PayHere before we trust it (the IPN
           // webhook may also arrive separately and is handled idempotently).
           try {
-            await verifyPayment({ orderId: params.order_id, taskId }).unwrap();
-            await completeTaskApi(taskId).unwrap();
-            toast({
-              title: 'Payment successful',
-              description: 'Task marked as completed and payment released.',
-              variant: 'success',
-            });
+            if (isTopUp) {
+              await verifyTopUp({ orderId: params.order_id }).unwrap();
+              toast({
+                title: 'Top-up successful',
+                description: 'Your wallet balance has been updated.',
+                variant: 'success',
+              });
+            } else {
+              await verifyPayment({ orderId: params.order_id, taskId: taskId! }).unwrap();
+              await completeTaskApi(taskId!).unwrap();
+              toast({
+                title: 'Payment successful',
+                description: 'Task marked as completed and payment released.',
+                variant: 'success',
+              });
+            }
           } catch {
             toast({
               title: 'Payment received, confirming…',
@@ -85,7 +99,6 @@ export default function PaymentCheckoutScreen() {
           }
         },
         (errorData: string) => {
-          console.log('[PayHere] onError fired:', errorData);
           toast({
             title: 'Payment failed',
             description: typeof errorData === 'string' ? errorData : 'Please try again.',
@@ -94,10 +107,9 @@ export default function PaymentCheckoutScreen() {
           router.back();
         },
         () => {
-          console.log('[PayHere] onDismissed fired');
           toast({
             title: 'Payment cancelled',
-            description: 'You can try funding this job again anytime.',
+            description: 'You can try again anytime.',
             variant: 'info',
           });
           router.back();
@@ -107,7 +119,6 @@ export default function PaymentCheckoutScreen() {
       // Thrown when the native module isn't linked, e.g. still running in
       // Expo Go instead of a prebuilt dev/production client - or any other
       // synchronous failure building/dispatching the request.
-      console.error('[PayHere] startPayment threw synchronously:', err);
       toast({
         title: 'Payment unavailable',
         description: err?.message || 'Could not start the native payment module. Rebuild the app after running a native prebuild.',
@@ -115,9 +126,9 @@ export default function PaymentCheckoutScreen() {
       });
       router.back();
     }
-  }, [params, taskId]);
+  }, [ready, params, taskId, isTopUp]);
 
-  if (!params || !taskId) {
+  if (!ready) {
     router.back();
     return null;
   }

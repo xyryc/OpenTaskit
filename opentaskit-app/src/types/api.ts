@@ -736,6 +736,15 @@ export interface InitiateCheckoutResponse {
   hash: string;
 }
 
+export interface WalletTopUpStatus {
+  id: string;
+  userId: string;
+  amount: number;
+  currency: string;
+  status: PaymentStatusValue;
+  createdAt: string;
+}
+
 export interface BankAccountItem {
   id: string;
   userId: string;

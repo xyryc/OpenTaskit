@@ -195,15 +195,10 @@ export class UsersService {
 
     const tasksCompletedCount = await this.prisma.task.count({
       where: {
-        OR: [
-          { userId: id, status: 'COMPLETED' },
-          {
-            offers: {
-              some: { userId: id, status: 'ACCEPTED' },
-            },
-            status: 'COMPLETED',
-          },
-        ],
+        offers: {
+          some: { userId: id, status: 'ACCEPTED' },
+        },
+        status: 'COMPLETED',
       },
     });
 
@@ -297,15 +292,10 @@ export class UsersService {
         this.prisma.offer.count({ where: { userId } }),
         this.prisma.task.count({
           where: {
-            OR: [
-              { userId, status: 'COMPLETED' },
-              {
-                offers: {
-                  some: { userId, status: 'ACCEPTED' },
-                },
-                status: 'COMPLETED',
-              },
-            ],
+            offers: {
+              some: { userId, status: 'ACCEPTED' },
+            },
+            status: 'COMPLETED',
           },
         }),
         this.prisma.notification.count({
@@ -438,15 +428,10 @@ export class UsersService {
     const [tasksCompleted, tasksPosted, recentReviews] = await Promise.all([
       this.prisma.task.count({
         where: {
-          OR: [
-            { userId: id, status: 'COMPLETED' },
-            {
-              offers: {
-                some: { userId: id, status: 'ACCEPTED' },
-              },
-              status: 'COMPLETED',
-            },
-          ],
+          offers: {
+            some: { userId: id, status: 'ACCEPTED' },
+          },
+          status: 'COMPLETED',
         },
       }),
       this.prisma.task.count({

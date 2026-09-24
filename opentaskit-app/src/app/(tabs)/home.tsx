@@ -51,7 +51,7 @@ export default function HomeScreen() {
   } = useApp();
 
   const guest = useAppSelector((state) => state.auth.guest);
-  const { data: profile } = useGetMyProfileQuery(undefined, { skip: guest });
+  const { data: profile, refetch: refetchProfile } = useGetMyProfileQuery(undefined, { skip: guest });
   const { data: notificationsData } = useGetNotificationsQuery(undefined, { skip: guest });
   const unreadNotifications = notificationsData?.unreadCount ?? 0;
   const unreadMessages = useUnreadMessages();
@@ -112,7 +112,11 @@ export default function HomeScreen() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await Promise.all([refetchCategories(), refetchTasks()]);
+      await Promise.all([
+        refetchCategories(),
+        refetchTasks(),
+        refetchProfile ? refetchProfile() : Promise.resolve(),
+      ]);
     } finally {
       setRefreshing(false);
     }

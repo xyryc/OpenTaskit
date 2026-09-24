@@ -1,77 +1,59 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TextInput,
-  Pressable,
-} from 'react-native';
+import { View, Text, ScrollView, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  AlertTriangle,
-  Banknote,
-  Check,
-  CreditCard,
-  Landmark,
-  Lock,
-} from 'lucide-react-native';
+import { CreditCard } from 'lucide-react-native';
 
 import { useApp } from '@/contexts/AppContext';
+import { useGetMyWalletQuery, useInitiateTopUpMutation } from '@/store/api/apiSlice';
 import { money } from '@/utils/format';
+import { getApiErrorMessage } from '@/utils/apiError';
 import { Screen, ScreenHeader } from '@/components/layout/Screen';
 import { Button } from '@/components/ui/Button';
-import { Chip, SelectChip } from '@/components/ui/Chip';
+import { SelectChip } from '@/components/ui/Chip';
 import { ConfirmDialog } from '@/components/ui/Overlay';
 
 const AMOUNTS = [1000, 2500, 5000, 10000];
+const MIN_AMOUNT = 100;
 
 export default function TopUpScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { topUp, wallet, toast } = useApp();
+  const { toast } = useApp();
+  const { data: wallet } = useGetMyWalletQuery();
+  const [initiateTopUp, { isLoading }] = useInitiateTopUpMutation();
 
   const [amount, setAmount] = useState('2500');
-  const [method, setMethod] = useState<'bank' | 'cash'>('bank');
   const [error, setError] = useState<string>();
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const [loading, setLoading] = useState(false);
 
   const value = Number(amount) || 0;
 
   const handleStart = () => {
-    if (value < 500) {
-      setError('Minimum top-up is Rs 500');
+    if (value < MIN_AMOUNT) {
+      setError(`Minimum top-up is ${money(MIN_AMOUNT)}`);
       return;
     }
     setError(undefined);
     setConfirmOpen(true);
   };
 
-  const handleConfirm = () => {
-    setConfirmOpen(false);
-    setLoading(true);
-
-    setTimeout(() => {
-      setLoading(false);
-      if (value === 999999) {
-        setFailed(true);
-        return;
-      }
-
-      topUp(
-        value,
-        method === 'bank' ? 'Bank transfer · ****4417' : 'Cash deposit agent'
-      );
+  const handleConfirm = async () => {
+    try {
+      const result = await initiateTopUp({ amount: value }).unwrap();
+      setConfirmOpen(false);
+      router.push({
+        pathname: '/(screens)/payments/checkout',
+        params: { checkoutParams: JSON.stringify(result), mode: 'topup' },
+      } as any);
+    } catch (err) {
       toast({
-        title: 'Wallet topped up!',
-        description: `Added ${money(value)} to your balance.`,
-        variant: 'success',
+        title: 'Could not start top-up',
+        description: getApiErrorMessage(err),
+        variant: 'error',
       });
-      router.back();
-    }, 800);
+    }
   };
 
   return (
@@ -81,7 +63,7 @@ export default function TopUpScreen() {
       {/* Screen Header */}
       <ScreenHeader
         title="Top up wallet"
-        subtitle={`Current balance ${money(wallet.available)}`}
+        subtitle={`Current balance ${money(wallet?.availableBalance ?? 0)}`}
       />
 
       <ScrollView
@@ -90,26 +72,6 @@ export default function TopUpScreen() {
         contentContainerStyle={{ paddingBottom: 24 }}
       >
         <View className="gap-5 px-5 pt-4" style={{ gap: 20 }}>
-          {/* Failed Warning Banner (if triggered) */}
-          {failed && (
-            <View className="flex-row gap-2.5 rounded-2xl border border-danger/30 bg-danger/10 p-3.5" style={{ gap: 10 }}>
-              <AlertTriangle size={18} color="#C7382F" />
-              <View className="flex-1">
-                <Text className="font-geist-semibold text-[13.5px] text-danger">
-                  Top-up failed
-                </Text>
-                <Text className="mt-0.5 font-geist text-[12.5px] leading-snug text-danger">
-                  Your bank declined the transfer. No money was taken — try again or use another payment method.
-                </Text>
-                <Pressable onPress={() => setFailed(false)} className="mt-2 self-start">
-                  <Text className="font-geist-semibold text-[12.5px] text-danger underline">
-                    Try again
-                  </Text>
-                </Pressable>
-              </View>
-            </View>
-          )}
-
           {/* Amount Section */}
           <View>
             <Text className="mb-2 text-[13.5px] font-geist-semibold text-ink-700">
@@ -157,80 +119,23 @@ export default function TopUpScreen() {
             </View>
           </View>
 
-          {/* Payment Method Section (Matches Web) */}
+          {/* Payment Method */}
           <View>
             <Text className="mb-2.5 text-[15px] font-geist-semibold text-ink">
               How are you paying?
             </Text>
 
-            <View className="gap-2.5" style={{ gap: 10 }}>
-              {/* Option 1: Bank transfer */}
-              <Pressable
-                onPress={() => setMethod('bank')}
-                className={`flex-row items-center gap-3.5 rounded-3xl p-4 ${
-                  method === 'bank'
-                    ? 'border-2 border-brand bg-brand-tint/40'
-                    : 'border border-ink-200 bg-white'
-                }`}
-                style={{ gap: 14 }}
-              >
-                <View className="h-11 w-11 items-center justify-center rounded-2xl bg-white shadow-sm">
-                  <Landmark size={20} color="#0094F7" />
-                </View>
-                <View className="flex-1 min-w-0">
-                  <Text className="text-[14.5px] font-geist-semibold text-ink">
-                    Bank transfer
-                  </Text>
-                  <Text className="mt-0.5 font-geist text-[12.5px] text-ink-500">
-                    Commercial Bank ····4417 · instant
-                  </Text>
-                </View>
-                {method === 'bank' && <Check size={20} color="#0094F7" />}
-              </Pressable>
-
-              {/* Option 2: Cash deposit agent */}
-              <Pressable
-                onPress={() => setMethod('cash')}
-                className={`flex-row items-center gap-3.5 rounded-3xl p-4 ${
-                  method === 'cash'
-                    ? 'border-2 border-brand bg-brand-tint/40'
-                    : 'border border-ink-200 bg-white'
-                }`}
-                style={{ gap: 14 }}
-              >
-                <View className="h-11 w-11 items-center justify-center rounded-2xl bg-ink-100">
-                  <Banknote size={20} color="#2B3A41" />
-                </View>
-                <View className="flex-1 min-w-0">
-                  <Text className="text-[14.5px] font-geist-semibold text-ink">
-                    Cash deposit agent
-                  </Text>
-                  <Text className="mt-0.5 font-geist text-[12.5px] text-ink-500">
-                    Pay at any partner agent · same day
-                  </Text>
-                </View>
-                {method === 'cash' && <Check size={20} color="#0094F7" />}
-              </Pressable>
-
-              {/* Option 3: Card top-up (Coming soon) */}
-              <View
-                className="flex-row items-center gap-3.5 rounded-3xl border border-ink-200 bg-white p-4 opacity-70"
-                style={{ gap: 14 }}
-              >
-                <View className="h-11 w-11 items-center justify-center rounded-2xl bg-ink-100">
-                  <CreditCard size={20} color="#5B6A72" />
-                </View>
-                <View className="flex-1 min-w-0">
-                  <Text className="text-[14.5px] font-geist-medium text-ink-700">
-                    Card top-up
-                  </Text>
-                  <Text className="mt-0.5 font-geist text-[12px] text-ink-400">
-                    Visa & Mastercard
-                  </Text>
-                </View>
-                <Chip tone="neutral" icon={<Lock size={12} color="#5B6A72" />}>
-                  Coming soon
-                </Chip>
+            <View className="flex-row items-center gap-3.5 rounded-3xl border-2 border-brand bg-brand-tint/40 p-4" style={{ gap: 14 }}>
+              <View className="h-11 w-11 items-center justify-center rounded-2xl bg-white shadow-sm">
+                <CreditCard size={20} color="#0094F7" />
+              </View>
+              <View className="flex-1 min-w-0">
+                <Text className="text-[14.5px] font-geist-semibold text-ink">
+                  Card payment
+                </Text>
+                <Text className="mt-0.5 font-geist text-[12.5px] text-ink-500">
+                  Visa & Mastercard via PayHere · instant
+                </Text>
               </View>
             </View>
           </View>
@@ -253,8 +158,8 @@ export default function TopUpScreen() {
           full
           size="lg"
           variant="brand"
-          loading={loading}
-          disabled={value < 500 || loading}
+          loading={isLoading}
+          disabled={value < MIN_AMOUNT || isLoading}
           onPress={handleStart}
         >
           Top up {money(value)}
@@ -266,11 +171,9 @@ export default function TopUpScreen() {
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         onConfirm={handleConfirm}
-        title="Confirm top up?"
-        message={`Add ${money(value)} to your OpenTaskit wallet via ${
-          method === 'bank' ? 'Commercial Bank transfer' : 'Cash Deposit Agent'
-        }?`}
-        confirmLabel="Add funds"
+        title="Proceed to payment?"
+        message={`You'll be taken to a secure card payment screen to add ${money(value)} to your wallet.`}
+        confirmLabel={isLoading ? 'Starting payment...' : 'Continue'}
       />
     </Screen>
   );

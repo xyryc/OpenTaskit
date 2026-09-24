@@ -300,9 +300,7 @@ export default function PaymentConfirmScreen() {
         onConfirm={async () => {
           try {
             if (isCardPayment) {
-              console.log('[PayHere] calling initiateCheckout for task', task.id);
               const result = await initiateCheckout(task.id).unwrap();
-              console.log('[PayHere] initiateCheckout result:', result);
               setConfirmOpen(false);
               router.push({
                 pathname: '/(screens)/payments/checkout',
