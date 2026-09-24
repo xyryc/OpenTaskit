@@ -176,119 +176,126 @@ export default function SecuritySettingsScreen() {
             </View>
           </View>
 
-          {/* Sign-in Security */}
-          <View>
-            <Text className="mb-2 px-1 text-[12px] font-geist-semibold uppercase tracking-[0.08em] text-ink-400">
-              Sign-in
-            </Text>
-            <View className="divide-y divide-ink-100 overflow-hidden rounded-3xl border border-ink-200 bg-white">
-              <View className="flex-row items-center gap-3 px-4 py-3.5" style={{ gap: 12 }}>
-                <View className="h-9 w-9 items-center justify-center rounded-xl bg-ink-100">
-                  <Fingerprint size={18} color="#2B3A41" />
-                </View>
-                <View className="flex-1 min-w-0">
-                  <Text className="text-[14.5px] font-geist-semibold text-ink">
-                    Biometric login
-                  </Text>
-                  <Text className="mt-0.5 font-geist text-[12.5px] text-ink-500">
-                    Face ID or fingerprint
-                  </Text>
-                </View>
-                <Chip tone="neutral">Coming soon</Chip>
-              </View>
-
-              <View className="px-4 py-3.5">
-                <Toggle
-                  checked={twoFactor}
-                  onChange={setTwoFactor}
-                  label="Two-step verification"
-                  description="Require an SMS code when logging in from a new device."
-                />
-              </View>
-
-              <View className="px-4 py-3.5">
-                <Toggle
-                  checked={biometric}
-                  onChange={setBiometric}
-                  label="Require code for payments"
-                  description="Confirm wallet actions with a one-time code."
-                />
-              </View>
-            </View>
-          </View>
-
-          {/* Active Sessions */}
-          <View>
-            <Text className="mb-2 px-1 text-[12px] font-geist-semibold uppercase tracking-[0.08em] text-ink-400">
-              Active sessions
-            </Text>
-            <View className="divide-y divide-ink-100 overflow-hidden rounded-3xl border border-ink-200 bg-white">
-              {sessions.map((session) => (
-                <View
-                  key={session.id}
-                  className="flex-row items-center gap-3 px-4 py-3.5"
-                  style={{ gap: 12 }}
-                >
-                  <View className="h-9 w-9 items-center justify-center rounded-xl bg-ink-100">
-                    {session.type === 'laptop' ? (
-                      <Laptop size={18} color="#2B3A41" />
-                    ) : (
-                      <Smartphone size={18} color="#2B3A41" />
-                    )}
-                  </View>
-                  <View className="flex-1 min-w-0">
-                    <Text
-                      numberOfLines={1}
-                      className="text-[14px] font-geist-medium text-ink"
-                    >
-                      {session.device}
-                    </Text>
-                    <Text className="mt-0.5 font-geist text-[12.5px] text-ink-500">
-                      {session.place}
-                    </Text>
-                  </View>
-                  {session.current ? (
-                    <Chip tone="success">Active</Chip>
-                  ) : (
-                    <Pressable
-                      onPress={() => setRevokeId(session.id)}
-                      hitSlop={8}
-                    >
-                      <Text className="font-geist-medium text-[12.5px] text-danger">
-                        Revoke
+          {/* Sign-in Security & Active Sessions (Hidden for now, preserved for future revival) */}
+          {false && (
+            <>
+              {/* Sign-in Security */}
+              <View>
+                <Text className="mb-2 px-1 text-[12px] font-geist-semibold uppercase tracking-[0.08em] text-ink-400">
+                  Sign-in
+                </Text>
+                <View className="divide-y divide-ink-100 overflow-hidden rounded-3xl border border-ink-200 bg-white">
+                  <View className="flex-row items-center gap-3 px-4 py-3.5" style={{ gap: 12 }}>
+                    <View className="h-9 w-9 items-center justify-center rounded-xl bg-ink-100">
+                      <Fingerprint size={18} color="#2B3A41" />
+                    </View>
+                    <View className="flex-1 min-w-0">
+                      <Text className="text-[14.5px] font-geist-semibold text-ink">
+                        Biometric login
                       </Text>
-                    </Pressable>
-                  )}
-                </View>
-              ))}
-            </View>
+                      <Text className="mt-0.5 font-geist text-[12.5px] text-ink-500">
+                        Face ID or fingerprint
+                      </Text>
+                    </View>
+                    <Chip tone="neutral">Coming soon</Chip>
+                  </View>
 
-            <Button
-              full
-              variant="ghost"
-              className="mt-2 text-danger"
-              icon={<LogOut size={16} color="#C7382F" />}
-              onPress={() => {
-                setSessions((prev) => prev.filter((s) => s.current));
-                toast({ title: 'Signed out of other devices', variant: 'success' });
-              }}
-            >
-              Log out of all other devices
-            </Button>
-          </View>
+                  <View className="px-4 py-3.5">
+                    <Toggle
+                      checked={twoFactor}
+                      onChange={setTwoFactor}
+                      label="Two-step verification"
+                      description="Require an SMS code when logging in from a new device."
+                    />
+                  </View>
+
+                  <View className="px-4 py-3.5">
+                    <Toggle
+                      checked={biometric}
+                      onChange={setBiometric}
+                      label="Require code for payments"
+                      description="Confirm wallet actions with a one-time code."
+                    />
+                  </View>
+                </View>
+              </View>
+
+              {/* Active Sessions */}
+              <View>
+                <Text className="mb-2 px-1 text-[12px] font-geist-semibold uppercase tracking-[0.08em] text-ink-400">
+                  Active sessions
+                </Text>
+                <View className="divide-y divide-ink-100 overflow-hidden rounded-3xl border border-ink-200 bg-white">
+                  {sessions.map((session) => (
+                    <View
+                      key={session.id}
+                      className="flex-row items-center gap-3 px-4 py-3.5"
+                      style={{ gap: 12 }}
+                    >
+                      <View className="h-9 w-9 items-center justify-center rounded-xl bg-ink-100">
+                        {session.type === 'laptop' ? (
+                          <Laptop size={18} color="#2B3A41" />
+                        ) : (
+                          <Smartphone size={18} color="#2B3A41" />
+                        )}
+                      </View>
+                      <View className="flex-1 min-w-0">
+                        <Text
+                          numberOfLines={1}
+                          className="text-[14px] font-geist-medium text-ink"
+                        >
+                          {session.device}
+                        </Text>
+                        <Text className="mt-0.5 font-geist text-[12.5px] text-ink-500">
+                          {session.place}
+                        </Text>
+                      </View>
+                      {session.current ? (
+                        <Chip tone="success">Active</Chip>
+                      ) : (
+                        <Pressable
+                          onPress={() => setRevokeId(session.id)}
+                          hitSlop={8}
+                        >
+                          <Text className="font-geist-medium text-[12.5px] text-danger">
+                            Revoke
+                          </Text>
+                        </Pressable>
+                      )}
+                    </View>
+                  ))}
+                </View>
+
+                <Button
+                  full
+                  variant="ghost"
+                  className="mt-2 text-danger"
+                  icon={<LogOut size={16} color="#C7382F" />}
+                  onPress={() => {
+                    setSessions((prev) => prev.filter((s) => s.current));
+                    toast({ title: 'Signed out of other devices', variant: 'success' });
+                  }}
+                >
+                  Log out of all other devices
+                </Button>
+              </View>
+            </>
+          )}
         </View>
       </ScrollView>
 
-      {/* Revoke Session Confirmation */}
-      <ConfirmDialog
-        open={!!revokeId}
-        onClose={() => setRevokeId(null)}
-        onConfirm={handleConfirmRevoke}
-        title="Revoke this session?"
-        message="That device will need to log in again with your password."
-        confirmLabel="Revoke access"
-        tone="danger"
-      />
+      {/* Revoke Session Confirmation (Preserved for future revival) */}
+      {false && (
+        <ConfirmDialog
+          open={!!revokeId}
+          onClose={() => setRevokeId(null)}
+          onConfirm={handleConfirmRevoke}
+          title="Revoke this session?"
+          message="That device will need to log in again with your password."
+          confirmLabel="Revoke access"
+          tone="danger"
+        />
+      )}
     </Screen>
   );
 }

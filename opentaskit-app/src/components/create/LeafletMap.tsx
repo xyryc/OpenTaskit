@@ -21,6 +21,8 @@ const DEFAULT_CENTER: Coordinates = {
   lng: 79.8612, // Colombo, Sri Lanka
 };
 
+const CARTO_API_KEY = process.env.EXPO_PUBLIC_CARTO_API_KEY || 'cb1_3wdf_1_9954bb9dda77633eb8b15ed4';
+
 export function LeafletMap({
   initialCenter = DEFAULT_CENTER,
   initialZoom = 14,
@@ -67,9 +69,10 @@ export function LeafletMap({
     }).setView([${initialCenter.lat}, ${initialCenter.lng}], ${initialZoom});
 
     // CARTO Positron Light Tiles (Clean, modern aesthetic)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}{r}.png?key=' + encodeURIComponent('${CARTO_API_KEY}'), {
       maxZoom: 19,
-      subdomains: 'abcd'
+      subdomains: 'abcd',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
     }).addTo(map);
 
     // Zoom control in bottom right

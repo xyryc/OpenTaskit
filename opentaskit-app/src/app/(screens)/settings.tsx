@@ -154,7 +154,7 @@ export default function SettingsScreen() {
           <SettingsGroup title="Security">
             <SettingsItem
               icon={<ShieldCheck size={18} color="#2B3A41" />}
-              label="Password & sessions"
+              label="Password & security"
               value="Protected"
               onPress={() => router.push('/(screens)/security-settings')}
             />

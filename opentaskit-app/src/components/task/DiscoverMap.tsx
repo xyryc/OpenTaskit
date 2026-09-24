@@ -14,6 +14,8 @@ interface DiscoverMapProps {
   onRecenter?: () => void;
 }
 
+const CARTO_API_KEY = process.env.EXPO_PUBLIC_CARTO_API_KEY || 'cb1_3wdf_1_9954bb9dda77633eb8b15ed4';
+
 export function DiscoverMap({
   tasks,
   selectedId,
@@ -106,9 +108,10 @@ export function DiscoverMap({
     }).setView([6.9271, 79.8612], 14);
 
     // CARTO Positron Light Tiles
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}{r}.png?key=' + encodeURIComponent('${CARTO_API_KEY}'), {
       maxZoom: 19,
-      subdomains: 'abcd'
+      subdomains: 'abcd',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
     }).addTo(map);
 
     // User location marker
