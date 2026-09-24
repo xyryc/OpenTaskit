@@ -30,6 +30,7 @@ import {
   useGetTaskByIdQuery,
   useGetOffersForTaskQuery,
   useCompleteTaskMutation,
+  useInitiateCheckoutMutation,
 } from '@/store/api/apiSlice';
 import { mapApiTaskToTask } from '@/utils/taskFilters';
 import { getApiErrorMessage } from '@/utils/apiError';
@@ -47,6 +48,7 @@ export default function PaymentConfirmScreen() {
   const { data: apiTaskData, isLoading: isTaskLoading } = useGetTaskByIdQuery(taskId, { skip: !taskId });
   const { data: taskOffers } = useGetOffersForTaskQuery(taskId, { skip: !taskId });
   const [completeTaskApi, { isLoading: isCompleting }] = useCompleteTaskMutation();
+  const [initiateCheckout, { isLoading: isInitiatingCheckout }] = useInitiateCheckoutMutation();
 
   const task = React.useMemo(
     () => (apiTaskData ? mapApiTaskToTask(apiTaskData) : taskById(taskId)),
@@ -66,6 +68,7 @@ export default function PaymentConfirmScreen() {
   }
 
   const payment = paymentMethodMeta(task.paymentMethod);
+  const isCardPayment = task.paymentMethod === 'card';
   const acceptedOffer = taskOffers?.find((o) => o.status === 'ACCEPTED');
   const isProvider = !!(authUser?.id && acceptedOffer && acceptedOffer.userId === authUser.id);
 
@@ -85,7 +88,7 @@ export default function PaymentConfirmScreen() {
   const commission = commissionFor(task.budget);
 
   // Success Celebration View
-  if (done) {
+  if (done || task.status === 'completed') {
     return (
       <Screen tone="white" edges={['top']}>
         <StatusBar style="dark" />
@@ -283,10 +286,10 @@ export default function PaymentConfirmScreen() {
           full
           size="lg"
           variant="brand"
-          loading={isCompleting}
+          loading={isCompleting || isInitiatingCheckout}
           onPress={() => setConfirmOpen(true)}
         >
-          Confirm completion & payment
+          {isCardPayment ? 'Continue to payment' : 'Confirm completion & payment'}
         </Button>
       </View>
 
@@ -296,6 +299,17 @@ export default function PaymentConfirmScreen() {
         onClose={() => setConfirmOpen(false)}
         onConfirm={async () => {
           try {
+            if (isCardPayment) {
+              console.log('[PayHere] calling initiateCheckout for task', task.id);
+              const result = await initiateCheckout(task.id).unwrap();
+              console.log('[PayHere] initiateCheckout result:', result);
+              setConfirmOpen(false);
+              router.push({
+                pathname: '/(screens)/payments/checkout',
+                params: { checkoutParams: JSON.stringify(result), taskId: task.id },
+              } as any);
+              return;
+            }
             if (apiTaskData && apiTaskData.status !== 'COMPLETED') {
               await completeTaskApi(task.id).unwrap();
             }
@@ -303,17 +317,29 @@ export default function PaymentConfirmScreen() {
             setDone(true);
           } catch (err) {
             toast({
-              title: 'Failed to complete task',
+              title: isCardPayment ? 'Could not start payment' : 'Failed to complete task',
               description: getApiErrorMessage(err),
               variant: 'error',
             });
           }
         }}
-        title="Release payment?"
-        message={`Confirm the work is complete and that ${money(
-          task.budget
-        )} has been paid by ${payment.label.toLowerCase()}. This closes the task.`}
-        confirmLabel={isCompleting ? 'Processing...' : 'Confirm payment'}
+        title={isCardPayment ? 'Proceed to payment?' : 'Release payment?'}
+        message={
+          isCardPayment
+            ? `Confirm the work is complete. You'll be taken to a secure card payment screen to pay ${money(task.budget)}.`
+            : `Confirm the work is complete and that ${money(
+                task.budget
+              )} has been paid by ${payment.label.toLowerCase()}. This closes the task.`
+        }
+        confirmLabel={
+          isInitiatingCheckout
+            ? 'Starting payment...'
+            : isCompleting
+            ? 'Processing...'
+            : isCardPayment
+            ? 'Continue'
+            : 'Confirm payment'
+        }
       />
     </Screen>
   );

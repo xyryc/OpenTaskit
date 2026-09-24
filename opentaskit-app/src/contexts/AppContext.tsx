@@ -57,7 +57,7 @@ export interface NewTaskDraft {
 interface AppState {
   language: Language;
   setLanguage: (l: Language) => void;
-  t: (key: string) => string;
+  t: (key: string, fallback?: string) => string;
   mode: UserMode;
   setMode: (m: UserMode) => void;
   /** Set while the account prompt is on screen, describing what the guest tried to do. */
@@ -179,7 +179,7 @@ export function AppProvider({ children }: {children: React.ReactNode;}) {
   );
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
-  const t = useCallback((key: string) => translate(language, key), [language]);
+  const t = useCallback((key: string, fallback?: string) => translate(language, key, fallback), [language]);
 
   const toast = useCallback((input: Omit<ToastMessage, 'id'>) => {
     const id = nextId('toast');

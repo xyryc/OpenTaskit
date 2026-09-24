@@ -717,6 +717,7 @@ export interface PaymentTaskStatus {
 
 export interface InitiateCheckoutResponse {
   checkoutUrl: string;
+  sandbox: boolean;
   merchant_id: string;
   return_url: string;
   cancel_url: string;

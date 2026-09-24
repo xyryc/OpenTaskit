@@ -5,11 +5,11 @@ import {
   TextInput,
   Pressable,
   ScrollView,
-  KeyboardAvoidingView,
   Platform,
   StyleSheet,
   Alert,
 } from 'react-native';
+import { KeyboardAvoidingView, useKeyboardState } from 'react-native-keyboard-controller';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -63,6 +63,7 @@ function toMockMessage(record: MessageRecord): MockMessage {
 export default function ChatThreadScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const isKeyboardVisible = useKeyboardState((state) => state.isVisible);
   const { taskId, otherUserId } = useLocalSearchParams<{
     taskId: string;
     otherUserId?: string;
@@ -271,8 +272,8 @@ export default function ChatThreadScreen() {
 
       <KeyboardAvoidingView
         className="flex-1"
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + headerBlockHeight : 0}
+        behavior="padding"
+        keyboardVerticalOffset={headerBlockHeight}
       >
         {/* Messages List */}
         <ScrollView
@@ -307,7 +308,7 @@ export default function ChatThreadScreen() {
         <View
           style={[
             styles.bottomBar,
-            { paddingBottom: Math.max(insets.bottom, 12) + 8 },
+            { paddingBottom: isKeyboardVisible ? 8 : Math.max(insets.bottom, 12) + 8 },
           ]}
         >
           {/* Attachment Preview if selected */}

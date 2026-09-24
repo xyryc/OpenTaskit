@@ -19,8 +19,11 @@ import {
   generateCheckoutHash,
   getMerchantId,
   getPayHereCheckoutBaseUrl,
+  isSandbox,
+  mapRetrievalStatusToCode,
   PAYHERE_STATUS_CODE,
   PayHereIpnPayload,
+  retrievePaymentByOrderId,
   verifyIpnSignature,
 } from './payhere.util';
 
@@ -35,10 +38,11 @@ export class PaymentsService {
     private readonly escrowService: EscrowService,
   ) {}
 
-  // Poster funds escrow for a task they've already accepted an offer on.
-  // Returns everything the app needs to render/submit PayHere's Hosted
-  // Checkout form (or open it in a WebView).
+  // Poster pays for a task once the tasker has marked it done and the poster
+  // is confirming completion. Returns everything the app needs to open
+  // PayHere's native checkout sheet.
   async initiateCheckout(taskId: string, posterId: string) {
+    this.logger.log(`initiateCheckout called for task ${taskId} by user ${posterId}`);
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },
       include: {
@@ -56,17 +60,26 @@ export class PaymentsService {
     if (task.userId !== posterId) {
       throw new ForbiddenException('Only the task poster can fund this task');
     }
-    if (task.status !== TaskStatus.ASSIGNED) {
+    if (task.status !== TaskStatus.AWAITING_CONFIRMATION) {
       throw new BadRequestException(
-        `Escrow can only be funded once a task is assigned. Current status: ${task.status}`,
+        `Payment can only be started once the tasker has marked the task done and it awaits your confirmation. Current status: ${task.status}`,
       );
     }
     const acceptedOffer = task.offers[0];
     if (!acceptedOffer) {
       throw new BadRequestException('This task has no accepted offer to fund');
     }
-    if (task.payments.length > 0) {
+    if (task.payments.some((p) => p.status === PaymentStatus.COMPLETED)) {
       throw new BadRequestException('This task has already been funded');
+    }
+    // Abandoned/failed attempts (sheet closed, sandbox test aborted, etc.)
+    // leave PENDING rows behind - cancel them so the poster can retry.
+    const stalePending = task.payments.filter((p) => p.status === PaymentStatus.PENDING);
+    if (stalePending.length > 0) {
+      await this.prisma.payment.updateMany({
+        where: { id: { in: stalePending.map((p) => p.id) } },
+        data: { status: PaymentStatus.CANCELLED },
+      });
     }
 
     const orderId = `task-${taskId}-${Date.now()}`;
@@ -86,8 +99,9 @@ export class PaymentsService {
     const appBaseUrl = process.env.APP_BASE_URL || 'https://opentaskit.app';
     const [firstName, ...lastNameParts] = (task.user.fullName || 'OpenTaskit User').split(' ');
 
-    return {
+    const result = {
       checkoutUrl: getPayHereCheckoutBaseUrl(),
+      sandbox: isSandbox(),
       merchant_id: getMerchantId(),
       return_url: `${appBaseUrl}/payments/return`,
       cancel_url: `${appBaseUrl}/payments/cancel`,
@@ -105,11 +119,16 @@ export class PaymentsService {
       country: 'Sri Lanka',
       hash: generateCheckoutHash({ orderId, amount, currency: CURRENCY }),
     };
+    this.logger.log(
+      `initiateCheckout succeeded for task ${taskId}: order ${orderId}, amount ${amount}, sandbox ${isSandbox()}, merchant_id ${getMerchantId()}`,
+    );
+    return result;
   }
 
   // PayHere server-to-server webhook (IPN). Idempotent on payhereOrderId -
   // PayHere retries this call, and duplicates must not double-fund escrow.
   async handleIpn(payload: PayHereIpnPayload) {
+    this.logger.log(`handleIpn received for order ${payload.order_id}, status_code ${payload.status_code}`);
     if (!verifyIpnSignature(payload)) {
       this.logger.warn(`Rejected IPN with invalid signature for order ${payload.order_id}`);
       throw new BadRequestException('Invalid IPN signature');
@@ -123,19 +142,76 @@ export class PaymentsService {
       return { received: true };
     }
 
-    if (payment.status === PaymentStatus.COMPLETED) {
-      // Already processed - PayHere retried the webhook. Nothing to do.
-      return { received: true };
+    if (payment.status !== PaymentStatus.COMPLETED) {
+      await this.applyPaymentOutcome(payment, payload.status_code, payload.payment_id, payload);
     }
 
-    if (payload.status_code === PAYHERE_STATUS_CODE.SUCCESS) {
+    return { received: true };
+  }
+
+  // Client-triggered fallback confirmation, used right after the native
+  // PayHere SDK reports a completed payment in-app. Needed because the IPN
+  // webhook can't reach a local/sandbox build with no public URL - this
+  // checks PayHere's own Retrieval API instead of trusting the client.
+  async verifyPayment(orderId: string, userId: string) {
+    this.logger.log(`verifyPayment called for order ${orderId} by user ${userId}`);
+    const payment = await this.prisma.payment.findUnique({
+      where: { payhereOrderId: orderId },
+      include: { escrowHold: true },
+    });
+    if (!payment) {
+      this.logger.warn(`verifyPayment: no payment record found for order ${orderId}`);
+      throw new NotFoundException('Payment not found');
+    }
+    if (payment.payerId !== userId) {
+      throw new ForbiddenException('You cannot verify this payment');
+    }
+    if (payment.status === PaymentStatus.COMPLETED) {
+      this.logger.log(`verifyPayment: order ${orderId} already COMPLETED`);
+      return payment;
+    }
+
+    const remote = await retrievePaymentByOrderId(orderId);
+    if (!remote) {
+      this.logger.warn(`verifyPayment: PayHere has no record yet for order ${orderId}`);
+      // Nothing on PayHere's side yet - leave it pending, the app can retry.
+      return payment;
+    }
+    this.logger.log(
+      `verifyPayment: PayHere returned status ${remote.status} for order ${orderId}`,
+    );
+
+    await this.applyPaymentOutcome(
+      payment,
+      mapRetrievalStatusToCode(remote.status),
+      remote.payment_id !== undefined ? String(remote.payment_id) : undefined,
+      remote,
+    );
+
+    return this.prisma.payment.findUnique({
+      where: { id: payment.id },
+      include: { escrowHold: true },
+    });
+  }
+
+  // Shared by the IPN webhook and the client-triggered verify fallback -
+  // both must apply the exact same idempotent state transition.
+  private async applyPaymentOutcome(
+    payment: { id: string; taskId: string; amount: number },
+    statusCode: string | number,
+    payherePaymentId: string | undefined,
+    rawPayload: unknown,
+  ) {
+    const code = String(statusCode);
+
+    if (code === PAYHERE_STATUS_CODE.SUCCESS) {
       await this.prisma.$transaction(async (tx) => {
         const updated = await tx.payment.update({
           where: { id: payment.id },
           data: {
             status: PaymentStatus.COMPLETED,
-            payherePaymentId: payload.payment_id,
-            payhereRawPayload: payload as any,
+            payherePaymentId,
+            payhereRawPayload: rawPayload as any,
           },
         });
         await this.escrowService.createHold(tx, {
@@ -144,23 +220,21 @@ export class PaymentsService {
           amount: updated.amount,
         });
       });
-    } else if (payload.status_code === PAYHERE_STATUS_CODE.PENDING) {
+    } else if (code === PAYHERE_STATUS_CODE.PENDING) {
       await this.prisma.payment.update({
         where: { id: payment.id },
-        data: { payhereRawPayload: payload as any },
+        data: { payhereRawPayload: rawPayload as any },
       });
     } else {
       const status =
-        payload.status_code === PAYHERE_STATUS_CODE.CANCELLED
+        code === PAYHERE_STATUS_CODE.CANCELLED
           ? PaymentStatus.CANCELLED
           : PaymentStatus.FAILED;
       await this.prisma.payment.update({
         where: { id: payment.id },
-        data: { status, payhereRawPayload: payload as any },
+        data: { status, payhereRawPayload: rawPayload as any },
       });
     }
-
-    return { received: true };
   }
 
   // Admin ledger: every funding attempt plus its escrow outcome, with

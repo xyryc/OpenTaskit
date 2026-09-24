@@ -822,21 +822,25 @@ export default function TaskDetailScreen() {
             </Text>
           </Pressable>
 
-          <Pressable
-            onPress={() => {
-              setMoreOpen(false);
-              router.push({
-                pathname: '/(screens)/chat/[taskId]',
-                params: { taskId: task.id },
-              } as any);
-            }}
-            className="flex-row items-center gap-3 py-3.5 px-2 active:bg-ink-100 rounded-2xl"
-          >
-            <MessageSquare size={18} color="#2B3A41" />
-            <Text className="font-geist-medium text-[15px] text-ink">
-              Open chat
-            </Text>
-          </Pressable>
+          {((!mine && existingOffer) ||
+            task.status === 'assigned' ||
+            task.status === 'in_progress') && (
+            <Pressable
+              onPress={() => {
+                setMoreOpen(false);
+                router.push({
+                  pathname: '/(screens)/chat/[taskId]',
+                  params: { taskId: task.id },
+                } as any);
+              }}
+              className="flex-row items-center gap-3 py-3.5 px-2 active:bg-ink-100 rounded-2xl"
+            >
+              <MessageSquare size={18} color="#2B3A41" />
+              <Text className="font-geist-medium text-[15px] text-ink">
+                Open chat
+              </Text>
+            </Pressable>
+          )}
 
           {mine && (task.status === 'posted' || task.status === 'receiving_offers') && (
             <Pressable

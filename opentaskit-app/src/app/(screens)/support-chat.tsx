@@ -5,9 +5,8 @@ import {
   TextInput,
   Pressable,
   ScrollView,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
+import { KeyboardAvoidingView, useKeyboardState } from 'react-native-keyboard-controller';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -40,6 +39,7 @@ const QUICK_PROMPTS = [
 export default function SupportChatScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const isKeyboardVisible = useKeyboardState((state) => state.isVisible);
   const { me } = useApp();
   const scrollViewRef = useRef<ScrollView | null>(null);
 
@@ -53,6 +53,7 @@ export default function SupportChatScreen() {
   ]);
   const [draft, setDraft] = useState('');
   const [isReplying, setIsReplying] = useState(false);
+  const [headerHeight, setHeaderHeight] = useState(0);
 
   useEffect(() => {
     scrollViewRef.current?.scrollToEnd({ animated: true });
@@ -91,7 +92,10 @@ export default function SupportChatScreen() {
       <StatusBar style="dark" />
 
       {/* Top Header */}
-      <View className="flex-row items-center justify-between border-b border-ink-200 bg-white px-4 py-3">
+      <View
+        onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
+        className="flex-row items-center justify-between border-b border-ink-200 bg-white px-4 py-3"
+      >
         <View className="flex-row items-center gap-3">
           <Pressable
             onPress={() => router.back()}
@@ -123,7 +127,8 @@ export default function SupportChatScreen() {
       </View>
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior="padding"
+        keyboardVerticalOffset={headerHeight}
         className="flex-1"
       >
         <ScrollView
@@ -223,7 +228,7 @@ export default function SupportChatScreen() {
 
         {/* Input Bar */}
         <View
-          style={{ paddingBottom: Math.max(insets.bottom, 12) }}
+          style={{ paddingBottom: isKeyboardVisible ? 0 : Math.max(insets.bottom, 12) }}
           className="border-t border-ink-200 bg-white px-4 pt-2.5"
         >
           <View className="flex-row items-center gap-2">

@@ -813,6 +813,14 @@ export const apiSlice = createApi({
       providesTags: (_result, _error, taskId) => [{ type: 'Payment', id: taskId }],
     }),
 
+    // Client-triggered fallback confirmation, called right after the native
+    // PayHere SDK reports a completed payment - the server re-checks against
+    // PayHere directly rather than trusting the client's word for it.
+    verifyPayment: builder.mutation<PaymentTaskStatus, { orderId: string; taskId: string }>({
+      query: ({ orderId }) => ({ url: `/payments/${orderId}/verify`, method: 'POST' }),
+      invalidatesTags: (_result, _error, { taskId }) => [{ type: 'Payment', id: taskId }],
+    }),
+
     // Wallet
     getMyWallet: builder.query<MyWalletResponse, void>({
       query: () => '/wallet/me',
@@ -943,6 +951,7 @@ export const {
   useSendMessageMutation,
   useInitiateCheckoutMutation,
   useGetPaymentStatusQuery,
+  useVerifyPaymentMutation,
   useLazyGetPaymentStatusQuery,
   useGetMyWalletQuery,
   useGetMyBankAccountsQuery,

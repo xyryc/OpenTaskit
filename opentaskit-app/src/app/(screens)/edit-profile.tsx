@@ -5,10 +5,9 @@ import {
   ScrollView,
   Pressable,
   TextInput,
-  KeyboardAvoidingView,
-  Platform,
   Alert,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -95,6 +94,7 @@ export default function EditProfileScreen() {
   const [portfolioError, setPortfolioError] = useState('');
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [headerHeight, setHeaderHeight] = useState(0);
 
   const handleSelectFromGallery = async () => {
     try {
@@ -365,11 +365,14 @@ export default function EditProfileScreen() {
       <StatusBar style="dark" />
 
       {/* Screen Header */}
-      <ScreenHeader title="Edit profile" />
+      <View onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}>
+        <ScreenHeader title="Edit profile" />
+      </View>
 
       <KeyboardAvoidingView
         className="flex-1"
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior="padding"
+        keyboardVerticalOffset={insets.top + headerHeight}
       >
         <ScrollView
           className="flex-1"

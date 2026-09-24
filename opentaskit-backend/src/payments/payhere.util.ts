@@ -6,7 +6,7 @@ import * as crypto from 'crypto';
 //  - App ID + App Secret: OAuth2 client-credentials pair for their REST
 //    "Merchant API", used here only for the Refund endpoint.
 
-function isSandbox(): boolean {
+export function isSandbox(): boolean {
   return (process.env.PAYHERE_SANDBOX ?? 'true').toLowerCase() !== 'false';
 }
 
@@ -16,7 +16,7 @@ export function getPayHereCheckoutBaseUrl(): string {
     : 'https://www.payhere.lk/pay/checkout';
 }
 
-function getMerchantApiBaseUrl(): string {
+export function getMerchantApiBaseUrl(): string {
   return isSandbox()
     ? 'https://sandbox.payhere.lk/merchant/v1'
     : 'https://www.payhere.lk/merchant/v1';
@@ -146,6 +146,69 @@ async function getMerchantApiAccessToken(): Promise<string> {
   };
 
   return data.access_token;
+}
+
+// PayHere's Retrieval API (/payment/search) reports outcome via a string
+// `status` field (e.g. "RECEIVED") - this is a different shape from the IPN
+// webhook payload, which uses a numeric `status_code` (see PAYHERE_STATUS_CODE).
+export interface PayHereRetrievedPayment {
+  payment_id: string | number;
+  order_id: string;
+  status: string;
+  amount: string | number;
+  currency: string;
+  [key: string]: unknown;
+}
+
+// The only documented success value for the Retrieval API's `status` field.
+const RETRIEVAL_STATUS_SUCCESS = 'RECEIVED';
+
+// Server-side confirmation of a payment via PayHere's Retrieval API, used as
+// a fallback when the IPN webhook can't reach us (e.g. a local/sandbox build
+// with no public URL) - the client asks us to check right after the native
+// SDK reports completion, and we verify against PayHere rather than trusting
+// the client's word for it.
+export async function retrievePaymentByOrderId(
+  orderId: string,
+): Promise<PayHereRetrievedPayment | null> {
+  const accessToken = await getMerchantApiAccessToken();
+
+  const res = await fetch(
+    `${getMerchantApiBaseUrl()}/payment/search?order_id=${encodeURIComponent(orderId)}`,
+    {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  );
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`PayHere payment search failed (HTTP ${res.status}): ${body}`);
+  }
+
+  const data = (await res.json()) as { data?: PayHereRetrievedPayment[] };
+  const payments = data.data ?? [];
+  if (payments.length === 0) return null;
+
+  // PayHere doesn't enforce order_id uniqueness, so prefer a successful
+  // attempt if one exists, otherwise fall back to the most recent entry.
+  const success = payments.find(
+    (p) => String(p.status).toUpperCase() === RETRIEVAL_STATUS_SUCCESS,
+  );
+  return success ?? payments[payments.length - 1];
+}
+
+// Translates the Retrieval API's string `status` into the same numeric
+// codes `applyPaymentOutcome` uses for IPN payloads, so both paths share one
+// state-transition function. Anything unrecognized is treated as still
+// pending rather than failed - we'd rather leave a payment unresolved than
+// wrongly mark a real success as failed because of an unmapped status string.
+export function mapRetrievalStatusToCode(status: string): string {
+  return String(status).toUpperCase() === RETRIEVAL_STATUS_SUCCESS
+    ? PAYHERE_STATUS_CODE.SUCCESS
+    : PAYHERE_STATUS_CODE.PENDING;
 }
 
 // Issues a refund for a completed PayHere payment. `amount` omitted = full refund.

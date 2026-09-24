@@ -186,7 +186,12 @@ export function OfferCard({
                 variant="outline"
                 className="flex-1"
                 icon={<MessageCircle size={16} color="#0C1417" />}
-                onPress={() => router.push(`/chat/${offer.taskId}` as any)}
+                onPress={() =>
+                  router.push({
+                    pathname: '/(screens)/chat/[taskId]',
+                    params: { taskId: offer.taskId, otherUserId: provider.id },
+                  } as any)
+                }
               >
                 Chat
               </Button>

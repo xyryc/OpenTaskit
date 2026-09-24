@@ -20,8 +20,11 @@ const en: Dict = {
   'home.greeting.evening': 'Good evening',
   'home.greeting.night': 'Good night',
   'home.hero.title': 'Find someone to get it done.',
-  'home.hero.sub': 'Post a task, compare real offers, hire with confidence.',
+  'home.hero.sub': 'Connect with trusted local taskers for home repairs, moving, cleaning and more.',
+  'home.hero.subtitle': 'Connect with trusted local taskers for home repairs, moving, cleaning and more.',
   'home.cta.post': 'Post a Task',
+  'home.cta.postTask': 'Post a task',
+  'home.cta.posttask': 'Post a task',
   'home.cta.find': 'Find Tasks',
   'home.cta.activeTasks': 'Active tasks',
   'home.todo': 'Needs your attention',
@@ -53,7 +56,10 @@ const si: Dict = {
   'home.greeting.night': 'සුබ රාත්‍රියක්',
   'home.hero.title': 'ඔබේ වැඩ කරන්න හරි කෙනෙක් හොයාගන්න.',
   'home.hero.sub': 'කාර්යයක් යොදන්න, ලැබෙන මිල ගණන් සසඳන්න, විශ්වාසයෙන් බඳවා ගන්න.',
+  'home.hero.subtitle': 'කාර්යයක් යොදන්න, ලැබෙන මිල ගණන් සසඳන්න, විශ්වාසයෙන් බඳවා ගන්න.',
   'home.cta.post': 'කාර්යයක් යොදන්න',
+  'home.cta.postTask': 'කාර්යයක් යොදන්න',
+  'home.cta.posttask': 'කාර්යයක් යොදන්න',
   'home.cta.find': 'කාර්යයන් සොයන්න',
   'home.cta.activeTasks': 'ක්‍රියාකාරී කාර්යයන්',
   'home.todo': 'ඔබේ අවධානය අවශ්‍යයි',
@@ -85,7 +91,10 @@ const ta: Dict = {
   'home.greeting.night': 'இரவு வணக்கம்',
   'home.hero.title': 'வேலையை முடிக்க சரியான நபரைக் கண்டறியுங்கள்.',
   'home.hero.sub': 'பணியை இடுங்கள், விலைகளை ஒப்பிடுங்கள், நம்பிக்கையுடன் பணியமர்த்துங்கள்.',
+  'home.hero.subtitle': 'பணியை இடுங்கள், விலைகளை ஒப்பிடுங்கள், நம்பிக்கையுடன் பணியமர்த்துங்கள்.',
   'home.cta.post': 'பணியை இடுங்கள்',
+  'home.cta.postTask': 'பணியை இடுங்கள்',
+  'home.cta.posttask': 'பணியை இடுங்கள்',
   'home.cta.find': 'பணிகளைத் தேடு',
   'home.cta.activeTasks': 'செயலில் உள்ள பணிகள்',
   'home.todo': 'உங்கள் கவனம் தேவை',
@@ -106,8 +115,8 @@ const ta: Dict = {
 
 const dictionaries: Record<Language, Dict> = { en, si, ta };
 
-export function translate(language: Language, key: string): string {
-  return dictionaries[language][key] ?? dictionaries.en[key] ?? key;
+export function translate(language: Language, key: string, fallback?: string): string {
+  return dictionaries[language]?.[key] ?? dictionaries.en?.[key] ?? fallback ?? key;
 }
 
 /** Picks the greeting translation key for the device's current local time. */

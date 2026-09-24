@@ -5,10 +5,9 @@ import {
   TextInput,
   Pressable,
   ScrollView,
-  KeyboardAvoidingView,
-  Platform,
   StyleSheet,
 } from 'react-native';
+import { KeyboardAvoidingView, useKeyboardState } from 'react-native-keyboard-controller';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -115,6 +114,7 @@ interface DisplayCategory {
 export default function CreateTaskScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const isKeyboardVisible = useKeyboardState((state) => state.isVisible);
   const { requireAccount, currentLocation, wallet, toast } = useApp();
 
   const { data: apiCategories } = useGetCategoriesQuery();
@@ -403,8 +403,8 @@ export default function CreateTaskScreen() {
 
       <KeyboardAvoidingView
         className="flex-1"
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + headerHeight : 0}
+        behavior="padding"
+        keyboardVerticalOffset={headerHeight}
       >
         <ScrollView
           className="flex-1 bg-canvas"
@@ -1167,7 +1167,7 @@ export default function CreateTaskScreen() {
         {/* Sticky Footer Actions */}
         <View
           className="shrink-0 border-t border-ink-100 bg-white px-5 pt-3"
-          style={{ paddingBottom: Math.max(insets.bottom, 16) + 4 }}
+          style={{ paddingBottom: isKeyboardVisible ? 4 : Math.max(insets.bottom, 16) + 4 }}
         >
           {step === 2 ? (
             <View className="flex-row gap-3" style={{ gap: 12 }}>

@@ -182,16 +182,6 @@ export default function SettingsScreen() {
                 } as any)
               }
             />
-            <SettingsItem
-              icon={<Scale size={18} color="#2B3A41" />}
-              label="Community guidelines"
-              onPress={() =>
-                router.push({
-                  pathname: '/(screens)/legal/[doc]',
-                  params: { doc: 'community' },
-                } as any)
-              }
-            />
           </SettingsGroup>
 
           {/* Group: Support */}

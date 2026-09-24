@@ -246,14 +246,16 @@ export default function HomeScreen() {
         {mode === "requester" ? (
           <View className="mx-5 mt-4 overflow-hidden rounded-4xl bg-brand-deep p-5">
             <Text className="text-[24px] font-geist-bold font-bold leading-tight tracking-tight text-white">
-              {t("home.hero.title") || "Get anything done around you"}
+              {t("home.hero.title", "Get anything done around you")}
             </Text>
             <Text
               className="font-geist mt-2 text-[13.5px] leading-relaxed"
               style={{ color: "rgba(255, 255, 255, 0.7)" }}
             >
-              {t("home.hero.subtitle") ||
-                "Connect with trusted local taskers for home repairs, moving, cleaning and more."}
+              {t(
+                "home.hero.subtitle",
+                "Connect with trusted local taskers for home repairs, moving, cleaning and more."
+              )}
             </Text>
             <View className="mt-5 flex-row gap-3">
               <View className="flex-1">
@@ -263,7 +265,7 @@ export default function HomeScreen() {
                   full
                   onPress={handlePostTask}
                 >
-                  {t("home.cta.postTask") || "Post a task"}
+                  {t("home.cta.postTask", "Post a task")}
                 </Button>
               </View>
               <View className="flex-1">
@@ -273,7 +275,7 @@ export default function HomeScreen() {
                   full
                   onPress={() => router.push("/activity" as any)}
                 >
-                  {t("home.cta.activeTasks") || "Active tasks"}
+                  {t("home.cta.activeTasks", "Active tasks")}
                 </Button>
               </View>
             </View>

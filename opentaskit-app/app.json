@@ -48,7 +48,8 @@
         }
       ],
       "expo-image",
-      "expo-web-browser"
+      "expo-web-browser",
+      "./plugins/withPayHere.js"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -5,9 +5,8 @@ import {
   TextInput,
   Pressable,
   ScrollView,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
+import { KeyboardAvoidingView, useKeyboardState } from 'react-native-keyboard-controller';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -80,8 +79,10 @@ export default function EditTaskScreen() {
   const { id = '' } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const isKeyboardVisible = useKeyboardState((state) => state.isVisible);
   const authUser = useAppSelector((state) => state.auth.user);
   const { toast } = useApp();
+  const [headerHeight, setHeaderHeight] = useState(0);
 
   const { data: apiTask, isLoading: isTaskLoading } = useGetTaskByIdQuery(id, { skip: !id });
   const { data: categories = [], isLoading: isCategoriesLoading } = useGetCategoriesQuery();
@@ -335,10 +336,13 @@ export default function EditTaskScreen() {
   return (
     <Screen tone="canvas" edges={['top']}>
       <StatusBar style="dark" />
-      <ScreenHeader title="Edit task" subtitle={apiTask.title} />
+      <View onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}>
+        <ScreenHeader title="Edit task" subtitle={apiTask.title} />
+      </View>
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior="padding"
+        keyboardVerticalOffset={headerHeight}
         className="flex-1"
       >
         <ScrollView
@@ -663,7 +667,7 @@ export default function EditTaskScreen() {
       {/* Sticky Bottom Actions */}
       <View
         className="shrink-0 border-t border-ink-100 bg-white px-5 pt-3.5"
-        style={{ paddingBottom: Math.max(insets.bottom, 16) + 4 }}
+        style={{ paddingBottom: isKeyboardVisible ? 4 : Math.max(insets.bottom, 16) + 4 }}
       >
         <Button
           full

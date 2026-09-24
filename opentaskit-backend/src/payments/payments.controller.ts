@@ -48,6 +48,19 @@ export class PaymentsController {
   }
 
   @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Confirm a payment directly against PayHere (fallback when the IPN cannot reach us)',
+  })
+  @UseGuards(JwtAuthGuard)
+  @Post('payments/:orderId/verify')
+  verifyPayment(
+    @Param('orderId') orderId: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.paymentsService.verifyPayment(orderId, userId);
+  }
+
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Admin payments/escrow ledger with platform-wide totals' })
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
