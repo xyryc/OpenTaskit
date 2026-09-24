@@ -138,7 +138,9 @@ export default function SecuritySettingsScreen() {
                   setCurrent(val);
                   if (errors.current) setErrors((prev) => ({ ...prev, current: '' }));
                 }}
-                secureTextEntry
+                isPassword
+                placeholder="Enter current password"
+                leading={<Lock size={18} color="#8A959B" />}
                 error={errors.current}
               />
 
@@ -149,7 +151,9 @@ export default function SecuritySettingsScreen() {
                   setNext(val);
                   if (errors.next) setErrors((prev) => ({ ...prev, next: '' }));
                 }}
-                secureTextEntry
+                isPassword
+                placeholder="Enter new password"
+                leading={<Lock size={18} color="#8A959B" />}
                 error={errors.next}
               />
 
@@ -160,7 +164,9 @@ export default function SecuritySettingsScreen() {
                   setConfirm(val);
                   if (errors.confirm) setErrors((prev) => ({ ...prev, confirm: '' }));
                 }}
-                secureTextEntry
+                isPassword
+                placeholder="Re-enter new password"
+                leading={<Lock size={18} color="#8A959B" />}
                 error={errors.confirm}
               />
 

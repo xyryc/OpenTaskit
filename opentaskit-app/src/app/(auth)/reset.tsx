@@ -119,7 +119,7 @@ export default function ResetPasswordScreen() {
             value={password}
             onChangeText={setPassword}
             error={errors.password}
-            secureTextEntry
+            isPassword
             placeholder="Enter your new password"
             leading={<Lock size={18} color="#8A959B" />}
           />
@@ -129,7 +129,7 @@ export default function ResetPasswordScreen() {
             value={confirm}
             onChangeText={setConfirm}
             error={errors.confirm}
-            secureTextEntry
+            isPassword
             placeholder="Re-enter your password"
             leading={<Lock size={18} color="#8A959B" />}
           />

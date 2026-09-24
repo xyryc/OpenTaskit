@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TextInput, TextInputProps, Pressable } from 'react-native';
-import { AlertCircle, Search, X } from 'lucide-react-native';
+import { AlertCircle, Eye, EyeOff, Search, X } from 'lucide-react-native';
 
 interface FieldProps {
   label?: string;
@@ -46,6 +46,7 @@ export interface TextFieldProps extends Omit<TextInputProps, 'onChange'> {
   optional?: boolean;
   className?: string;
   containerClassName?: string;
+  isPassword?: boolean;
   onChangeText?: (text: string) => void;
   onChange?: (e: any) => void;
 }
@@ -59,15 +60,37 @@ export function TextField({
   optional,
   className = '',
   containerClassName = '',
+  isPassword,
+  secureTextEntry,
   onChangeText,
   onChange,
   value,
   ...props
 }: TextFieldProps) {
+  const [showPassword, setShowPassword] = React.useState(false);
+
   const handleChangeText = (text: string) => {
     if (onChangeText) onChangeText(text);
     if (onChange) onChange({ target: { value: text } });
   };
+
+  const isSecure = isPassword ? !showPassword : secureTextEntry;
+
+  const passwordToggle = isPassword ? (
+    <Pressable
+      onPress={() => setShowPassword((prev) => !prev)}
+      hitSlop={8}
+      className="h-8 w-8 items-center justify-center rounded-full active:bg-ink-100"
+      accessibilityRole="button"
+      accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+    >
+      {showPassword ? (
+        <EyeOff size={18} color="#8A959B" />
+      ) : (
+        <Eye size={18} color="#8A959B" />
+      )}
+    </Pressable>
+  ) : null;
 
   return (
     <Field label={label} hint={hint} error={error} optional={optional}>
@@ -83,13 +106,16 @@ export function TextField({
         <TextInput
           value={value}
           onChangeText={handleChangeText}
+          secureTextEntry={isSecure}
           placeholderTextColor="#8A959B"
           style={[{ fontFamily: 'Geist-Regular' }, props.style]}
           className={`flex-1 text-[15px] text-ink font-geist ${className}`}
           {...props}
         />
 
-        {trailing && <View className="ml-2">{trailing}</View>}
+        {trailing || passwordToggle ? (
+          <View className="ml-2">{trailing ?? passwordToggle}</View>
+        ) : null}
       </View>
     </Field>
   );

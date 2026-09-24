@@ -139,7 +139,7 @@ export default function SignUpScreen() {
             value={form.password}
             onChangeText={updateField('password')}
             error={errors.password}
-            secureTextEntry
+            isPassword
             placeholder="At least 6 characters"
             leading={<Lock size={18} color="#8A959B" />}
           />
@@ -149,7 +149,7 @@ export default function SignUpScreen() {
             value={form.confirm}
             onChangeText={updateField('confirm')}
             error={errors.confirm}
-            secureTextEntry
+            isPassword
             placeholder="Re-enter your password"
             leading={<Lock size={18} color="#8A959B" />}
           />

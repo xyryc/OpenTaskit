@@ -108,22 +108,9 @@ export default function LoginScreen() {
             value={password}
             onChangeText={setPassword}
             error={errors.password}
-            secureTextEntry={!show}
+            isPassword
             placeholder="Enter your password"
             leading={<Lock size={18} color="#8A959B" />}
-            trailing={
-              <Pressable
-                onPress={() => setShow(!show)}
-                hitSlop={8}
-                className="h-8 w-8 items-center justify-center rounded-full active:bg-ink-100"
-              >
-                {show ? (
-                  <EyeOff size={18} color="#8A959B" />
-                ) : (
-                  <Eye size={18} color="#8A959B" />
-                )}
-              </Pressable>
-            }
           />
 
           {/* Remember me & Forgot password */}
