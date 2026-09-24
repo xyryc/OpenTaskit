@@ -9,13 +9,13 @@ import { SearchInput } from '@/components/ui/Input';
 import { SegmentedControl } from '@/components/ui/Segmented';
 import { LeafletMap, Coordinates } from '@/components/create/LeafletMap';
 
-const DEFAULT_AREAS = [
-  'Kirulapone, Colombo 05',
-  'Havelock Town, Colombo 05',
-  'Ward Place, Colombo 07',
-  'Wellawatte, Colombo 06',
-  'Nugegoda, Western Province',
-  'Rajagiriya, Western Province',
+const DEFAULT_AREAS: { name: string; coords: { lat: number; lng: number } }[] = [
+  { name: 'Kirulapone, Colombo 05', coords: { lat: 6.8797, lng: 79.8732 } },
+  { name: 'Havelock Town, Colombo 05', coords: { lat: 6.8872, lng: 79.8656 } },
+  { name: 'Ward Place, Colombo 07', coords: { lat: 6.9167, lng: 79.8700 } },
+  { name: 'Wellawatte, Colombo 06', coords: { lat: 6.8741, lng: 79.8606 } },
+  { name: 'Nugegoda, Western Province', coords: { lat: 6.8649, lng: 79.8997 } },
+  { name: 'Rajagiriya, Western Province', coords: { lat: 6.9084, lng: 79.8967 } },
 ];
 
 interface SearchResultItem {
@@ -23,10 +23,19 @@ interface SearchResultItem {
   primaryText: string;
   secondaryText: string;
   fullAddress: string;
+  coords?: { lat: number; lng: number };
 }
 
 export function LocationSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { locationPermission, setLocationPermission, currentLocation, setCurrentLocation, toast } = useApp();
+  const {
+    locationPermission,
+    setLocationPermission,
+    currentLocation,
+    setCurrentLocation,
+    userCoords,
+    setUserCoords,
+    toast,
+  } = useApp();
   const [mode, setMode] = useState<'search' | 'map'>('search');
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResultItem[]>([]);
@@ -35,13 +44,16 @@ export function LocationSheet({ open, onClose }: { open: boolean; onClose: () =>
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Map mode state
-  const [mapCoords, setMapCoords] = useState<Coordinates>({ lat: 6.9271, lng: 79.8612 });
+  const [mapCoords, setMapCoords] = useState<Coordinates>(userCoords || { lat: 6.9271, lng: 79.8612 });
   const [resolvedMapLocation, setResolvedMapLocation] = useState('Colombo, Sri Lanka');
   const [isResolvingMap, setIsResolvingMap] = useState(false);
   const geocodeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const choose = (location: string) => {
+  const choose = (location: string, coords?: { lat: number; lng: number }) => {
     setCurrentLocation(location);
+    if (coords) {
+      setUserCoords(coords);
+    }
     toast({ title: `Showing tasks near ${location}`, variant: 'success' });
     onClose();
   };
@@ -137,6 +149,7 @@ export function LocationSheet({ open, onClose }: { open: boolean; onClose: () =>
             : data.display_name.split(',').slice(0, 3).join(',').trim();
       }
 
+      setUserCoords({ lat: latitude, lng: longitude });
       setCurrentLocation(resolved);
       toast({ title: 'Location detected', description: resolved, variant: 'success' });
       onClose();
@@ -200,18 +213,23 @@ export function LocationSheet({ open, onClose }: { open: boolean; onClose: () =>
             primaryText: primary,
             secondaryText: secondary,
             fullAddress: `${primary}, ${secondary}`,
+            coords: {
+              lat: parseFloat(item.lat),
+              lng: parseFloat(item.lon),
+            },
           };
         });
         setSearchResults(items);
       } catch (err) {
         console.warn('Nominatim search error:', err);
         const localMatches = DEFAULT_AREAS.filter((a) =>
-          a.toLowerCase().includes(query.toLowerCase())
+          a.name.toLowerCase().includes(query.toLowerCase())
         ).map((a, idx) => ({
           id: `local-${idx}`,
-          primaryText: a.split(',')[0],
-          secondaryText: a.split(',').slice(1).join(',').trim() || 'Sri Lanka',
-          fullAddress: a,
+          primaryText: a.name.split(',')[0],
+          secondaryText: a.name.split(',').slice(1).join(',').trim() || 'Sri Lanka',
+          fullAddress: a.name,
+          coords: a.coords,
         }));
         setSearchResults(localMatches);
       } finally {
@@ -229,9 +247,10 @@ export function LocationSheet({ open, onClose }: { open: boolean; onClose: () =>
       ? searchResults
       : DEFAULT_AREAS.map((a, idx) => ({
           id: `default-${idx}`,
-          primaryText: a.split(',')[0],
-          secondaryText: a.split(',').slice(1).join(',').trim() || 'Sri Lanka',
-          fullAddress: a,
+          primaryText: a.name.split(',')[0],
+          secondaryText: a.name.split(',').slice(1).join(',').trim() || 'Sri Lanka',
+          fullAddress: a.name,
+          coords: a.coords,
         }));
 
   return (
@@ -332,7 +351,7 @@ export function LocationSheet({ open, onClose }: { open: boolean; onClose: () =>
               listItems.map((item) => (
                 <Pressable
                   key={item.id}
-                  onPress={() => choose(item.fullAddress)}
+                  onPress={() => choose(item.fullAddress, item.coords)}
                   className="flex-row items-center gap-3 py-3.5"
                 >
                   <MapPin size={18} color="#8A959B" />
@@ -387,7 +406,7 @@ export function LocationSheet({ open, onClose }: { open: boolean; onClose: () =>
               full
               variant="brand"
               disabled={isResolvingMap}
-              onPress={() => choose(resolvedMapLocation)}
+              onPress={() => choose(resolvedMapLocation, mapCoords)}
             >
               Use this location
             </Button>

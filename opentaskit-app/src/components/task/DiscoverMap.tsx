@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { View, StyleSheet, Platform, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Platform, Pressable } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Crosshair, Plus, Minus } from 'lucide-react-native';
 
@@ -12,6 +12,8 @@ interface DiscoverMapProps {
   selectedId?: string;
   onSelect: (id: string) => void;
   onRecenter?: () => void;
+  userCoords?: { lat: number; lng: number };
+  radiusKm?: number;
 }
 
 const CARTO_API_KEY = process.env.EXPO_PUBLIC_CARTO_API_KEY || 'cb1_3wdf_1_9954bb9dda77633eb8b15ed4';
@@ -21,8 +23,12 @@ export function DiscoverMap({
   selectedId,
   onSelect,
   onRecenter,
+  userCoords,
+  radiusKm = 15,
 }: DiscoverMapProps) {
   const webViewRef = useRef<WebView>(null);
+  const centerLat = userCoords?.lat ?? 6.9271;
+  const centerLng = userCoords?.lng ?? 79.8612;
 
   // Convert tasks to geo markers centered around Colombo (6.9271, 79.8612)
   const mapTasks = tasks.map((t) => {
@@ -105,7 +111,7 @@ export function DiscoverMap({
     var map = L.map('map', {
       zoomControl: false,
       attributionControl: false
-    }).setView([6.9271, 79.8612], 14);
+    }).setView([${centerLat}, ${centerLng}], 14);
 
     // CARTO Positron Light Tiles
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}{r}.png?key=' + encodeURIComponent('${CARTO_API_KEY}'), {
@@ -121,7 +127,24 @@ export function DiscoverMap({
       iconSize: [16, 16],
       iconAnchor: [8, 8]
     });
-    L.marker([6.9271, 79.8612], { icon: userIcon }).addTo(map);
+    var userMarker = L.marker([${centerLat}, ${centerLng}], { icon: userIcon }).addTo(map);
+
+    // Filter Radius Circle Overlay
+    var initialRadiusKm = ${typeof radiusKm === 'number' && radiusKm > 0 ? radiusKm : 15};
+    var radiusCircle = L.circle([${centerLat}, ${centerLng}], {
+      radius: initialRadiusKm * 1000,
+      color: '#0094F7',
+      weight: 2,
+      opacity: 0.85,
+      dashArray: '6, 6',
+      fillColor: '#0094F7',
+      fillOpacity: 0.08,
+      interactive: false
+    }).addTo(map);
+
+    try {
+      map.fitBounds(radiusCircle.getBounds(), { padding: [36, 36], maxZoom: 15 });
+    } catch (e) {}
 
     var markersLayer = L.layerGroup().addTo(map);
     var tasks = ${tasksJson};
@@ -158,7 +181,34 @@ export function DiscoverMap({
     };
 
     window.recenterMap = function() {
-      map.setView([6.9271, 79.8612], 14, { animate: true });
+      if (radiusCircle) {
+        map.fitBounds(radiusCircle.getBounds(), { padding: [36, 36], maxZoom: 15, animate: true });
+      } else {
+        map.setView([${centerLat}, ${centerLng}], 14, { animate: true });
+      }
+    };
+
+    window.updateRadius = function(newRadiusKm) {
+      if (radiusCircle && typeof newRadiusKm === 'number' && newRadiusKm > 0) {
+        radiusCircle.setRadius(newRadiusKm * 1000);
+        try {
+          map.fitBounds(radiusCircle.getBounds(), { padding: [36, 36], maxZoom: 15, animate: true });
+        } catch (e) {}
+      }
+    };
+
+    window.updateUserLocation = function(newLat, newLng) {
+      if (userMarker) {
+        userMarker.setLatLng([newLat, newLng]);
+      }
+      if (radiusCircle) {
+        radiusCircle.setLatLng([newLat, newLng]);
+      }
+    };
+
+    window.updateTasks = function(newTasks) {
+      tasks = newTasks;
+      renderMarkers();
     };
 
     window.zoomIn = function() {
@@ -182,6 +232,30 @@ export function DiscoverMap({
       );
     }
   }, [selectedId]);
+
+  useEffect(() => {
+    if (webViewRef.current) {
+      webViewRef.current.injectJavaScript(
+        `if (window.updateTasks) { window.updateTasks(${tasksJson}); } true;`
+      );
+    }
+  }, [tasksJson]);
+
+  useEffect(() => {
+    if (webViewRef.current && typeof radiusKm === 'number') {
+      webViewRef.current.injectJavaScript(
+        `if (window.updateRadius) { window.updateRadius(${radiusKm}); } true;`
+      );
+    }
+  }, [radiusKm]);
+
+  useEffect(() => {
+    if (webViewRef.current && userCoords) {
+      webViewRef.current.injectJavaScript(
+        `if (window.updateUserLocation) { window.updateUserLocation(${userCoords.lat}, ${userCoords.lng}); } true;`
+      );
+    }
+  }, [userCoords?.lat, userCoords?.lng]);
 
   const handleMessage = (event: any) => {
     try {
@@ -220,6 +294,17 @@ export function DiscoverMap({
         domStorageEnabled={true}
         mixedContentMode="always"
       />
+
+      {/* Floating Radius Indicator Badge */}
+      <View
+        className="absolute left-4 top-4 flex-row items-center gap-1.5 rounded-full border border-white/80 bg-white/95 px-3 py-1.5 backdrop-blur-md"
+        style={shadows.subtle}
+      >
+        <View className="h-2 w-2 rounded-full bg-[#0094F7]" />
+        <Text className="font-geist-medium text-[12px] text-ink">
+          Radius: {radiusKm} km
+        </Text>
+      </View>
 
       {/* Floating Map Controls in Top Right */}
       <View

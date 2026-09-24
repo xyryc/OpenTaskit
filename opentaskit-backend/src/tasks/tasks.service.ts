@@ -6,10 +6,29 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EscrowService } from '../payments/escrow.service';
-import { CreateTaskDto } from './dto/create-task.dto';
+import { CreateTaskDto, LocationType } from './dto/create-task.dto';
 import { FilterTasksDto, TaskStatus } from './dto/filter-tasks.dto';
 import { OfferStatus } from '../../generated/prisma/enums';
 import { UpdateTaskDto } from './dto/update-task.dto';
+
+function calculateHaversineKm(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): number {
+  const R = 6371; // Earth's radius in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(R * c * 10) / 10;
+}
 
 @Injectable()
 export class TasksService {
@@ -50,7 +69,7 @@ export class TasksService {
     });
   }
 
-  // 2. Fetch Marketplace Tasks with Filters & Pagination
+  // 2. Fetch Marketplace Tasks with Filters, Geospatial Radius & Pagination
   async findAll(query: FilterTasksDto) {
     const {
       allStatuses,
@@ -62,63 +81,212 @@ export class TasksService {
       maxBudget,
       page = 1,
       limit = 20,
+      lat,
+      lng,
+      radiusKm,
+      sortBy = 'recommended',
     } = query;
 
     const skip = (page - 1) * limit;
+    const hasCoords =
+      typeof lat === 'number' &&
+      typeof lng === 'number' &&
+      !isNaN(lat) &&
+      !isNaN(lng);
+    const hasRadius = typeof radiusKm === 'number' && radiusKm > 0;
+
+    const andConditions: any[] = [];
+
+    // Keyword search filter across title, details, and address
+    if (search) {
+      andConditions.push({
+        OR: [
+          { title: { contains: search, mode: 'insensitive' } },
+          { details: { contains: search, mode: 'insensitive' } },
+          { address: { contains: search, mode: 'insensitive' } },
+        ],
+      });
+    }
+
+    // High-performance Bounding Box filter for geospatial coordinates
+    if (hasCoords && hasRadius) {
+      const deltaLat = radiusKm / 111.0;
+      const cosLat = Math.cos((lat * Math.PI) / 180);
+      const deltaLng =
+        radiusKm / (111.0 * (Math.abs(cosLat) > 0.0001 ? Math.abs(cosLat) : 1));
+      const minLat = lat - deltaLat;
+      const maxLat = lat + deltaLat;
+      const minLng = lng - deltaLng;
+      const maxLng = lng + deltaLng;
+
+      if (locationType === LocationType.IN_PERSON) {
+        andConditions.push({
+          latitude: { gte: minLat, lte: maxLat },
+          longitude: { gte: minLng, lte: maxLng },
+        });
+      } else if (!locationType) {
+        // If locationType is not explicitly restricted, allow REMOTE or IN_PERSON within bounding box
+        andConditions.push({
+          OR: [
+            { locationType: LocationType.REMOTE },
+            {
+              locationType: LocationType.IN_PERSON,
+              latitude: { gte: minLat, lte: maxLat },
+              longitude: { gte: minLng, lte: maxLng },
+            },
+          ],
+        });
+      }
+    }
 
     // Build dynamic SQL where clause
     const where: any = {
       ...(status ? { status } : allStatuses ? {} : { status: TaskStatus.OPEN }),
       ...(categoryId && { categoryId }),
-      ...(locationType && { locationType }),
+      ...(locationType && (!hasCoords || !hasRadius) && { locationType }),
       ...((minBudget || maxBudget) && {
         budget: {
           ...(minBudget && { gte: minBudget }),
           ...(maxBudget && { lte: maxBudget }),
         },
       }),
-      ...(search && {
-        OR: [
-          { title: { contains: search, mode: 'insensitive' } },
-          { details: { contains: search, mode: 'insensitive' } },
-          { address: { contains: search, mode: 'insensitive' } },
-        ],
-      }),
+      ...(andConditions.length > 0 && { AND: andConditions }),
     };
 
-    // Run count and query in parallel
-    const [total, tasks] = await Promise.all([
-      this.prisma.task.count({ where }),
-      this.prisma.task.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          category: {
-            select: { id: true, name: true, slug: true, icon: true },
-          },
-          user: {
-            select: {
-              id: true,
-              fullName: true,
-              avatarUrl: true,
-              isVerified: true,
+    // If no coordinates provided, use database-level pagination & ordering
+    if (!hasCoords) {
+      let orderBy: any = { createdAt: 'desc' };
+      if (sortBy === 'budget_high') orderBy = { budget: 'desc' };
+      if (sortBy === 'budget_low') orderBy = { budget: 'asc' };
+      if (sortBy === 'latest') orderBy = { createdAt: 'desc' };
+
+      const [total, tasks] = await Promise.all([
+        this.prisma.task.count({ where }),
+        this.prisma.task.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy,
+          include: {
+            category: {
+              select: { id: true, name: true, slug: true, icon: true },
+            },
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                avatarUrl: true,
+                isVerified: true,
+              },
+            },
+            _count: {
+              select: { offers: true },
             },
           },
-          _count: {
-            select: { offers: true },
+        }),
+      ]);
+
+      return {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        data: tasks.map((t) => ({
+          ...t,
+          distanceKm: t.locationType === LocationType.REMOTE ? 0 : null,
+        })),
+      };
+    }
+
+    // Geospatial search: fetch candidate tasks in the bounding box, compute exact Haversine distance,
+    // filter exact circular radius, and sort accurately
+    const candidateTasks = await this.prisma.task.findMany({
+      where,
+      take: 1000, // Safe bounding box candidate limit
+      include: {
+        category: {
+          select: { id: true, name: true, slug: true, icon: true },
+        },
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            avatarUrl: true,
+            isVerified: true,
           },
         },
-      }),
-    ]);
+        _count: {
+          select: { offers: true },
+        },
+      },
+    });
+
+    const tasksWithDistance = candidateTasks.map((task) => {
+      let distanceKm: number | null = null;
+      if (task.locationType === LocationType.REMOTE) {
+        distanceKm = 0;
+      } else if (
+        typeof task.latitude === 'number' &&
+        typeof task.longitude === 'number'
+      ) {
+        distanceKm = calculateHaversineKm(
+          lat,
+          lng,
+          task.latitude,
+          task.longitude,
+        );
+      }
+      return {
+        ...task,
+        distanceKm,
+      };
+    });
+
+    // Exact circular radius filter (pruning bounding box corners)
+    const filteredTasks = hasRadius
+      ? tasksWithDistance.filter(
+          (t) =>
+            t.locationType === LocationType.REMOTE ||
+            (t.distanceKm !== null && t.distanceKm <= radiusKm),
+        )
+      : tasksWithDistance;
+
+    // Sort by requested ordering
+    if (sortBy === 'nearest') {
+      filteredTasks.sort((a, b) => {
+        const distA = a.distanceKm ?? 999999;
+        const distB = b.distanceKm ?? 999999;
+        return distA - distB;
+      });
+    } else if (sortBy === 'latest') {
+      filteredTasks.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+    } else if (sortBy === 'budget_high') {
+      filteredTasks.sort((a, b) => b.budget - a.budget);
+    } else if (sortBy === 'budget_low') {
+      filteredTasks.sort((a, b) => a.budget - b.budget);
+    } else {
+      // 'recommended': blend distance and recency
+      filteredTasks.sort((a, b) => {
+        const distA = a.distanceKm ?? 25;
+        const distB = b.distanceKm ?? 25;
+        const timeA = new Date(a.createdAt).getTime();
+        const timeB = new Date(b.createdAt).getTime();
+        return distA / 10 - distB / 10 + (timeB - timeA) / 1e9;
+      });
+    }
+
+    const total = filteredTasks.length;
+    const paginated = filteredTasks.slice(skip, skip + limit);
 
     return {
       total,
       page,
       limit,
       totalPages: Math.ceil(total / limit),
-      data: tasks,
+      data: paginated,
     };
   }
 

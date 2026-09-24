@@ -58,4 +58,23 @@ export class FilterTasksDto {
   @IsOptional()
   @Type(() => Number)
   limit?: number = 20;
+
+  @IsNumber()
+  @IsOptional()
+  @Type(() => Number)
+  lat?: number;
+
+  @IsNumber()
+  @IsOptional()
+  @Type(() => Number)
+  lng?: number;
+
+  @IsNumber()
+  @IsOptional()
+  @Type(() => Number)
+  radiusKm?: number;
+
+  @IsString()
+  @IsOptional()
+  sortBy?: string;
 }

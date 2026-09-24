@@ -40,7 +40,7 @@ import { shadows } from '@/utils/shadows';
 export default function DiscoverScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { toast, requireAccount } = useApp();
+  const { toast, requireAccount, userCoords } = useApp();
 
   const [view, setView] = useState<'list' | 'map'>('list');
   const [query, setQuery] = useState('');
@@ -57,6 +57,10 @@ export default function DiscoverScreen() {
     categoryId: filters.categoryIds[0] || undefined,
     minBudget: filters.budgetMin > 0 ? filters.budgetMin : undefined,
     maxBudget: filters.budgetMax < 30000 ? filters.budgetMax : undefined,
+    lat: userCoords?.lat,
+    lng: userCoords?.lng,
+    radiusKm: filters.maxDistanceKm,
+    sortBy: filters.sort,
   });
 
   const [refreshing, setRefreshing] = useState(false);
@@ -71,8 +75,10 @@ export default function DiscoverScreen() {
   };
 
   const liveTasks = useMemo(() => {
-    return tasksData?.data ? tasksData.data.map(mapApiTaskToTask) : [];
-  }, [tasksData]);
+    return tasksData?.data
+      ? tasksData.data.map((item) => mapApiTaskToTask(item, userCoords))
+      : [];
+  }, [tasksData, userCoords]);
 
   const openTasks = useMemo(
     () =>
@@ -224,6 +230,8 @@ export default function DiscoverScreen() {
             tasks={results}
             selectedId={selectedId}
             onSelect={setSelectedId}
+            userCoords={userCoords}
+            radiusKm={filters.maxDistanceKm}
             onRecenter={() =>
               toast({ title: 'Centred on your location', variant: 'info' })
             }

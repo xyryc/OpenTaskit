@@ -48,6 +48,7 @@ export default function HomeScreen() {
     setMode,
     currentLocation,
     requireAccount,
+    userCoords,
   } = useApp();
 
   const guest = useAppSelector((state) => state.auth.guest);
@@ -79,11 +80,17 @@ export default function HomeScreen() {
     data: tasksData,
     isLoading: tasksLoading,
     refetch: refetchTasks,
-  } = useGetTasksQuery();
+  } = useGetTasksQuery({
+    lat: userCoords?.lat,
+    lng: userCoords?.lng,
+    sortBy: 'nearest',
+  });
 
   const liveTasks = useMemo(() => {
-    return tasksData?.data ? tasksData.data.map(mapApiTaskToTask) : [];
-  }, [tasksData]);
+    return tasksData?.data
+      ? tasksData.data.map((item) => mapApiTaskToTask(item, userCoords))
+      : [];
+  }, [tasksData, userCoords]);
 
   const loading = tasksLoading || categoriesLoading;
   const [refreshing, setRefreshing] = useState(false);

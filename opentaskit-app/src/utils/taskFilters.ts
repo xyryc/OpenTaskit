@@ -47,10 +47,29 @@ export function activeFilterCount(filters: TaskFilters): number {
   return count;
 }
 
+export function calculateHaversineKm(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number {
+  const R = 6371; // Earth radius in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(R * c * 10) / 10;
+}
+
 export function applyFilters(tasks: Task[], filters: TaskFilters, query = ''): Task[] {
   const term = query.trim().toLowerCase();
   const filtered = tasks.filter((task) => {
-    if (task.distanceKm > filters.maxDistanceKm) return false;
+    if (task.location !== 'Remote' && task.distanceKm > filters.maxDistanceKm) return false;
     if (task.budget < filters.budgetMin || task.budget > filters.budgetMax) return false;
     if (filters.categoryIds.length && !filters.categoryIds.includes(task.categoryId)) return false;
     if (filters.date === 'today' && task.schedule.type !== 'asap') return false;
@@ -95,7 +114,10 @@ export const API_TASK_STATUS_MAP: Record<string, Task['status']> = {
   DISPUTED: 'disputed',
 };
 
-export function mapApiTaskToTask(item: import('@/types/api').TaskItem): Task {
+export function mapApiTaskToTask(
+  item: import('@/types/api').TaskItem,
+  userCoordsOrIndex?: { lat: number; lng: number } | number
+): Task {
   const statusMap = API_TASK_STATUS_MAP;
 
   const scheduleTypeMap: Record<string, Task['schedule']['type']> = {
@@ -109,6 +131,29 @@ export function mapApiTaskToTask(item: import('@/types/api').TaskItem): Task {
     CARD: 'card',
     WALLET: 'wallet',
   };
+
+  const coords =
+    typeof userCoordsOrIndex === 'object' && userCoordsOrIndex !== null
+      ? userCoordsOrIndex
+      : undefined;
+
+  let distanceKm = 0;
+  if (typeof item.distanceKm === 'number') {
+    distanceKm = item.distanceKm;
+  } else if (item.locationType === 'REMOTE') {
+    distanceKm = 0;
+  } else if (
+    coords &&
+    typeof item.latitude === 'number' &&
+    typeof item.longitude === 'number'
+  ) {
+    distanceKm = calculateHaversineKm(
+      coords.lat,
+      coords.lng,
+      item.latitude,
+      item.longitude
+    );
+  }
 
   return {
     id: item.id,
@@ -138,7 +183,7 @@ export function mapApiTaskToTask(item: import('@/types/api').TaskItem): Task {
     budget: item.budget,
     flexibleBudget: item.isBudgetFlexible ?? false,
     location: item.address || (item.locationType === 'REMOTE' ? 'Remote' : 'In Person'),
-    distanceKm: item.locationType === 'REMOTE' ? 0 : 2.5,
+    distanceKm,
     latitude: item.latitude ?? undefined,
     longitude: item.longitude ?? undefined,
     // Fallback stylized-minimap position, only used when real coordinates are absent

@@ -79,6 +79,8 @@ interface AppState {
   setLocationPermission: (p: LocationPermission) => void;
   currentLocation: string;
   setCurrentLocation: (loc: string) => void;
+  userCoords: { lat: number; lng: number };
+  setUserCoords: (coords: { lat: number; lng: number }) => void;
   tasks: Task[];
   offers: Offer[];
   messages: Message[];
@@ -154,12 +156,29 @@ export function AppProvider({ children }: {children: React.ReactNode;}) {
   const [kyc, setKyc] = useState<KycStatus>('verified');
   const [locationPermission, setLocationPermission] = useState<LocationPermission>('unknown');
   const [currentLocation, setCurrentLocation] = useState('Kirulapone, Colombo 05');
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number }>({
+    lat: 6.9271,
+    lng: 79.8612,
+  });
 
   // Sync with the real OS permission on launch, rather than assuming granted.
   useEffect(() => {
     Location.getForegroundPermissionsAsync()
-      .then(({ status }) => {
-        setLocationPermission(status === 'granted' ? 'granted' : 'denied');
+      .then(async ({ status }) => {
+        if (status === 'granted') {
+          setLocationPermission('granted');
+          try {
+            const pos = await Location.getLastKnownPositionAsync();
+            if (pos?.coords) {
+              setUserCoords({
+                lat: pos.coords.latitude,
+                lng: pos.coords.longitude,
+              });
+            }
+          } catch {}
+        } else {
+          setLocationPermission('denied');
+        }
       })
       .catch(() => setLocationPermission('denied'));
   }, []);
@@ -764,6 +783,8 @@ export function AppProvider({ children }: {children: React.ReactNode;}) {
     setLocationPermission,
     currentLocation: locationPermission === 'granted' ? currentLocation : 'Location off',
     setCurrentLocation,
+    userCoords,
+    setUserCoords,
     tasks,
     offers,
     messages,

@@ -172,6 +172,10 @@ export interface FilterTasksQuery {
   maxBudget?: number;
   page?: number;
   limit?: number;
+  lat?: number;
+  lng?: number;
+  radiusKm?: number;
+  sortBy?: string;
 }
 
 export interface TaskUserSummary {
@@ -194,6 +198,7 @@ export interface TaskItem {
   address?: string | null;
   latitude?: number | null;
   longitude?: number | null;
+  distanceKm?: number | null;
   budget: number;
   isBudgetFlexible: boolean;
   paymentMethod: PaymentApiMethod;
