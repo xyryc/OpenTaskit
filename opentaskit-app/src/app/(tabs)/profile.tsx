@@ -27,7 +27,7 @@ import {
 
 import { useApp } from '@/contexts/AppContext';
 import { ME } from '@/data/users';
-import { initialsOf, money, monthYear } from '@/utils/format';
+import { experienceLabel, initialsOf, money, monthYear } from '@/utils/format';
 import { Screen, SectionHeader } from '@/components/layout/Screen';
 import { Avatar, VerifiedPill } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
@@ -364,7 +364,10 @@ export default function ProfileScreen() {
                 { label: 'Completed', value: `${profile?.stats.tasksCompleted ?? me.completedJobs} jobs` },
                 { label: 'Success rate', value: `${me.successRate}%` },
                 { label: 'Response rate', value: `${me.responseRate}%` },
-                { label: 'Experience', value: `${me.experienceYears} yrs` },
+                {
+                  label: 'Experience',
+                  value: profile?.createdAt ? experienceLabel(profile.createdAt) : `${me.experienceYears} yrs`,
+                },
               ]}
             />
           </View>

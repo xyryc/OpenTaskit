@@ -22,7 +22,7 @@ import { useApp } from '@/contexts/AppContext';
 import { ME } from '@/data/users';
 import { useAppSelector } from '@/store';
 import { useGetPublicProfileQuery } from '@/store/api/apiSlice';
-import { distance, initialsOf, monthYear, money, timeAgo } from '@/utils/format';
+import { distance, experienceLabel, initialsOf, monthYear, money, timeAgo } from '@/utils/format';
 import { resolveImageSource } from '@/utils/images';
 import { Screen, ScreenHeader, SectionHeader } from '@/components/layout/Screen';
 import { Avatar, VerifiedPill } from '@/components/ui/Avatar';
@@ -67,6 +67,10 @@ export default function ProviderProfileScreen() {
       memberSince: monthYear(profile.memberSince),
     };
   }, [profile, fallbackUser]);
+
+  const experienceText = profile
+    ? experienceLabel(profile.memberSince)
+    : `${fallbackUser.experienceYears} yrs`;
 
   const services = profile?.services ?? [];
   const portfolio = profile?.portfolio ?? [];
@@ -164,7 +168,7 @@ export default function ProviderProfileScreen() {
               { label: 'Completed', value: `${user.completedJobs} jobs` },
               { label: 'Success rate', value: `${user.successRate}%` },
               { label: 'Response rate', value: `${user.responseRate}%` },
-              { label: 'Experience', value: `${user.experienceYears} yrs` },
+              { label: 'Experience', value: experienceText },
             ]}
           />
 

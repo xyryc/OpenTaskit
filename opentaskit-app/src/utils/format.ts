@@ -105,6 +105,20 @@ export function monthYear(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 }
 
+/** Time on the platform since account creation, e.g. "2 yrs" or "3 mos". */
+export function experienceLabel(createdAtIso: string): string {
+  const created = new Date(createdAtIso);
+  const now = new Date();
+  const totalMonths =
+    (now.getFullYear() - created.getFullYear()) * 12 + (now.getMonth() - created.getMonth());
+  const months = now.getDate() < created.getDate() ? totalMonths - 1 : totalMonths;
+
+  if (months < 1) return 'New';
+  if (months < 12) return `${months} mo${months === 1 ? '' : 's'}`;
+  const years = Math.floor(months / 12);
+  return `${years} yr${years === 1 ? '' : 's'}`;
+}
+
 export function initialsOf(name: string): string {
   return name.
   split(' ').
