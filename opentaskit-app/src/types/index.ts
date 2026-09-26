@@ -131,7 +131,7 @@ export interface Message {
   text: string;
   at: string;
   attachment?: string;
-  status: "sent" | "delivered" | "seen";
+  status: "sent" | "delivered" | "seen" | "failed";
 }
 
 export type NotificationKind =

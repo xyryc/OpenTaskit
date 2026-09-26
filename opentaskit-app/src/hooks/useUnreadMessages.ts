@@ -1,13 +1,13 @@
-import { useMemo } from 'react';
 import { useAppSelector } from '@/store';
-import { useGetConversationsQuery } from '@/store/api/apiSlice';
+import { useGetUnreadMessagesCountQuery } from '@/store/api/apiSlice';
 
 export function useUnreadMessages() {
   const { guest } = useAppSelector((state) => state.auth);
-  const { data: conversations } = useGetConversationsQuery(undefined, { skip: guest });
+  const { data } = useGetUnreadMessagesCountQuery(undefined, {
+    skip: guest,
+    pollingInterval: 15000,
+  });
 
-  return useMemo(
-    () => (conversations ?? []).reduce((sum, c) => sum + c.unreadCount, 0),
-    [conversations]
-  );
+  return data?.count ?? 0;
 }
+

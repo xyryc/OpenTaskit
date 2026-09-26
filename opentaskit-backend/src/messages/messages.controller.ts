@@ -47,4 +47,10 @@ export class MessagesController {
   getConversations(@CurrentUser('id') userId: string) {
     return this.messagesService.getConversations(userId);
   }
+
+  @ApiOperation({ summary: 'Get total unread messages count for authenticated user' })
+  @Get('messages/unread-count')
+  getUnreadCount(@CurrentUser('id') userId: string) {
+    return this.messagesService.getUnreadCount(userId);
+  }
 }

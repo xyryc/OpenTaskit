@@ -234,4 +234,15 @@ export class MessagesService {
           b.lastMessage.createdAt.getTime() - a.lastMessage.createdAt.getTime(),
       );
   }
+
+  // Fast count of all unread messages for the given user across all threads
+  async getUnreadCount(userId: string): Promise<{ count: number }> {
+    const count = await this.prisma.message.count({
+      where: {
+        receiverId: userId,
+        isRead: false,
+      },
+    });
+    return { count };
+  }
 }

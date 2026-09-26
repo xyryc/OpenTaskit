@@ -2,8 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { useRouter } from 'expo-router';
 
-import { useAppSelector } from '@/store';
-import { useGetNotificationsQuery, useMarkNotificationReadMutation } from '@/store/api/apiSlice';
+import { useAppDispatch, useAppSelector } from '@/store';
+import { apiSlice, useGetNotificationsQuery, useMarkNotificationReadMutation } from '@/store/api/apiSlice';
 import { resolveNotificationRoute } from '@/utils/notifications';
 import type { NotificationRecord } from '@/types';
 import { NotificationBanner } from './NotificationBanner';
@@ -16,6 +16,7 @@ const POLL_INTERVAL_MS = 20000;
 // banner'd, only genuinely new ones.
 export function NotificationBannerHost() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const { guest } = useAppSelector((s) => s.auth);
   const { data } = useGetNotificationsQuery(undefined, {
     skip: guest,
@@ -43,8 +44,16 @@ export function NotificationBannerHost() {
     if (fresh.length === 0) return;
 
     fresh.forEach((n) => seenIds.current.add(n.id));
+    if (fresh.some((n) => n.type === 'MESSAGE')) {
+      dispatch(
+        apiSlice.util.invalidateTags([
+          { type: 'Message', id: 'UNREAD_COUNT' },
+          { type: 'Message', id: 'CONVERSATIONS' },
+        ])
+      );
+    }
     setQueue((prev) => [...prev, ...fresh]);
-  }, [data]);
+  }, [data, dispatch]);
 
   useEffect(() => {
     if (!current && queue.length > 0) {

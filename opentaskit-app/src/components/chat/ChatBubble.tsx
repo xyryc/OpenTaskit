@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
-import { Check, CheckCheck, Clock } from 'lucide-react-native';
+import { AlertCircle, Check, CheckCheck, Clock } from 'lucide-react-native';
 import type { Message } from '@/types';
 import { clockTime } from '@/utils/format';
 import { resolveImageSource } from '@/utils/images';
@@ -9,14 +9,22 @@ import { resolveImageSource } from '@/utils/images';
 export function ChatBubble({
   message,
   mine,
+  onRetry,
 }: {
   message: Message;
   mine: boolean;
+  onRetry?: () => void;
 }) {
+  const failed = message.status === 'failed';
+
   return (
     <View className={`flex-row ${mine ? 'justify-end' : 'justify-start'} my-1`}>
-      <View
-        className={`max-w-[80%] ${mine ? 'items-end' : 'items-start'} flex-col gap-1`}
+      <Pressable
+        disabled={!failed}
+        onPress={onRetry}
+        className={`max-w-[80%] ${mine ? 'items-end' : 'items-start'} flex-col gap-1 ${
+          failed ? 'opacity-60' : ''
+        }`}
       >
         {/* Attachment if present */}
         {message.attachment && (
@@ -51,20 +59,31 @@ export function ChatBubble({
 
         {/* Timestamp & Status checks */}
         <View className="flex-row items-center gap-1 px-1">
-          <Text className="font-geist text-[10.5px] text-ink-400">
-            {clockTime(message.at)}
-          </Text>
-          {mine && (
-            message.status === 'sent' ? (
-              <Clock size={11} color="#8A959B" />
-            ) : message.status === 'delivered' ? (
-              <Check size={12} color="#8A959B" />
-            ) : (
-              <CheckCheck size={13} color="#0094F7" />
-            )
+          {failed ? (
+            <>
+              <AlertCircle size={11} color="#E5484D" />
+              <Text className="font-geist-medium text-[10.5px] text-danger">
+                Failed · Tap to retry
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text className="font-geist text-[10.5px] text-ink-400">
+                {clockTime(message.at)}
+              </Text>
+              {mine && (
+                message.status === 'sent' ? (
+                  <Clock size={11} color="#8A959B" />
+                ) : message.status === 'delivered' ? (
+                  <Check size={12} color="#8A959B" />
+                ) : (
+                  <CheckCheck size={13} color="#0094F7" />
+                )
+              )}
+            </>
           )}
         </View>
-      </View>
+      </Pressable>
     </View>
   );
 }

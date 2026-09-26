@@ -27,8 +27,9 @@ import {
   X,
 } from 'lucide-react-native';
 
-import { useAppSelector } from '@/store';
+import { useAppDispatch, useAppSelector } from '@/store';
 import {
+  apiSlice,
   useGetMessageThreadQuery,
   useSendMessageMutation,
   useUploadImagesMutation,
@@ -48,6 +49,14 @@ import type { MessageRecord } from '@/types';
 
 const ONLINE_THRESHOLD_MS = 2 * 60 * 1000;
 
+interface PendingMessage {
+  localId: string;
+  text?: string;
+  localAttachmentUri?: string;
+  createdAt: string;
+  status: 'sending' | 'failed';
+}
+
 function toMockMessage(record: MessageRecord): MockMessage {
   return {
     id: record.id,
@@ -60,8 +69,21 @@ function toMockMessage(record: MessageRecord): MockMessage {
   };
 }
 
+function toPendingDisplayMessage(item: PendingMessage, taskId: string, senderId: string): MockMessage {
+  return {
+    id: item.localId,
+    taskId,
+    senderId,
+    text: item.text ?? '',
+    at: item.createdAt,
+    attachment: item.localAttachmentUri,
+    status: item.status === 'failed' ? 'failed' : 'sent',
+  };
+}
+
 export default function ChatThreadScreen() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const insets = useSafeAreaInsets();
   const isKeyboardVisible = useKeyboardState((state) => state.isVisible);
   const { taskId, otherUserId } = useLocalSearchParams<{
@@ -74,19 +96,49 @@ export default function ChatThreadScreen() {
     data: thread,
     isLoading,
     error,
+    refetch: refetchThread,
   } = useGetMessageThreadQuery(
     { taskId: taskId!, withUserId: otherUserId },
     { skip: !taskId, pollingInterval: 4000 }
   );
-  const [sendMessage, { isLoading: isSending }] = useSendMessageMutation();
-  const [uploadImages, { isLoading: isUploading }] = useUploadImagesMutation();
+
+  useEffect(() => {
+    if (thread) {
+      dispatch(
+        apiSlice.util.invalidateTags([
+          { type: 'Message', id: 'UNREAD_COUNT' },
+          { type: 'Message', id: 'CONVERSATIONS' },
+        ])
+      );
+    }
+  }, [thread?.messages.length, dispatch]);
+
+  useEffect(() => {
+    return () => {
+      dispatch(
+        apiSlice.util.invalidateTags([
+          { type: 'Message', id: 'UNREAD_COUNT' },
+          { type: 'Message', id: 'CONVERSATIONS' },
+        ])
+      );
+    };
+  }, [dispatch]);
+  const [sendMessage] = useSendMessageMutation();
+  const [uploadImages] = useUploadImagesMutation();
 
   const [draft, setDraft] = useState('');
   const [localAttachment, setLocalAttachment] = useState<string | null>(null);
   const [attachOpen, setAttachOpen] = useState(false);
+  const [pendingMessages, setPendingMessages] = useState<PendingMessage[]>([]);
   const scrollViewRef = useRef<ScrollView | null>(null);
 
-  const messages = thread?.messages.map(toMockMessage) ?? [];
+  const confirmedMessages = thread?.messages.map(toMockMessage) ?? [];
+  const messages = authUser
+    ? [
+        ...confirmedMessages,
+        ...pendingMessages.map((p) => toPendingDisplayMessage(p, taskId!, authUser.id)),
+      ]
+    : confirmedMessages;
 
   useEffect(() => {
     scrollViewRef.current?.scrollToEnd({ animated: true });
@@ -125,7 +177,7 @@ export default function ChatThreadScreen() {
   }
 
   const { task, otherUser } = thread;
-  const canSend = Boolean(draft.trim() || localAttachment) && !isSending && !isUploading;
+  const canSend = Boolean(draft.trim() || localAttachment);
   const isOnline = Date.now() - new Date(otherUser.lastActiveAt).getTime() < ONLINE_THRESHOLD_MS;
 
   const pickFromLibrary = async () => {
@@ -154,32 +206,62 @@ export default function ChatThreadScreen() {
     setAttachOpen(false);
   };
 
-  const submit = async () => {
-    if (!canSend) return;
+  // Sends (or resends) a pending message. The bubble is already on screen
+  // before this runs - here we only need to flip its status on success/failure.
+  const deliverPending = async (item: PendingMessage) => {
+    setPendingMessages((prev) =>
+      prev.map((p) => (p.localId === item.localId ? { ...p, status: 'sending' } : p))
+    );
     try {
       let attachmentUrl: string | undefined;
-      if (localAttachment) {
+      if (item.localAttachmentUri) {
         const formData = new FormData();
-        const filename = localAttachment.split('/').pop() || `chat-${Date.now()}.jpg`;
+        const filename = item.localAttachmentUri.split('/').pop() || `chat-${Date.now()}.jpg`;
         const match = /\.(\w+)$/.exec(filename);
         const ext = match ? match[1].toLowerCase() : 'jpg';
         const type = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
-        formData.append('files', { uri: localAttachment, name: filename, type } as any);
+        formData.append('files', { uri: item.localAttachmentUri, name: filename, type } as any);
         const uploadRes = await uploadImages(formData).unwrap();
         attachmentUrl = uploadRes.urls[0];
       }
 
       await sendMessage({
         taskId,
-        text: draft.trim() || undefined,
+        text: item.text,
         attachmentUrl,
         toUserId: otherUserId,
       }).unwrap();
 
-      setDraft('');
-      setLocalAttachment(null);
-    } catch (err) {
-      Alert.alert('Message not sent', getApiErrorMessage(err, 'Please try again.'));
+      // Wait for the confirmed message to land in the thread cache before
+      // dropping the placeholder, so the bubble never disappears mid-swap.
+      await refetchThread();
+      setPendingMessages((prev) => prev.filter((p) => p.localId !== item.localId));
+    } catch {
+      setPendingMessages((prev) =>
+        prev.map((p) => (p.localId === item.localId ? { ...p, status: 'failed' } : p))
+      );
+    }
+  };
+
+  const submit = () => {
+    if (!canSend) return;
+    const pendingItem: PendingMessage = {
+      localId: `local-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      text: draft.trim() || undefined,
+      localAttachmentUri: localAttachment ?? undefined,
+      createdAt: new Date().toISOString(),
+      status: 'sending',
+    };
+    setPendingMessages((prev) => [...prev, pendingItem]);
+    setDraft('');
+    setLocalAttachment(null);
+    deliverPending(pendingItem);
+  };
+
+  const retryPending = (localId: string) => {
+    const item = pendingMessages.find((p) => p.localId === localId);
+    if (item) {
+      deliverPending(item);
     }
   };
 
@@ -297,6 +379,9 @@ export default function ChatThreadScreen() {
                 key={message.id}
                 message={message}
                 mine={message.senderId === authUser?.id}
+                onRetry={
+                  message.status === 'failed' ? () => retryPending(message.id) : undefined
+                }
               />
             ))
           )}

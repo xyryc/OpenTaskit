@@ -198,9 +198,9 @@ export default function HomeScreen() {
           >
             <MessageCircle size={18} color="#0C1417" />
             {unreadMessages > 0 && (
-              <View className="absolute -right-1 -top-1 h-4 min-w-[16px] items-center justify-center rounded-full bg-brand px-1">
+              <View className="absolute -right-1 -top-1 h-4 min-w-[16px] items-center justify-center rounded-full bg-danger px-1 border border-white">
                 <Text className="text-[10px] font-geist-bold font-bold text-white">
-                  {unreadMessages}
+                  {unreadMessages > 99 ? '99+' : unreadMessages}
                 </Text>
               </View>
             )}
@@ -212,9 +212,9 @@ export default function HomeScreen() {
           >
             <Bell size={18} color="#0C1417" />
             {unreadNotifications > 0 && (
-              <View className="absolute -right-1 -top-1 h-4 min-w-[16px] items-center justify-center rounded-full bg-danger px-1">
+              <View className="absolute -right-1 -top-1 h-4 min-w-[16px] items-center justify-center rounded-full bg-danger px-1 border border-white">
                 <Text className="text-[10px] font-geist-bold font-bold text-white">
-                  {unreadNotifications}
+                  {unreadNotifications > 99 ? '99+' : unreadNotifications}
                 </Text>
               </View>
             )}

@@ -4,7 +4,8 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { MessagesSquare } from 'lucide-react-native';
 
-import { useGetConversationsQuery } from '@/store/api/apiSlice';
+import { useAppDispatch } from '@/store';
+import { apiSlice, useGetConversationsQuery } from '@/store/api/apiSlice';
 import { timeAgo, initialsOf } from '@/utils/format';
 import { API_TASK_STATUS_MAP } from '@/utils/taskFilters';
 import { statusLabel } from '@/components/ui/Chip';
@@ -14,13 +15,19 @@ import { EmptyState, ListSkeleton } from '@/components/ui/Feedback';
 
 export default function ChatListScreen() {
   const router = useRouter();
-  const { data: conversations, isLoading, refetch } = useGetConversationsQuery();
+  const dispatch = useAppDispatch();
+  const { data: conversations, isLoading, refetch } = useGetConversationsQuery(undefined, {
+    pollingInterval: 15000,
+  });
   const [refreshing, setRefreshing] = useState(false);
 
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await refetch();
+      await Promise.all([
+        refetch(),
+        dispatch(apiSlice.util.invalidateTags([{ type: 'Message', id: 'UNREAD_COUNT' }])),
+      ]);
     } finally {
       setRefreshing(false);
     }
@@ -130,9 +137,9 @@ export default function ChatListScreen() {
                     </Text>
 
                     {conversation.unreadCount > 0 && (
-                      <View className="h-5 min-w-[20px] items-center justify-center rounded-full bg-brand px-1.5">
+                      <View className="h-5 min-w-[20px] items-center justify-center rounded-full bg-danger px-1.5">
                         <Text className="text-[11px] font-geist-bold font-bold text-white">
-                          {conversation.unreadCount}
+                          {conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}
                         </Text>
                       </View>
                     )}
