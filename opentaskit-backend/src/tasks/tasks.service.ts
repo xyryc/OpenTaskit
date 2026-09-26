@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EscrowService } from '../payments/escrow.service';
+import { PlatformConfigService } from '../platform-config/platform-config.service';
 import { CreateTaskDto, LocationType } from './dto/create-task.dto';
 import { FilterTasksDto, TaskStatus } from './dto/filter-tasks.dto';
 import { OfferStatus } from '../../generated/prisma/enums';
@@ -35,6 +36,7 @@ export class TasksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly escrowService: EscrowService,
+    private readonly platformConfig: PlatformConfigService,
   ) {}
 
   // Create a new task
@@ -45,6 +47,13 @@ export class TasksService {
     });
     if (!category) {
       throw new NotFoundException('Selected category does not exist');
+    }
+
+    const minBudget = await this.platformConfig.getMinTaskBudgetLkr();
+    if (dto.budget < minBudget) {
+      throw new BadRequestException(
+        `Minimum budget is LKR ${minBudget.toLocaleString('en-LK')}`,
+      );
     }
 
     // 2. Save task record in Prisma
@@ -408,6 +417,15 @@ export class TasksService {
       throw new ForbiddenException(
         'You do not have permission to edit this task',
       );
+    }
+
+    if (dto.budget !== undefined) {
+      const minBudget = await this.platformConfig.getMinTaskBudgetLkr();
+      if (dto.budget < minBudget) {
+        throw new BadRequestException(
+          `Minimum budget is LKR ${minBudget.toLocaleString('en-LK')}`,
+        );
+      }
     }
 
     // 3. Update task

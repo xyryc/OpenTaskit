@@ -17,4 +17,13 @@ export class PlatformConfigPublicController {
       whatsappSupportNumber: config.whatsappSupportNumber,
     };
   }
+
+  @ApiOperation({ summary: 'Get public task-posting rules (minimum budget)' })
+  @Get('task-rules')
+  async getTaskRules() {
+    const config = await this.platformConfigService.getConfig();
+    return {
+      minTaskBudgetLkr: config.minTaskBudgetLkr,
+    };
+  }
 }

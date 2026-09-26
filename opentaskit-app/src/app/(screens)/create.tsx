@@ -35,6 +35,7 @@ import {
   useGetCategoriesQuery,
   useCreateTaskMutation,
   useUploadImagesMutation,
+  useGetTaskRulesQuery,
 } from '@/store/api/apiSlice';
 import { parseApiError } from '@/utils/apiError';
 import { categories } from '@/data/categories';
@@ -118,6 +119,8 @@ export default function CreateTaskScreen() {
   const { requireAccount, currentLocation, wallet, toast } = useApp();
 
   const { data: apiCategories } = useGetCategoriesQuery();
+  const { data: taskRules } = useGetTaskRulesQuery();
+  const minBudget = taskRules?.minTaskBudgetLkr ?? 100;
   const [createTaskApi, { isLoading: posting }] = useCreateTaskMutation();
   const [uploadImagesApi, { isLoading: uploadingImages }] = useUploadImagesMutation();
 
@@ -203,8 +206,8 @@ export default function CreateTaskScreen() {
     }
     if (target > 4) {
       const value = Number(budget);
-      if (!value || value < 100) {
-        next.budget = 'Enter a realistic budget (minimum Rs 100)';
+      if (!value || value < minBudget) {
+        next.budget = `Enter a realistic budget (minimum Rs ${minBudget.toLocaleString('en-LK')})`;
       }
       if (!paymentMethod) {
         next.paymentMethod = 'Choose how you will pay for this task';
@@ -719,9 +722,13 @@ export default function CreateTaskScreen() {
                       className="flex-1 text-[22px] font-geist-bold text-ink"
                     />
                   </View>
-                  {errors.budget && (
+                  {errors.budget ? (
                     <Text className="mt-1.5 text-[12px] font-geist-medium text-danger">
                       {errors.budget}
+                    </Text>
+                  ) : (
+                    <Text className="mt-1.5 text-[12px] font-geist text-ink-400">
+                      Minimum budget is Rs {minBudget.toLocaleString('en-LK')}
                     </Text>
                   )}
                 </View>

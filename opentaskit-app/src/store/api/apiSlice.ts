@@ -72,6 +72,7 @@ import type {
   CreateProblemReportPayload,
   ProblemReportResponse,
   ContactConfigResponse,
+  TaskRulesResponse,
 } from '@/types';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -782,6 +783,11 @@ export const apiSlice = createApi({
           : [{ type: 'Message' as const, id: 'CONVERSATIONS' }],
     }),
 
+    getUnreadMessagesCount: builder.query<{ count: number }, void>({
+      query: () => '/messages/unread-count',
+      providesTags: [{ type: 'Message' as const, id: 'UNREAD_COUNT' }],
+    }),
+
     getMessageThread: builder.query<MessageThreadResponse, { taskId: string; withUserId?: string }>({
       query: ({ taskId, withUserId }) => ({
         url: `/tasks/${taskId}/messages`,
@@ -804,6 +810,7 @@ export const apiSlice = createApi({
       invalidatesTags: (_result, _error, { taskId, toUserId }) => [
         { type: 'Message', id: `THREAD_${taskId}_${toUserId ?? 'auto'}` },
         { type: 'Message', id: 'CONVERSATIONS' },
+        { type: 'Message', id: 'UNREAD_COUNT' },
       ],
     }),
 
@@ -948,6 +955,10 @@ export const apiSlice = createApi({
     getContactConfig: builder.query<ContactConfigResponse, void>({
       query: () => "/platform-config/contact",
     }),
+
+    getTaskRules: builder.query<TaskRulesResponse, void>({
+      query: () => "/platform-config/task-rules",
+    }),
   }),
 });
 
@@ -987,6 +998,7 @@ export const {
   useMarkAllNotificationsReadMutation,
   useDeleteNotificationMutation,
   useGetConversationsQuery,
+  useGetUnreadMessagesCountQuery,
   useGetMessageThreadQuery,
   useSendMessageMutation,
   useInitiateCheckoutMutation,
@@ -1022,6 +1034,7 @@ export const {
   useSubmitProblemReportMutation,
   useGetMyReportsQuery,
   useGetContactConfigQuery,
+  useGetTaskRulesQuery,
 } = apiSlice;
 
 

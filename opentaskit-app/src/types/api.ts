@@ -839,5 +839,9 @@ export interface ContactConfigResponse {
   whatsappSupportNumber: string;
 }
 
+export interface TaskRulesResponse {
+  minTaskBudgetLkr: number;
+}
+
 
 

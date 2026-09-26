@@ -31,6 +31,11 @@ export class PlatformConfigService {
     return config.platformFeePercent;
   }
 
+  async getMinTaskBudgetLkr(): Promise<number> {
+    const config = await this.getConfig();
+    return config.minTaskBudgetLkr;
+  }
+
   async updatePlatformFeePercent(platformFeePercent: number) {
     await this.getConfig();
     return this.prisma.platformConfig.update({
