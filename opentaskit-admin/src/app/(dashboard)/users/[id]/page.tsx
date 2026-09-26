@@ -179,7 +179,9 @@ export default function UserDetailPage() {
   const latestKyc = user.kycVerifications?.[0];
   const isKycVerified = user.isVerified || latestKyc?.status === "APPROVED";
   const isKycPending = !isKycVerified && latestKyc?.status === "PENDING";
-  const kycDocLabel = latestKyc?.documentType ? DOCUMENT_LABELS[latestKyc.documentType] || latestKyc.documentType : "National ID";
+  const kycDocLabel = latestKyc?.documentType
+    ? DOCUMENT_LABELS[latestKyc.documentType] || latestKyc.documentType
+    : "Not Submitted";
 
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto">
@@ -337,7 +339,7 @@ export default function UserDetailPage() {
               <div>
                 <div className="text-xs text-muted-foreground font-medium">Wallet Balance</div>
                 <div className="text-base font-bold text-foreground mt-0.5">
-                  LKR {(user.walletBalance ?? 25000).toLocaleString()}
+                  LKR {user.walletBalance.toLocaleString()}
                 </div>
               </div>
             </div>
@@ -402,7 +404,7 @@ export default function UserDetailPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-emerald-600">
-                  LKR {(user.escrowLockedBalance ?? 18500).toLocaleString()}
+                  LKR {user.escrowLockedBalance.toLocaleString()}
                 </div>
                 <span className="text-xs text-muted-foreground mt-0.5 block">
                   Held in active tasks
@@ -610,34 +612,38 @@ export default function UserDetailPage() {
               </div>
 
               {/* Document Previews */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                <div className="flex flex-col gap-2">
-                  <span className="font-semibold text-foreground">ID Document (Front)</span>
-                  <div className="p-2 border rounded-xl bg-muted/30 flex items-center justify-center min-h-[160px]">
-                    <img
-                      src={
-                        latestKyc?.frontPhotoUrl ||
-                        "https://images.unsplash.com/photo-1633265486064-086b219458ec?w=800&auto=format&fit=crop&q=80"
-                      }
-                      alt="ID Document Front"
-                      className="max-h-40 rounded-lg object-contain"
-                    />
+              {latestKyc ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                  <div className="flex flex-col gap-2">
+                    <span className="font-semibold text-foreground">ID Document (Front)</span>
+                    <div className="p-2 border rounded-xl bg-muted/30 flex items-center justify-center min-h-[160px]">
+                      <img
+                        src={latestKyc.frontPhotoUrl}
+                        alt="ID Document Front"
+                        className="max-h-40 rounded-lg object-contain"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <span className="font-semibold text-foreground">Live Selfie Match</span>
+                    <div className="p-2 border rounded-xl bg-muted/30 flex items-center justify-center min-h-[160px]">
+                      {latestKyc.selfieUrl ? (
+                        <img
+                          src={latestKyc.selfieUrl}
+                          alt="Selfie Check"
+                          className="max-h-40 rounded-lg object-contain"
+                        />
+                      ) : (
+                        <span className="text-xs text-muted-foreground">No selfie submitted</span>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <div className="flex flex-col gap-2">
-                  <span className="font-semibold text-foreground">Live Selfie Match</span>
-                  <div className="p-2 border rounded-xl bg-muted/30 flex items-center justify-center min-h-[160px]">
-                    <img
-                      src={
-                        latestKyc?.selfieUrl ||
-                        "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&auto=format&fit=crop&q=80"
-                      }
-                      alt="Selfie Check"
-                      className="max-h-40 rounded-lg object-contain"
-                    />
-                  </div>
+              ) : (
+                <div className="p-6 rounded-xl border bg-muted/20 text-center text-xs text-muted-foreground">
+                  This user has not submitted any identity documents yet.
                 </div>
-              </div>
+              )}
 
               {/* Action Links */}
               <div className="flex items-center justify-between pt-4 border-t">
@@ -670,14 +676,14 @@ export default function UserDetailPage() {
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Available Cash Balance</span>
                 <span className="font-bold text-foreground">
-                  LKR {(user.walletBalance ?? 25000).toLocaleString()}
+                  LKR {user.walletBalance.toLocaleString()}
                 </span>
               </div>
               <Separator />
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Funds in Escrow Vault</span>
                 <span className="font-bold text-emerald-600">
-                  LKR {(user.escrowLockedBalance ?? 18500).toLocaleString()}
+                  LKR {user.escrowLockedBalance.toLocaleString()}
                 </span>
               </div>
             </CardContent>

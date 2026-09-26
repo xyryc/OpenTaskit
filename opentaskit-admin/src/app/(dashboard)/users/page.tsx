@@ -212,8 +212,8 @@ export default function UsersPage() {
       { key: "reviewCount", label: "Reviews" },
       { key: (u) => u._count?.tasks ?? 0, label: "Tasks Posted" },
       { key: (u) => u._count?.offers ?? 0, label: "Offers Made" },
-      { key: (u) => u.walletBalance ?? 25000, label: "Wallet Balance (LKR)" },
-      { key: (u) => u.escrowLockedBalance ?? 0, label: "Locked Escrow (LKR)" },
+      { key: (u) => u.walletBalance, label: "Wallet Balance (LKR)" },
+      { key: (u) => u.escrowLockedBalance, label: "Locked Escrow (LKR)" },
       { key: (u) => u.location || "Not specified", label: "Location" },
       { key: "createdAt", label: "Joined At" },
     ];
@@ -515,9 +515,9 @@ export default function UsersPage() {
                         </div>
                       </TableCell>
 
-                      {/* Wallet (Mocked UI fallback as requested) */}
+                      {/* Wallet */}
                       <TableCell className="text-right font-semibold text-foreground">
-                        LKR {(user.walletBalance ?? 25000).toLocaleString()}
+                        LKR {user.walletBalance.toLocaleString()}
                       </TableCell>
 
                       {/* Status */}

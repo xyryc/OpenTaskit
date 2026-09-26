@@ -558,7 +558,7 @@ export default function KycPage() {
             </DialogHeader>
 
             {/* Scrollable Inspection Body */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-6">
               {/* Document Photos Grid (3 Columns on Desktop, 2 on Tablet, 1 on Mobile) */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* 1. Front Side Document */}

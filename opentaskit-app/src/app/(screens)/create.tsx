@@ -153,7 +153,6 @@ export default function CreateTaskScreen() {
   const [locationOpen, setLocationOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
-  const [headerHeight, setHeaderHeight] = useState(0);
 
   // Require account for posting
   useEffect(() => {
@@ -367,10 +366,8 @@ export default function CreateTaskScreen() {
       <StatusBar style="dark" />
 
       {/* Screen Header */}
-      <View
-        onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
-        className="z-20 shrink-0 border-b border-ink-100 bg-white px-5 pb-5 pt-3"
-      >
+      <View className="z-20 shrink-0 border-b border-ink-100 bg-white px-5 pb-5 pt-3">
+
         <View className="flex-row items-center">
           <Pressable
             onPress={handleBack}
@@ -404,7 +401,6 @@ export default function CreateTaskScreen() {
       <KeyboardAvoidingView
         className="flex-1"
         behavior="padding"
-        keyboardVerticalOffset={headerHeight}
       >
         <ScrollView
           className="flex-1 bg-canvas"

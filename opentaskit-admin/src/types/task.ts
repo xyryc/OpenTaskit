@@ -5,6 +5,7 @@ export interface TaskUser {
   id: string;
   fullName: string;
   phoneNumber?: string;
+  avatarUrl?: string | null;
   createdAt?: string;
 }
 

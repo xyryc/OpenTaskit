@@ -40,7 +40,7 @@ export class UsersService {
       ];
     }
 
-    const [data, total, totalUsers, totalAdmins, totalSuspended, totalVerified, totalPendingKyc] =
+    const [rows, total, totalUsers, totalAdmins, totalSuspended, totalVerified, totalPendingKyc] =
       await Promise.all([
         this.prisma.user.findMany({
           where,
@@ -77,6 +77,9 @@ export class UsersService {
                 offers: true,
               },
             },
+            wallet: {
+              select: { availableBalance: true },
+            },
           },
         }),
         this.prisma.user.count({ where }),
@@ -86,6 +89,15 @@ export class UsersService {
         this.prisma.user.count({ where: { isVerified: true } }),
         this.prisma.kycVerification.count({ where: { status: 'PENDING' } }),
       ]);
+
+    const escrowLockedByUserId = await this.getEscrowLockedByUserId(
+      rows.map((u) => u.id),
+    );
+    const data = rows.map(({ wallet, ...u }) => ({
+      ...u,
+      walletBalance: wallet?.availableBalance ?? 0,
+      escrowLockedBalance: escrowLockedByUserId.get(u.id) ?? 0,
+    }));
 
     return {
       data,
@@ -186,6 +198,9 @@ export class UsersService {
             },
           },
         },
+        wallet: {
+          select: { availableBalance: true },
+        },
       },
     });
 
@@ -193,19 +208,48 @@ export class UsersService {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
 
-    const tasksCompletedCount = await this.prisma.task.count({
-      where: {
-        offers: {
-          some: { userId: id, status: 'ACCEPTED' },
+    const [tasksCompletedCount, escrowLockedByUserId] = await Promise.all([
+      this.prisma.task.count({
+        where: {
+          offers: {
+            some: { userId: id, status: 'ACCEPTED' },
+          },
+          status: 'COMPLETED',
         },
-        status: 'COMPLETED',
-      },
-    });
+      }),
+      this.getEscrowLockedByUserId([id]),
+    ]);
+
+    const { wallet, ...rest } = user;
 
     return {
-      ...user,
+      ...rest,
       tasksCompletedCount,
+      walletBalance: wallet?.availableBalance ?? 0,
+      escrowLockedBalance: escrowLockedByUserId.get(id) ?? 0,
     };
+  }
+
+  // Sum of funds currently HELD in escrow for tasks posted by each given
+  // user - i.e. money they've paid that hasn't been released or refunded yet.
+  private async getEscrowLockedByUserId(
+    userIds: string[],
+  ): Promise<Map<string, number>> {
+    if (userIds.length === 0) {
+      return new Map();
+    }
+    const holds = await this.prisma.escrowHold.findMany({
+      where: { status: 'HELD', task: { userId: { in: userIds } } },
+      select: { amount: true, task: { select: { userId: true } } },
+    });
+    const totals = new Map<string, number>();
+    for (const hold of holds) {
+      totals.set(
+        hold.task.userId,
+        (totals.get(hold.task.userId) ?? 0) + hold.amount,
+      );
+    }
+    return totals;
   }
 
   // 3. Admin Update User Status (Suspend / Reactivate)

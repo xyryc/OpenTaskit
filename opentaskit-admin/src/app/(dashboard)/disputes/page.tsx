@@ -516,7 +516,7 @@ export default function DisputesPage() {
             </DialogHeader>
 
             {/* Scrollable Inspection Body */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-6">
               {/* Dispute Reason & Statement */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">

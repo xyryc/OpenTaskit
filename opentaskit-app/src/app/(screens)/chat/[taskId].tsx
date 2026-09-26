@@ -84,7 +84,6 @@ export default function ChatThreadScreen() {
   const [draft, setDraft] = useState('');
   const [localAttachment, setLocalAttachment] = useState<string | null>(null);
   const [attachOpen, setAttachOpen] = useState(false);
-  const [headerBlockHeight, setHeaderBlockHeight] = useState(0);
   const scrollViewRef = useRef<ScrollView | null>(null);
 
   const messages = thread?.messages.map(toMockMessage) ?? [];
@@ -188,7 +187,7 @@ export default function ChatThreadScreen() {
     <Screen tone="canvas" edges={['top']}>
       <StatusBar style="dark" />
 
-      <View onLayout={(e) => setHeaderBlockHeight(e.nativeEvent.layout.height)}>
+      <View>
       {/* Screen Header */}
       <View className="z-20 shrink-0 bg-white border-b border-ink-100 px-3 py-3">
         <View className="flex-row items-center gap-2">
@@ -273,7 +272,6 @@ export default function ChatThreadScreen() {
       <KeyboardAvoidingView
         className="flex-1"
         behavior="padding"
-        keyboardVerticalOffset={headerBlockHeight}
       >
         {/* Messages List */}
         <ScrollView

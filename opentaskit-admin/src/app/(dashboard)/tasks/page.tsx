@@ -25,6 +25,7 @@ import {
   CreditCard,
   Phone,
   Layers,
+  FileText,
 } from "lucide-react";
 
 import type { TaskListItem, TaskDetail, TaskStatus, PaginatedTasksResponse } from "@/types/task";
@@ -60,7 +61,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { TaskLocationMap } from "@/components/ui/task-location-map";
+
+function initialsOf(name: string): string {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
 
 export default function TasksPage() {
   // Live Tasks Data & Pagination State
@@ -429,7 +440,10 @@ export default function TasksPage() {
                         <div className="h-5 w-20 bg-muted/40 rounded-full animate-pulse" />
                       </TableCell>
                       <TableCell>
-                        <div className="h-3.5 w-24 bg-muted/50 rounded animate-pulse" />
+                        <div className="flex items-center gap-2">
+                          <div className="h-7 w-7 rounded-full bg-muted/50 shrink-0 animate-pulse" />
+                          <div className="h-3.5 w-20 bg-muted/50 rounded animate-pulse" />
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="h-3.5 w-28 bg-muted/40 rounded animate-pulse" />
@@ -517,9 +531,22 @@ export default function TasksPage() {
 
                       {/* Poster */}
                       <TableCell className="whitespace-nowrap">
-                        <span className="font-medium text-foreground">
-                          {task.user?.fullName || "Anonymous Client"}
-                        </span>
+                        <div className="flex items-center gap-2.5">
+                          <Avatar className="h-7 w-7 border shrink-0">
+                            {task.user?.avatarUrl && (
+                              <AvatarImage
+                                src={task.user.avatarUrl}
+                                alt={task.user.fullName || "Poster"}
+                              />
+                            )}
+                            <AvatarFallback className="text-[10px] font-semibold bg-muted text-foreground">
+                              {initialsOf(task.user?.fullName || "Client")}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="font-medium text-foreground">
+                            {task.user?.fullName || "Anonymous Client"}
+                          </span>
+                        </div>
                       </TableCell>
 
                       {/* Location */}
@@ -675,17 +702,7 @@ export default function TasksPage() {
               </DialogHeader>
 
               {/* Scrollable Body */}
-              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
-                {/* Task Details & Description */}
-                <div className="space-y-2">
-                  <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider">
-                    Task Requirements & Scope
-                  </h4>
-                  <div className="p-4 rounded-xl border bg-muted/20 text-xs leading-relaxed text-foreground whitespace-pre-line">
-                    {taskDetail.details || "No written description provided for this task."}
-                  </div>
-                </div>
-
+              <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-6">
                 {/* Task Metadata Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {/* Budget Card */}
@@ -706,22 +723,22 @@ export default function TasksPage() {
                     </CardContent>
                   </Card>
 
-                  {/* Location Card */}
+                  {/* Location Summary Card */}
                   <Card className="border-border/60 shadow-xs">
                     <CardHeader className="p-3 pb-1">
                       <span className="text-[11px] font-semibold text-muted-foreground uppercase flex items-center gap-1.5">
                         <MapPin className="h-3.5 w-3.5" />
-                        <span>Location</span>
+                        <span>Location Type</span>
                       </span>
                     </CardHeader>
                     <CardContent className="p-3 pt-0">
-                      <span className="text-xs font-semibold text-foreground block truncate">
-                        {taskDetail.locationType === "REMOTE"
-                          ? "Remote / Online"
-                          : taskDetail.address || "In-Person"}
+                      <span className="text-base font-bold text-foreground block truncate">
+                        {taskDetail.locationType === "REMOTE" ? "Remote / Online" : "In-Person"}
                       </span>
-                      <span className="text-[11px] text-muted-foreground block mt-0.5">
-                        Type: {taskDetail.locationType}
+                      <span className="text-[11px] text-muted-foreground block mt-0.5 truncate" title={taskDetail.address || ""}>
+                        {taskDetail.locationType === "REMOTE"
+                          ? "Online execution"
+                          : taskDetail.address || "Physical task"}
                       </span>
                     </CardContent>
                   </Card>
@@ -745,30 +762,83 @@ export default function TasksPage() {
                   </Card>
                 </div>
 
-                {/* Schedule & Timing Info */}
-                {(taskDetail.timeType || taskDetail.scheduledDate || taskDetail.scheduledTime) && (
-                  <div className="p-4 rounded-xl border bg-muted/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                    <div className="flex items-center gap-2.5">
-                      <Calendar className="h-4 w-4 text-primary shrink-0" />
-                      <div>
-                        <span className="font-semibold text-foreground block">
-                          Scheduled Execution: {taskDetail.timeType || "Specific Date"}
-                        </span>
-                        <span className="text-muted-foreground text-[11px]">
-                          {taskDetail.scheduledDate
-                            ? new Date(taskDetail.scheduledDate).toLocaleDateString(undefined, {
-                                weekday: "long",
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                              })
-                            : "Date flexible"}{" "}
-                          {taskDetail.scheduledTime && `• Window: ${taskDetail.scheduledTime}`}
-                        </span>
+                {/* Side-by-Side Details & Map Split Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                  {/* Left Column: Requirements & Scope + Schedule */}
+                  <div className="space-y-4 flex flex-col">
+                    {/* Task Description */}
+                    <div className="space-y-2 flex-1 flex flex-col">
+                      <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                        <FileText className="h-3.5 w-3.5 text-primary" />
+                        <span>Task Requirements & Scope</span>
+                      </h4>
+                      <div className="p-4 rounded-xl border bg-muted/20 text-xs leading-relaxed text-foreground whitespace-pre-line min-h-[160px]">
+                        {taskDetail.details || "No written description provided for this task."}
                       </div>
                     </div>
+
+                    {/* Schedule & Timing Info */}
+                    {(taskDetail.timeType || taskDetail.scheduledDate || taskDetail.scheduledTime) && (
+                      <div className="p-4 rounded-xl border bg-muted/10 flex items-center gap-3 text-xs">
+                        <Calendar className="h-4 w-4 text-primary shrink-0" />
+                        <div>
+                          <span className="font-semibold text-foreground block">
+                            Scheduled Execution: {taskDetail.timeType || "Specific Date"}
+                          </span>
+                          <span className="text-muted-foreground text-[11px]">
+                            {taskDetail.scheduledDate
+                              ? new Date(taskDetail.scheduledDate).toLocaleDateString(undefined, {
+                                  weekday: "long",
+                                  year: "numeric",
+                                  month: "long",
+                                  day: "numeric",
+                                })
+                              : "Date flexible"}{" "}
+                            {taskDetail.scheduledTime && `• Window: ${taskDetail.scheduledTime}`}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
+
+                  {/* Right Column: Location Details & Interactive Esri World Street Map */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5 text-primary" />
+                        <span>Location & Street Map</span>
+                      </h4>
+                      <Badge variant="outline" className="text-[10px] font-medium bg-background">
+                        {taskDetail.locationType}
+                      </Badge>
+                    </div>
+
+                    <div className="p-4 rounded-xl border bg-muted/20 space-y-3">
+                      <div>
+                        <span className="text-xs font-semibold text-foreground block truncate" title={taskDetail.address || ""}>
+                          {taskDetail.locationType === "REMOTE"
+                            ? "Remote / Online Task"
+                            : taskDetail.address || "In-Person Task"}
+                        </span>
+                        {taskDetail.latitude != null && taskDetail.longitude != null && (
+                          <span className="text-[11px] font-mono text-muted-foreground block mt-0.5">
+                            Coordinates: {taskDetail.latitude.toFixed(5)}, {taskDetail.longitude.toFixed(5)}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Interactive Leaflet Map with Esri World Street Map */}
+                      <TaskLocationMap
+                        latitude={taskDetail.latitude}
+                        longitude={taskDetail.longitude}
+                        address={taskDetail.address}
+                        title={taskDetail.title}
+                        isRemote={taskDetail.locationType === "REMOTE"}
+                        height={320}
+                      />
+                    </div>
+                  </div>
+                </div>
 
                 {/* Attached Images */}
                 {taskDetail.images && taskDetail.images.length > 0 && (
@@ -811,13 +881,15 @@ export default function TasksPage() {
                 {/* Poster Profile */}
                 <div className="p-4 rounded-xl border bg-muted/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs">
                   <div className="flex items-center gap-3">
-                    <Avatar className="h-9 w-9 border">
+                    <Avatar className="h-10 w-10 border shadow-xs shrink-0">
+                      {taskDetail.user?.avatarUrl && (
+                        <AvatarImage
+                          src={taskDetail.user.avatarUrl}
+                          alt={taskDetail.user.fullName || "Poster"}
+                        />
+                      )}
                       <AvatarFallback className="text-xs font-semibold bg-muted">
-                        {(taskDetail.user?.fullName || "Client")
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")
-                          .slice(0, 2)}
+                        {initialsOf(taskDetail.user?.fullName || "Client")}
                       </AvatarFallback>
                     </Avatar>
                     <div>

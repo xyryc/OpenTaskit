@@ -45,10 +45,8 @@ export interface AdminUserListItem {
   updatedAt: string;
   kycVerifications?: UserKycSummary[];
   _count?: UserCounts;
-
-  // Mock / UI fallback for wallet as instructed
-  walletBalance?: number;
-  escrowLockedBalance?: number;
+  walletBalance: number;
+  escrowLockedBalance: number;
 }
 
 export interface AdminUsersStats {
@@ -122,10 +120,8 @@ export interface AdminUserDetail {
   _count?: UserCounts;
   tasks?: UserTaskItem[];
   offers?: UserOfferItem[];
-
-  // Mock / UI fallback for wallet as instructed
-  walletBalance?: number;
-  escrowLockedBalance?: number;
+  walletBalance: number;
+  escrowLockedBalance: number;
 }
 
 export interface UpdateUserStatusPayload {
