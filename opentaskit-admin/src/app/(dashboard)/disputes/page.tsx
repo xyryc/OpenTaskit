@@ -56,7 +56,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const REASON_LABELS: Record<string, string> = {
   WORK_UNSATISFACTORY: "Work unsatisfactory",
@@ -398,9 +398,22 @@ export default function DisputesPage() {
                       </TableCell>
 
                       <TableCell className="whitespace-nowrap">
-                        <span className="font-medium text-foreground">
-                          {dispute.raisedBy?.fullName || "Unknown"}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-6 w-6 border shrink-0">
+                            {dispute.raisedBy?.avatarUrl && (
+                              <AvatarImage
+                                src={dispute.raisedBy.avatarUrl}
+                                alt={dispute.raisedBy.fullName}
+                              />
+                            )}
+                            <AvatarFallback className="text-[10px] font-semibold bg-muted text-foreground">
+                              {initialsOf(dispute.raisedBy?.fullName || "?")}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="font-medium text-foreground">
+                            {dispute.raisedBy?.fullName || "Unknown"}
+                          </span>
+                        </div>
                       </TableCell>
 
                       <TableCell className="text-center whitespace-nowrap">
@@ -525,17 +538,23 @@ export default function DisputesPage() {
                   <CardHeader className="p-3 pb-1 border-b bg-muted/20">
                     <span className="text-[11px] font-semibold text-foreground">Raised By</span>
                   </CardHeader>
-                  <CardContent className="p-3 text-xs flex items-center gap-2.5">
-                    <Avatar className="h-8 w-8 border shrink-0">
-                      <AvatarFallback className="text-[11px] font-semibold bg-muted">
+                  <CardContent className="p-3 text-xs flex items-center gap-3">
+                    <Avatar className="h-10 w-10 border shrink-0">
+                      {selectedDispute.raisedBy?.avatarUrl && (
+                        <AvatarImage
+                          src={selectedDispute.raisedBy.avatarUrl}
+                          alt={selectedDispute.raisedBy?.fullName || "Raised by"}
+                        />
+                      )}
+                      <AvatarFallback className="text-xs font-semibold bg-muted">
                         {initialsOf(selectedDispute.raisedBy?.fullName || "?")}
                       </AvatarFallback>
                     </Avatar>
-                    <div>
-                      <span className="font-semibold text-foreground block">
+                    <div className="min-w-0 flex-1">
+                      <span className="font-semibold text-foreground block truncate">
                         {selectedDispute.raisedBy?.fullName}
                       </span>
-                      <span className="text-muted-foreground text-[11px]">
+                      <span className="text-muted-foreground text-[11px] truncate block">
                         {selectedDispute.raisedBy?.email}
                       </span>
                     </div>
@@ -546,17 +565,23 @@ export default function DisputesPage() {
                   <CardHeader className="p-3 pb-1 border-b bg-muted/20">
                     <span className="text-[11px] font-semibold text-foreground">Against</span>
                   </CardHeader>
-                  <CardContent className="p-3 text-xs flex items-center gap-2.5">
-                    <Avatar className="h-8 w-8 border shrink-0">
-                      <AvatarFallback className="text-[11px] font-semibold bg-muted">
+                  <CardContent className="p-3 text-xs flex items-center gap-3">
+                    <Avatar className="h-10 w-10 border shrink-0">
+                      {selectedDispute.againstUser?.avatarUrl && (
+                        <AvatarImage
+                          src={selectedDispute.againstUser.avatarUrl}
+                          alt={selectedDispute.againstUser?.fullName || "Against"}
+                        />
+                      )}
+                      <AvatarFallback className="text-xs font-semibold bg-muted">
                         {initialsOf(selectedDispute.againstUser?.fullName || "?")}
                       </AvatarFallback>
                     </Avatar>
-                    <div>
-                      <span className="font-semibold text-foreground block">
+                    <div className="min-w-0 flex-1">
+                      <span className="font-semibold text-foreground block truncate">
                         {selectedDispute.againstUser?.fullName}
                       </span>
-                      <span className="text-muted-foreground text-[11px]">
+                      <span className="text-muted-foreground text-[11px] truncate block">
                         {selectedDispute.againstUser?.email}
                       </span>
                     </div>
