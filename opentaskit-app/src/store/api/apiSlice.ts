@@ -73,6 +73,7 @@ import type {
   ProblemReportResponse,
   ContactConfigResponse,
   TaskRulesResponse,
+  RegisterPushTokenPayload,
 } from '@/types';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -101,6 +102,15 @@ export function clearAuthStorage() {
   storage.remove(REFRESH_TOKEN_KEY);
   storage.remove(USER_KEY);
 }
+
+const PUSH_TOKEN_KEY = "opentaskit_push_token";
+export const getStoredPushToken = () => storage.getString(PUSH_TOKEN_KEY) ?? null;
+export const setStoredPushToken = (token: string) => storage.set(PUSH_TOKEN_KEY, token);
+export const clearStoredPushToken = () => storage.remove(PUSH_TOKEN_KEY);
+
+const NOTIFICATIONS_ENABLED_KEY = "opentaskit_notifications_enabled";
+export const getStoredNotificationsEnabled = () => storage.getBoolean(NOTIFICATIONS_ENABLED_KEY) ?? true;
+export const setStoredNotificationsEnabled = (enabled: boolean) => storage.set(NOTIFICATIONS_ENABLED_KEY, enabled);
 
 /** Persist synchronously before mutation success allows a screen to navigate. */
 function persistSession(response: AuthResponse): AuthResponse {
@@ -138,6 +148,16 @@ let isHandlingForcedLogout = false;
 function forceLogout(api: { dispatch: (action: any) => void }) {
   if (isHandlingForcedLogout) return;
   isHandlingForcedLogout = true;
+
+  // Fire-and-forget: the token is read synchronously so the request still
+  // carries a valid Authorization header even though storage gets wiped
+  // right after this dispatch (fetchBaseQuery reads the header at send time).
+  const pushToken = getStoredPushToken();
+  if (pushToken) {
+    api.dispatch(apiSlice.endpoints.unregisterPushToken.initiate({ token: pushToken }));
+  }
+  clearStoredPushToken();
+
   clearAuthStorage();
   api.dispatch(signOut());
   api.dispatch(apiSlice.util.resetApiState());
@@ -959,6 +979,14 @@ export const apiSlice = createApi({
     getTaskRules: builder.query<TaskRulesResponse, void>({
       query: () => "/platform-config/task-rules",
     }),
+
+    registerPushToken: builder.mutation<{ message: string }, RegisterPushTokenPayload>({
+      query: (body) => ({ url: "/push-tokens", method: "POST", body }),
+    }),
+
+    unregisterPushToken: builder.mutation<{ message: string }, { token: string }>({
+      query: (body) => ({ url: "/push-tokens", method: "DELETE", body }),
+    }),
   }),
 });
 
@@ -1035,6 +1063,8 @@ export const {
   useGetMyReportsQuery,
   useGetContactConfigQuery,
   useGetTaskRulesQuery,
+  useRegisterPushTokenMutation,
+  useUnregisterPushTokenMutation,
 } = apiSlice;
 
 

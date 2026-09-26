@@ -843,5 +843,10 @@ export interface TaskRulesResponse {
   minTaskBudgetLkr: number;
 }
 
+export interface RegisterPushTokenPayload {
+  token: string;
+  platform?: 'android' | 'ios';
+}
+
 
 

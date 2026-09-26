@@ -16,7 +16,8 @@
         "foregroundImage": "./assets/brand/icon-brand.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.opentaskit"
+      "package": "com.anonymous.opentaskit",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "output": "static",
@@ -57,6 +58,14 @@
       ],
       "expo-image",
       "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/android-icon-foreground.png",
+          "color": "#0094F7",
+          "defaultChannel": "default"
+        }
+      ],
       "./plugins/withPayHere.js"
     ],
     "experiments": {

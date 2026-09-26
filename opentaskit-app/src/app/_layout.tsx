@@ -10,6 +10,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { store } from '@/store';
 import { AppProvider } from '@/contexts/AppContext';
 import { NotificationBannerHost } from '@/components/notifications/NotificationBannerHost';
+import { PushNotificationSync } from '@/components/notifications/PushNotificationSync';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -52,6 +53,7 @@ export default function RootLayout() {
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             </Stack>
             <NotificationBannerHost />
+            <PushNotificationSync />
           </KeyboardProvider>
         </SafeAreaProvider>
       </AppProvider>
