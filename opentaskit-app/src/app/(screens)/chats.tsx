@@ -17,7 +17,7 @@ export default function ChatListScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { data: conversations, isLoading, refetch } = useGetConversationsQuery(undefined, {
-    pollingInterval: 15000,
+    pollingInterval: 5000,
   });
   const [refreshing, setRefreshing] = useState(false);
 

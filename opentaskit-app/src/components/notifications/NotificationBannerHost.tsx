@@ -8,7 +8,7 @@ import { resolveNotificationRoute } from '@/utils/notifications';
 import type { NotificationRecord } from '@/types';
 import { NotificationBanner } from './NotificationBanner';
 
-const POLL_INTERVAL_MS = 20000;
+const POLL_INTERVAL_MS = 10000;
 
 // Polls the notifications feed while the app is active and surfaces any
 // notification that arrives after the initial load as a heads-up banner -

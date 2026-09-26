@@ -99,7 +99,7 @@ export default function ChatThreadScreen() {
     refetch: refetchThread,
   } = useGetMessageThreadQuery(
     { taskId: taskId!, withUserId: otherUserId },
-    { skip: !taskId, pollingInterval: 4000 }
+    { skip: !taskId, pollingInterval: 1000 }
   );
 
   useEffect(() => {
