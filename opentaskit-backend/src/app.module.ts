@@ -26,6 +26,7 @@ import { MessagesModule } from './messages/messages.module';
 import { LegalModule } from './legal/legal.module';
 import { ReportsModule } from './reports/reports.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { PushModule } from './push/push.module';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
     LegalModule,
     ReportsModule,
     AnalyticsModule,
+    PushModule,
   ],
   controllers: [AppController],
   providers: [

@@ -3,9 +3,10 @@ import { KycController } from './kyc.controller';
 import { KycService } from './kyc.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { UploadsModule } from '../uploads/uploads.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [PrismaModule, UploadsModule],
+  imports: [PrismaModule, UploadsModule, NotificationsModule],
   controllers: [KycController],
   providers: [KycService],
   exports: [KycService],

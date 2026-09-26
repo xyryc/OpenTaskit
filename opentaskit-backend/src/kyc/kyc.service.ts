@@ -7,6 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SubmitKycDto } from './dto/submit-kyc.dto';
 import { KycStatus } from '../../generated/prisma/enums';
 import { UploadsService } from '../uploads/uploads.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { Prisma } from 'generated/prisma/client';
 import { FilterAdminKycDto } from './dto/filter-admin-kyc.dto';
 import { ReviewKycDto } from './dto/review-kyc.dto';
@@ -22,6 +23,7 @@ export class KycService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly uploadsService: UploadsService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async submit(userId: string, dto: SubmitKycDto, files?: KycUploadFiles) {
@@ -101,14 +103,12 @@ export class KycService {
     });
 
     // Notify user
-    await this.prisma.notification.create({
-      data: {
-        userId,
-        type: 'SYSTEM',
-        title: 'KYC Submitted',
-        body: 'Your identity verification documents have been received and are under review by our team.',
-        actionUrl: '/(screens)/kyc',
-      },
+    await this.notificationsService.createNotification({
+      userId,
+      type: 'SYSTEM',
+      title: 'KYC Submitted',
+      body: 'Your identity verification documents have been received and are under review by our team.',
+      actionUrl: '/(screens)/kyc',
     });
 
     return verification;
@@ -249,7 +249,10 @@ export class KycService {
 
     const isVerified = dto.status === KycStatus.VERIFIED;
 
-    // Run in a transaction: update KYC record, update User isVerified, and notify user
+    // Run in a transaction: update KYC record and update User isVerified.
+    // createNotification() is a real (already-executing) Promise, not a
+    // deferred PrismaPromise, so it can't be a member of this batched
+    // array-transaction - it runs after the transaction commits instead.
     const [updatedVerification] = await this.prisma.$transaction([
       this.prisma.kycVerification.update({
         where: { id },
@@ -284,18 +287,19 @@ export class KycService {
         where: { id: verification.userId },
         data: { isVerified },
       }),
-      this.prisma.notification.create({
-        data: {
-          userId: verification.userId,
-          type: 'SYSTEM',
-          title: isVerified ? 'Identity Verified! 🎉' : 'Verification Update',
-          body: isVerified
-            ? 'Your identity documents have been approved. Your verified badge is now active on your profile.'
-            : `Your identity verification was not approved: ${dto.rejectionReason}. Please review and resubmit.`,
-          actionUrl: '/(screens)/kyc',
-        },
-      }),
     ]);
+
+    await this.notificationsService
+      .createNotification({
+        userId: verification.userId,
+        type: 'SYSTEM',
+        title: isVerified ? 'Identity Verified! 🎉' : 'Verification Update',
+        body: isVerified
+          ? 'Your identity documents have been approved. Your verified badge is now active on your profile.'
+          : `Your identity verification was not approved: ${dto.rejectionReason}. Please review and resubmit.`,
+        actionUrl: '/(screens)/kyc',
+      })
+      .catch((err) => console.error('Failed to dispatch KYC review notification:', err));
 
     return updatedVerification;
   }

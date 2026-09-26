@@ -49,6 +49,7 @@ model User {
   reviewsGiven     Review[]          @relation("ReviewsGiven")
   reviewsReceived  Review[]          @relation("ReviewsReceived")
   notifications    Notification[]
+  pushTokens       PushToken[]
   disputesRaised   Dispute[]         @relation("DisputesRaised")
   disputesAgainst  Dispute[]         @relation("DisputesAgainst")
   disputesResolved Dispute[]         @relation("DisputesResolved")
@@ -506,6 +507,20 @@ model BankAccount {
   isDefault         Boolean @default(true)
 
   payoutRequests PayoutRequest[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model PushToken {
+  id       String @id @default(uuid())
+  token    String @unique
+  platform String @default("android")
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

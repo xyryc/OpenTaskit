@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EscrowService } from '../payments/escrow.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateDisputeDto } from './dto/create-dispute.dto';
 import {
   DisputeResolution,
@@ -23,6 +24,7 @@ export class DisputesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly escrowService: EscrowService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   // 1. File / Raise a Dispute
@@ -84,8 +86,8 @@ export class DisputesService {
     // Determine counterparty
     const againstUserId = isPoster ? acceptedOffer.userId : task.userId;
 
-    // Atomic transaction: create dispute + set task status to DISPUTED + notify counterparty
-    return this.prisma.$transaction(async (tx) => {
+    // Atomic transaction: create dispute + set task status to DISPUTED
+    const dispute = await this.prisma.$transaction(async (tx) => {
       const dispute = await tx.dispute.create({
         data: {
           taskId,
@@ -115,20 +117,23 @@ export class DisputesService {
         data: { status: TaskStatus.DISPUTED },
       });
 
-      // Send in-app notification to the counterparty
-      await tx.notification.create({
-        data: {
-          userId: againstUserId,
-          type: NotificationType.DISPUTE,
-          title: 'Dispute Opened on Task',
-          body: `A dispute has been opened regarding task "${task.title}". Our mediation team will review the case.`,
-          taskId,
-          actionUrl: `/tasks/${taskId}/disputes`,
-        },
-      });
-
       return dispute;
     });
+
+    // Notification (and push) fire after the transaction commits - network
+    // calls don't belong inside a DB transaction.
+    this.notificationsService
+      .createNotification({
+        userId: againstUserId,
+        type: NotificationType.DISPUTE,
+        title: 'Dispute Opened on Task',
+        body: `A dispute has been opened regarding task "${dispute.task.title}". Our mediation team will review the case.`,
+        taskId,
+        actionUrl: `/tasks/${taskId}/disputes`,
+      })
+      .catch((err) => console.error('Failed to dispatch dispute-opened notification:', err));
+
+    return dispute;
   }
 
   // 2. Get dispute details for a specific task
@@ -397,32 +402,30 @@ export class DisputesService {
         data: { status: targetTaskStatus },
       });
 
-      // 3. Notify Filer
-      await tx.notification.create({
-        data: {
-          userId: dispute.raisedById,
-          type: NotificationType.DISPUTE,
-          title: 'Dispute Resolved',
-          body: `The dispute on task "${dispute.task.title}" has been concluded. Verdict: ${dto.resolution}.`,
-          taskId: dispute.taskId,
-          actionUrl: `/tasks/${dispute.taskId}/disputes`,
-        },
-      });
-
-      // 4. Notify Respondent
-      await tx.notification.create({
-        data: {
-          userId: dispute.againstUserId,
-          type: NotificationType.DISPUTE,
-          title: 'Dispute Resolved',
-          body: `The dispute on task "${dispute.task.title}" has been concluded. Verdict: ${dto.resolution}.`,
-          taskId: dispute.taskId,
-          actionUrl: `/tasks/${dispute.taskId}/disputes`,
-        },
-      });
-
       return updatedDispute;
     });
+
+    // Notifications fire after the transaction commits - network calls
+    // don't belong inside a DB transaction. Promise.allSettled so one
+    // failing notification doesn't affect the other.
+    await Promise.allSettled([
+      this.notificationsService.createNotification({
+        userId: dispute.raisedById,
+        type: NotificationType.DISPUTE,
+        title: 'Dispute Resolved',
+        body: `The dispute on task "${dispute.task.title}" has been concluded. Verdict: ${dto.resolution}.`,
+        taskId: dispute.taskId,
+        actionUrl: `/tasks/${dispute.taskId}/disputes`,
+      }),
+      this.notificationsService.createNotification({
+        userId: dispute.againstUserId,
+        type: NotificationType.DISPUTE,
+        title: 'Dispute Resolved',
+        body: `The dispute on task "${dispute.task.title}" has been concluded. Verdict: ${dto.resolution}.`,
+        taskId: dispute.taskId,
+        actionUrl: `/tasks/${dispute.taskId}/disputes`,
+      }),
+    ]);
 
     // Escrow settlement runs after the dispute/task transaction commits -
     // EscrowService manages its own transaction and can't be nested inside

@@ -4,13 +4,17 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { PushNotificationService } from '../push/push-notification.service';
 import { FilterNotificationsDto } from './dto/filter-notifications.dto';
 import { NotificationType } from '../../generated/prisma/enums';
 import { Prisma } from '../../generated/prisma/client';
 
 @Injectable()
 export class NotificationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly pushService: PushNotificationService,
+  ) {}
 
   // 1. Fetch notifications for authenticated user
   async findAll(userId: string, query: FilterNotificationsDto) {
@@ -125,7 +129,7 @@ export class NotificationsService {
     taskId?: string;
     actionUrl?: string;
   }) {
-    return this.prisma.notification.create({
+    const notification = await this.prisma.notification.create({
       data: {
         userId: data.userId,
         type: data.type,
@@ -135,5 +139,22 @@ export class NotificationsService {
         actionUrl: data.actionUrl,
       },
     });
+
+    // Fire-and-forget: a push failure must never surface to callers of
+    // createNotification (offer/message/dispute/kyc flows all depend on it).
+    this.pushService
+      .sendToUser(data.userId, {
+        title: data.title,
+        body: data.body,
+        data: {
+          type: data.type,
+          taskId: data.taskId ?? '',
+          actionUrl: data.actionUrl ?? '',
+          notificationId: notification.id,
+        },
+      })
+      .catch((err) => console.error('Push dispatch failed:', err));
+
+    return notification;
   }
 }

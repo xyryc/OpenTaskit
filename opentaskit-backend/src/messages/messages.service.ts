@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { NotificationType, OfferStatus } from '../../generated/prisma/enums';
 import type { Task, Offer } from '../../generated/prisma/client';
@@ -18,7 +19,10 @@ const USER_SUMMARY_SELECT = {
 
 @Injectable()
 export class MessagesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   // Resolves who the other party in the conversation is, and authorizes that
   // the requesting user is actually allowed to be part of it.
@@ -106,20 +110,18 @@ export class MessagesService {
       include: { sender: { select: USER_SUMMARY_SELECT } },
     });
 
-    this.prisma.notification
-      .create({
-        data: {
-          userId: receiverId,
-          type: NotificationType.MESSAGE,
-          title: `New message from ${message.sender.fullName}`,
-          body: dto.text?.trim() || 'Sent a photo',
-          taskId,
-          // Encodes which specific conversation this is, since a task can
-          // have several concurrent pre-assignment threads with different
-          // applicants - taskId alone wouldn't be enough to reopen the right
-          // one.
-          actionUrl: `/(screens)/chat/${taskId}?otherUserId=${senderId}`,
-        },
+    this.notificationsService
+      .createNotification({
+        userId: receiverId,
+        type: NotificationType.MESSAGE,
+        title: `New message from ${message.sender.fullName}`,
+        body: dto.text?.trim() || 'Sent a photo',
+        taskId,
+        // Encodes which specific conversation this is, since a task can
+        // have several concurrent pre-assignment threads with different
+        // applicants - taskId alone wouldn't be enough to reopen the right
+        // one.
+        actionUrl: `/(screens)/chat/${taskId}?otherUserId=${senderId}`,
       })
       .catch((err) => console.error('Failed to dispatch message notification:', err));
 
