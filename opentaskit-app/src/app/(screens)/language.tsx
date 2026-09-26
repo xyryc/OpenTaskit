@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { Check, Languages } from 'lucide-react-native';
+import { Check, ChevronLeft, Languages } from 'lucide-react-native';
 
 import { useApp } from '@/contexts/AppContext';
 import { LANGUAGES } from '@/utils/i18n';
@@ -12,20 +12,55 @@ import type { Language } from '@/types';
 
 export default function LanguageSelectScreen() {
   const router = useRouter();
-  const { language, setLanguage } = useApp();
+  const params = useLocalSearchParams<{ from?: string }>();
+  const { language, setLanguage, toast } = useApp();
   const [selected, setSelected] = useState<Language>(language);
+
+  const isFromWelcome = params.from === 'welcome';
+  const canGoBack = router.canGoBack();
 
   const handleContinue = () => {
     setLanguage(selected);
-    router.push('/onboarding');
+    if (isFromWelcome) {
+      router.push('/onboarding');
+    } else {
+      const langName = LANGUAGES.find((l) => l.code === selected)?.native || selected;
+      toast({
+        title: 'Language updated',
+        description: `App language set to ${langName}.`,
+        variant: 'success',
+      });
+      if (canGoBack) {
+        router.back();
+      } else {
+        router.replace('/(tabs)/profile' as any);
+      }
+    }
   };
 
   return (
     <SafeAreaView className="flex-1 bg-white" edges={['top', 'bottom']}>
       <StatusBar style="dark" />
 
+      {/* Header bar with Back button when navigated from in-app/settings */}
+      {!isFromWelcome && canGoBack && (
+        <View className="flex-row items-center justify-between px-6 pt-3 pb-2 border-b border-ink-100">
+          <Pressable
+            onPress={() => router.back()}
+            hitSlop={10}
+            className="h-9 w-9 items-center justify-center rounded-full bg-ink-50 active:bg-ink-100"
+          >
+            <ChevronLeft size={22} color="#1C2024" />
+          </Pressable>
+          <Text className="text-[16px] font-geist-semibold font-semibold text-ink">
+            Language
+          </Text>
+          <View className="w-9" />
+        </View>
+      )}
+
       <ScrollView
-        className="flex-1 px-6 pt-10"
+        className="flex-1 px-6 pt-6"
         contentContainerStyle={{ paddingBottom: 24 }}
         showsVerticalScrollIndicator={false}
       >
@@ -39,7 +74,9 @@ export default function LanguageSelectScreen() {
           Choose your language
         </Text>
         <Text className="font-geist mt-2 text-[14.5px] leading-relaxed text-ink-500">
-          You can change this any time in Settings. OpenTaskit works in English, Sinhala and Tamil.
+          {isFromWelcome
+            ? 'You can change this any time in Settings. OpenTaskit works in English, Sinhala and Tamil.'
+            : 'Select your preferred language. All menus and notifications will appear in your chosen language.'}
         </Text>
 
         {/* Language Options */}
@@ -76,10 +113,10 @@ export default function LanguageSelectScreen() {
         </View>
       </ScrollView>
 
-      {/* Bottom Continue Button */}
+      {/* Bottom Action Button */}
       <View className="px-6 pb-6 pt-3 border-t border-ink-100 bg-white">
         <Button full size="lg" variant="brand" onPress={handleContinue}>
-          Continue
+          {isFromWelcome ? 'Continue' : 'Save changes'}
         </Button>
       </View>
     </SafeAreaView>
