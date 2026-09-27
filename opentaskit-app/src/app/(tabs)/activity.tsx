@@ -177,7 +177,7 @@ export default function ActivityScreen() {
               <Bookmark size={18} color="#0C1417" />
               {savedCount > 0 && (
                 <View className="absolute -right-0.5 -top-0.5 h-4 min-w-[16px] items-center justify-center rounded-full bg-ink px-1">
-                  <Text className="text-[10px] font-geist-bold font-bold text-white">
+                  <Text className="text-[10px] font-geist-bold font-bold text-white text-center">
                     {savedCount}
                   </Text>
                 </View>
@@ -192,8 +192,8 @@ export default function ActivityScreen() {
             >
               <MessageCircle size={18} color="#0C1417" />
               {unreadMessages > 0 && (
-                <View className="absolute -right-1 -top-1 h-4 min-w-[16px] items-center justify-center rounded-full bg-danger px-1 border border-white">
-                  <Text className="text-[10px] font-geist-bold font-bold text-white">
+                <View className="absolute -right-0.5 -top-0.5 h-4 min-w-[16px] items-center justify-center rounded-full bg-danger px-1">
+                  <Text className="text-[10px] font-geist-bold font-bold text-white text-center">
                     {unreadMessages > 99 ? '99+' : unreadMessages}
                   </Text>
                 </View>

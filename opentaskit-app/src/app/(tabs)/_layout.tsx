@@ -13,17 +13,19 @@ import { useApp } from '@/contexts/AppContext';
 import { useAppSelector } from '@/store';
 import { useGetNotificationsQuery } from '@/store/api/apiSlice';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
+import { useActivityCount } from '@/hooks/useActivityCount';
 
 const TAB_KEYS = ['home', 'discover', 'activity', 'profile'];
 
 function CustomTabBar({ state, navigation }: any) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { t, pendingOfferCount, requireAccount } = useApp();
+  const { t, requireAccount } = useApp();
   const { guest } = useAppSelector((s) => s.auth);
   const { data: notificationsData } = useGetNotificationsQuery(undefined, { skip: guest });
   const unreadNotifications = notificationsData?.unreadCount ?? 0;
   const unreadMessages = useUnreadMessages();
+  const activityCount = useActivityCount();
 
   const currentRouteName = state.routes[state.index]?.name || 'home';
   const activeIndex = Math.max(0, TAB_KEYS.indexOf(currentRouteName));
@@ -132,10 +134,10 @@ function CustomTabBar({ state, navigation }: any) {
               size={22}
               color={currentRouteName === 'activity' ? '#0094F7' : '#8A959B'}
             />
-            {pendingOfferCount > 0 && (
+            {activityCount > 0 && (
               <View className="absolute -right-2.5 -top-1 h-4 min-w-[16px] items-center justify-center rounded-full bg-danger px-1">
-                <Text className="text-[10px] font-geist-bold font-bold text-white">
-                  {pendingOfferCount}
+                <Text className="text-[10px] font-geist-bold font-bold text-white text-center">
+                  {activityCount > 99 ? '99+' : activityCount}
                 </Text>
               </View>
             )}
