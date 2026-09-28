@@ -30,6 +30,7 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
@@ -99,14 +100,14 @@ const navGroups: NavGroup[] = [
         title: "KYC Verification",
         url: "/kyc",
         icon: ShieldCheck,
-        badge: "4 Pending",
+        badge: "4",
         badgeVariant: "default" as const,
       },
       {
         title: "Disputes & Cases",
         url: "/disputes",
         icon: AlertTriangle,
-        badge: "2 Active",
+        badge: "2",
         badgeVariant: "destructive" as const,
       },
     ],
@@ -118,14 +119,14 @@ const navGroups: NavGroup[] = [
         title: "Escrow & Ledger",
         url: "/finance/escrow",
         icon: Wallet,
-        badge: "2 Active",
+        badge: "2",
         badgeVariant: "default" as const,
       },
       {
         title: "Withdrawal Requests",
         url: "/finance/payouts",
         icon: Landmark,
-        badge: "2 Pending",
+        badge: "2",
         badgeVariant: "destructive" as const,
       },
     ],
@@ -157,10 +158,10 @@ export function AppSidebar() {
   const { user } = useAuth();
 
   const [liveBadges, setLiveBadges] = React.useState<Record<string, string>>({
-    "/kyc": "4 Pending",
-    "/disputes": "2 Active",
-    "/finance/escrow": "2 Active",
-    "/finance/payouts": "2 Pending",
+    "/kyc": "4",
+    "/disputes": "2",
+    "/finance/escrow": "2",
+    "/finance/payouts": "2",
   });
 
   React.useEffect(() => {
@@ -179,32 +180,32 @@ export function AppSidebar() {
         if (paymentsRes.status === "fulfilled" && paymentsRes.value.ok) {
           const data = await paymentsRes.value.json();
           const count = data.metrics?.activeEscrowCount;
-          if (typeof count === "number" && count > 0) {
-            updates["/finance/escrow"] = `${count} Active`;
+          if (typeof count === "number") {
+            updates["/finance/escrow"] = count > 0 ? String(count) : "";
           }
         }
 
         if (payoutsRes.status === "fulfilled" && payoutsRes.value.ok) {
           const data = await payoutsRes.value.json();
           const count = data.metrics?.pendingCount ?? data.pagination?.total;
-          if (typeof count === "number" && count > 0) {
-            updates["/finance/payouts"] = `${count} Pending`;
+          if (typeof count === "number") {
+            updates["/finance/payouts"] = count > 0 ? String(count) : "";
           }
         }
 
         if (kycRes.status === "fulfilled" && kycRes.value.ok) {
           const data = await kycRes.value.json();
           const count = data.counts?.pending ?? data.pagination?.total;
-          if (typeof count === "number" && count > 0) {
-            updates["/kyc"] = `${count} Pending`;
+          if (typeof count === "number") {
+            updates["/kyc"] = count > 0 ? String(count) : "";
           }
         }
 
         if (disputesRes.status === "fulfilled" && disputesRes.value.ok) {
           const data = await disputesRes.value.json();
           const count = data.metrics?.openCount ?? data.pagination?.total;
-          if (typeof count === "number" && count > 0) {
-            updates["/disputes"] = `${count} Active`;
+          if (typeof count === "number") {
+            updates["/disputes"] = count > 0 ? String(count) : "";
           }
         }
 
@@ -287,39 +288,32 @@ export function AppSidebar() {
                         asChild
                         isActive={isActive}
                         tooltip={item.title}
-                        className={`${
-                          badgeText ? "min-h-[46px] py-1.5" : "h-9"
-                        } px-3 text-sm font-medium transition-colors group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:min-h-0 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center ${
+                        className={`h-9 px-3 text-sm font-medium transition-colors group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center ${
                           isActive
                             ? "bg-[#0094F7]/15 text-[#0094F7] font-semibold dark:bg-[#0094F7]/25 dark:text-[#38b6ff] shadow-xs"
                             : "text-muted-foreground hover:text-foreground hover:bg-muted/80"
                         }`}
                       >
-                        <Link
-                          href={item.url}
-                          className="flex items-center gap-2.5 w-full group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0"
-                        >
+                        <Link href={item.url} className="flex items-center gap-2.5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0">
                           <item.icon
                             className={`h-4 w-4 shrink-0 group-data-[collapsible=icon]:h-5 group-data-[collapsible=icon]:w-5 ${
                               isActive ? "text-[#0094F7] dark:text-[#38b6ff]" : "text-muted-foreground"
                             }`}
                           />
-                          <div className="flex flex-col items-start min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
-                            <span className="truncate leading-tight">{item.title}</span>
-                            {badgeText && (
-                              <span
-                                className={`mt-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full inline-flex items-center leading-none ${
-                                  item.badgeVariant === "destructive"
-                                    ? "bg-destructive/15 text-destructive font-bold"
-                                    : isActive
-                                    ? "bg-[#0094F7]/25 text-[#0094F7] dark:text-[#38b6ff]"
-                                    : "bg-muted text-muted-foreground"
-                                }`}
-                              >
-                                {badgeText}
-                              </span>
-                            )}
-                          </div>
+                          <span className="group-data-[collapsible=icon]:hidden truncate pr-6">{item.title}</span>
+                          {badgeText && (
+                            <SidebarMenuBadge
+                              className={`right-2 top-1/2 -translate-y-1/2 text-[10.5px] font-bold h-5 min-w-5 px-1.5 rounded-full flex items-center justify-center group-data-[collapsible=icon]:hidden ${
+                                item.badgeVariant === "destructive"
+                                  ? "bg-destructive/15 text-destructive font-bold"
+                                  : isActive
+                                  ? "bg-[#0094F7]/25 text-[#0094F7] dark:text-[#38b6ff]"
+                                  : "bg-muted text-muted-foreground"
+                              }`}
+                            >
+                              {badgeText}
+                            </SidebarMenuBadge>
+                          )}
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
