@@ -316,16 +316,20 @@ export default function EscrowLedgerPage() {
                       : null;
                     return (
                       <TableRow key={payment.id} className="text-xs hover:bg-muted/40">
-                        <TableCell className="min-w-[220px] max-w-sm">
+                        <TableCell className="whitespace-nowrap max-w-xs">
                           <div className="flex flex-col min-w-0">
-                            <span className="font-semibold text-foreground" title={payment.task?.title || "—"}>
+                            <span className="font-semibold text-foreground truncate" title={payment.task?.title || "—"}>
                               {payment.task?.title || "—"}
                             </span>
                             <CopyableId
                               id={payment.payhereOrderId}
-                              showFull
-                              alwaysShowIcon
+                              displayValue={
+                                payment.payhereOrderId && payment.payhereOrderId.length > 20
+                                  ? `${payment.payhereOrderId.slice(0, 18)}...`
+                                  : payment.payhereOrderId
+                              }
                               className="text-[11px] text-muted-foreground hover:text-foreground mt-0.5"
+                              tooltipText="Click to copy Order ID"
                             />
                           </div>
                         </TableCell>
