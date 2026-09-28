@@ -31,11 +31,13 @@ import {
 } from 'lucide-react-native';
 
 import { useApp } from '@/contexts/AppContext';
+import { useAppSelector } from '@/store';
 import {
   useGetCategoriesQuery,
   useCreateTaskMutation,
   useUploadImagesMutation,
   useGetTaskRulesQuery,
+  useGetMyWalletQuery,
 } from '@/store/api/apiSlice';
 import { parseApiError } from '@/utils/apiError';
 import { categories } from '@/data/categories';
@@ -116,7 +118,10 @@ export default function CreateTaskScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const isKeyboardVisible = useKeyboardState((state) => state.isVisible);
-  const { requireAccount, currentLocation, wallet, toast } = useApp();
+  const { requireAccount, currentLocation, toast } = useApp();
+  const { guest } = useAppSelector((state) => state.auth);
+  const { data: myWallet } = useGetMyWalletQuery(undefined, { skip: guest });
+  const walletBalance = myWallet?.availableBalance ?? 0;
 
   const { data: apiCategories } = useGetCategoriesQuery();
   const { data: taskRules } = useGetTaskRulesQuery();
@@ -186,7 +191,7 @@ export default function CreateTaskScreen() {
   }, [images]);
 
   const budgetValue = Number(budget) || 0;
-  const walletAvailable = walletCovers(wallet.available, budgetValue);
+  const walletAvailable = walletCovers(walletBalance, budgetValue);
 
   const validate = (target: number) => {
     const next: Record<string, string> = {};
@@ -211,7 +216,7 @@ export default function CreateTaskScreen() {
       }
       if (!paymentMethod) {
         next.paymentMethod = 'Choose how you will pay for this task';
-      } else if (paymentMethod === 'wallet' && !walletCovers(wallet.available, value)) {
+      } else if (paymentMethod === 'wallet' && !walletCovers(walletBalance, value)) {
         next.paymentMethod =
           'Your wallet balance does not cover this budget — top up or pick another method';
       }
@@ -810,7 +815,7 @@ export default function CreateTaskScreen() {
                               </Text>
                               {method.id === 'wallet' && (
                                 <Text className="ml-1 text-[11.5px] font-geist-medium text-ink-400">
-                                  · {money(wallet.available)} available
+                                  · {money(walletBalance)} available
                                 </Text>
                               )}
                               {disabled && <Lock size={13} color="#8A959B" />}
@@ -825,6 +830,18 @@ export default function CreateTaskScreen() {
                                   : 'Enter your budget first to use your wallet balance.'
                                 : method.description}
                             </Text>
+
+                            {disabled && method.id === 'wallet' && (
+                              <Pressable
+                                onPress={() => router.push('/(screens)/wallet/topup')}
+                                hitSlop={8}
+                                className="mt-1.5 self-start"
+                              >
+                                <Text className="text-[12px] font-geist-semibold text-brand">
+                                  Top up wallet →
+                                </Text>
+                              </Pressable>
+                            )}
                           </View>
 
                           {active && <Check size={18} color="#0094F7" strokeWidth={2.5} />}
