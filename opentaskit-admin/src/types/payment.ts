@@ -48,6 +48,7 @@ export interface PaginatedPaymentsResponse {
   data: PaymentRecord[];
   metrics: {
     activeEscrowTotal: number;
+    activeEscrowCount?: number;
     releasedToTaskersTotal: number;
     refundedToPostersTotal: number;
     platformFeeTotal: number;

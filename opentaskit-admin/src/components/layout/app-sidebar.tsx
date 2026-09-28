@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/auth-context";
+import { adminFetch } from "@/lib/api-client";
 
 interface NavItem {
   title: string;
@@ -118,11 +119,15 @@ const navGroups: NavGroup[] = [
         title: "Escrow & Ledger",
         url: "/finance/escrow",
         icon: Wallet,
+        badge: "2 Active",
+        badgeVariant: "default" as const,
       },
       {
         title: "Withdrawal Requests",
         url: "/finance/payouts",
         icon: Landmark,
+        badge: "2 Pending",
+        badgeVariant: "destructive" as const,
       },
     ],
   },
@@ -151,6 +156,72 @@ const navGroups: NavGroup[] = [
 export function AppSidebar() {
   const pathname = usePathname();
   const { user } = useAuth();
+
+  const [liveBadges, setLiveBadges] = React.useState<Record<string, string>>({
+    "/kyc": "4 Pending",
+    "/disputes": "2 Active",
+    "/finance/escrow": "2 Active",
+    "/finance/payouts": "2 Pending",
+  });
+
+  React.useEffect(() => {
+    let isMounted = true;
+    async function fetchCounts() {
+      try {
+        const [paymentsRes, payoutsRes, kycRes, disputesRes] = await Promise.allSettled([
+          adminFetch("/api/backend/admin/payments?page=1&limit=1"),
+          adminFetch("/api/backend/admin/payouts?status=PENDING&page=1&limit=1"),
+          adminFetch("/api/backend/admin/kyc?status=PENDING&page=1&limit=1"),
+          adminFetch("/api/backend/admin/disputes?status=OPEN&page=1&limit=1"),
+        ]);
+
+        const updates: Record<string, string> = {};
+
+        if (paymentsRes.status === "fulfilled" && paymentsRes.value.ok) {
+          const data = await paymentsRes.value.json();
+          const count = data.metrics?.activeEscrowCount;
+          if (typeof count === "number" && count > 0) {
+            updates["/finance/escrow"] = `${count} Active`;
+          }
+        }
+
+        if (payoutsRes.status === "fulfilled" && payoutsRes.value.ok) {
+          const data = await payoutsRes.value.json();
+          const count = data.metrics?.pendingCount ?? data.pagination?.total;
+          if (typeof count === "number" && count > 0) {
+            updates["/finance/payouts"] = `${count} Pending`;
+          }
+        }
+
+        if (kycRes.status === "fulfilled" && kycRes.value.ok) {
+          const data = await kycRes.value.json();
+          const count = data.counts?.pending ?? data.pagination?.total;
+          if (typeof count === "number" && count > 0) {
+            updates["/kyc"] = `${count} Pending`;
+          }
+        }
+
+        if (disputesRes.status === "fulfilled" && disputesRes.value.ok) {
+          const data = await disputesRes.value.json();
+          const count = data.metrics?.openCount ?? data.pagination?.total;
+          if (typeof count === "number" && count > 0) {
+            updates["/disputes"] = `${count} Active`;
+          }
+        }
+
+        if (isMounted && Object.keys(updates).length > 0) {
+          setLiveBadges((prev) => ({ ...prev, ...updates }));
+        }
+      } catch {
+        // Keep initial defaults
+      }
+    }
+
+    fetchCounts();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const initials = user?.fullName
     ? user.fullName
@@ -209,6 +280,7 @@ export function AppSidebar() {
                       )
                     );
                   const isActive = isExact || isNestedChild;
+                  const badgeText = liveBadges[item.url] ?? item.badge;
 
                   return (
                     <SidebarMenuItem key={item.title}>
@@ -229,7 +301,7 @@ export function AppSidebar() {
                             }`}
                           />
                           <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>
-                          {item.badge && (
+                          {badgeText && (
                             <SidebarMenuBadge
                               className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full group-data-[collapsible=icon]:hidden ${
                                 item.badgeVariant === "destructive"
@@ -239,7 +311,7 @@ export function AppSidebar() {
                                   : "bg-muted text-muted-foreground"
                               }`}
                             >
-                              {item.badge}
+                              {badgeText}
                             </SidebarMenuBadge>
                           )}
                         </Link>

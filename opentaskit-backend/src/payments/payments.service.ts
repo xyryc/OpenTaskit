@@ -406,7 +406,7 @@ export class PaymentsService {
       ];
     }
 
-    const [data, total, heldAgg, releasedAgg, refundedAgg] = await Promise.all([
+    const [data, total, heldAgg, releasedAgg, refundedAgg, activeEscrowCount] = await Promise.all([
       this.prisma.payment.findMany({
         where,
         skip,
@@ -431,6 +431,9 @@ export class PaymentsService {
         where: { status: EscrowStatus.REFUNDED },
         _sum: { amount: true },
       }),
+      this.prisma.escrowHold.count({
+        where: { status: EscrowStatus.HELD },
+      }),
     ]);
 
     const releasedTotal = releasedAgg._sum.amount ?? 0;
@@ -440,6 +443,7 @@ export class PaymentsService {
       data,
       metrics: {
         activeEscrowTotal: heldAgg._sum.amount ?? 0,
+        activeEscrowCount,
         releasedToTaskersTotal: releasedTotal - platformFeeTotal,
         refundedToPostersTotal: refundedAgg._sum.amount ?? 0,
         platformFeeTotal,
