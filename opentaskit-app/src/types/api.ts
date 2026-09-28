@@ -279,6 +279,8 @@ export interface OfferUserSummary {
   reviewCount?: number;
   isVerified?: boolean;
   createdAt?: string;
+  portfolio?: PortfolioItemRecord[];
+  portfolioItems?: PortfolioItemRecord[];
 }
 
 export interface OfferItem {

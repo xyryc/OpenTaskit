@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, Pressable, Image } from 'react-native';
+import { View, Text, Pressable, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Image } from 'expo-image';
 import {
   BadgeCheck,
   CheckCircle2,
@@ -38,6 +39,7 @@ export function OfferCard({
   const { userById } = useApp();
   const fallbackProvider = userById(offer.providerId);
   const offerUser = (offer as any).user;
+  const rawPortfolio = offerUser?.portfolio ?? offerUser?.portfolioItems;
   const provider = offerUser
     ? {
         ...fallbackProvider,
@@ -47,6 +49,13 @@ export function OfferCard({
         rating: offerUser.rating ?? fallbackProvider.rating,
         reviewCount: offerUser.reviewCount ?? fallbackProvider.reviewCount,
         verified: offerUser.isVerified ?? fallbackProvider.verified,
+        portfolio: Array.isArray(rawPortfolio)
+          ? rawPortfolio.map((item: any) => ({
+              id: item.id,
+              title: item.title || '',
+              image: item.imageUrl || item.image,
+            }))
+          : [],
       }
     : fallbackProvider;
 
@@ -138,15 +147,41 @@ export function OfferCard({
         )}
 
         {provider.portfolio.length > 0 && (
-          <View className="mt-3 flex-row gap-2" style={{ gap: 8 }}>
-            {provider.portfolio.slice(0, 3).map((item) => (
-              <Image
-                key={item.id}
-                source={resolveImageSource(item.image) as any}
-                style={{ width: 72, height: 52, borderRadius: 12 }}
-                resizeMode="cover"
-              />
-            ))}
+          <View className="mt-3">
+            <View className="mb-2 flex-row items-center justify-between">
+              <Text className="font-geist-medium text-[12px] text-ink-500">
+                Portfolio ({provider.portfolio.length})
+              </Text>
+              <Pressable
+                hitSlop={8}
+                onPress={navigateToProfile}
+                className="flex-row items-center"
+              >
+                <Text className="font-geist-medium text-[11.5px] text-brand">
+                  View all →
+                </Text>
+              </Pressable>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 8 }}
+            >
+              {provider.portfolio.map((item) => (
+                <Pressable
+                  key={item.id}
+                  onPress={navigateToProfile}
+                  className="overflow-hidden rounded-xl border border-ink-100 bg-ink-50 active:opacity-90"
+                >
+                  <Image
+                    source={resolveImageSource(item.image)}
+                    style={{ width: 80, height: 58, borderRadius: 10 }}
+                    contentFit="cover"
+                    transition={200}
+                  />
+                </Pressable>
+              ))}
+            </ScrollView>
           </View>
         )}
 

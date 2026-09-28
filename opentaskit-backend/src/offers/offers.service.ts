@@ -94,7 +94,7 @@ export class OffersService {
       throw new NotFoundException('Task not found');
     }
 
-    return this.prisma.offer.findMany({
+    const offers = await this.prisma.offer.findMany({
       where: { taskId },
       orderBy: { createdAt: 'desc' },
       include: {
@@ -108,9 +108,31 @@ export class OffersService {
             reviewCount: true,
             isVerified: true,
             createdAt: true,
+            portfolioItems: {
+              orderBy: { createdAt: 'desc' },
+              take: 6,
+              select: {
+                id: true,
+                title: true,
+                imageUrl: true,
+                createdAt: true,
+              },
+            },
           },
         },
       },
+    });
+
+    return offers.map((offer) => {
+      const { portfolioItems, ...userRest } = offer.user;
+      return {
+        ...offer,
+        user: {
+          ...userRest,
+          portfolio: portfolioItems || [],
+          portfolioItems: portfolioItems || [],
+        },
+      };
     });
   }
 
@@ -342,7 +364,21 @@ export class OffersService {
             phoneNumber: true,
             role: true,
             status: true,
+            avatarUrl: true,
+            rating: true,
+            reviewCount: true,
+            isVerified: true,
             createdAt: true,
+            portfolioItems: {
+              orderBy: { createdAt: 'desc' },
+              take: 6,
+              select: {
+                id: true,
+                title: true,
+                imageUrl: true,
+                createdAt: true,
+              },
+            },
           },
         },
         task: {
@@ -375,6 +411,14 @@ export class OffersService {
       );
     }
 
-    return offer;
+    const { portfolioItems, ...userRest } = offer.user;
+    return {
+      ...offer,
+      user: {
+        ...userRest,
+        portfolio: portfolioItems || [],
+        portfolioItems: portfolioItems || [],
+      },
+    };
   }
 }

@@ -70,6 +70,7 @@ export default function CompareOffersScreen() {
   const resolveProvider = (offer: (typeof offers)[number]) => {
     const fallback = userById(offer.providerId);
     const offerUser = (offer as any).user;
+    const rawPortfolio = offerUser?.portfolio ?? offerUser?.portfolioItems;
     return offerUser
       ? {
           ...fallback,
@@ -79,6 +80,13 @@ export default function CompareOffersScreen() {
           rating: offerUser.rating ?? fallback.rating,
           reviewCount: offerUser.reviewCount ?? fallback.reviewCount,
           verified: offerUser.isVerified ?? fallback.verified,
+          portfolio: Array.isArray(rawPortfolio)
+            ? rawPortfolio.map((item: any) => ({
+                id: item.id,
+                title: item.title || '',
+                image: item.imageUrl || item.image,
+              }))
+            : [],
         }
       : fallback;
   };

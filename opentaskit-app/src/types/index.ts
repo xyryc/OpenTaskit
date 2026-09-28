@@ -122,6 +122,7 @@ export interface Offer {
   note?: string;
   status: OfferStatus;
   createdAt: string;
+  user?: import('./api').OfferUserSummary;
 }
 
 export interface Message {
