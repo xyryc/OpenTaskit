@@ -634,6 +634,7 @@ enum WalletTransactionType {
   ADJUSTMENT
   TOPUP
   DISPUTE_SPLIT
+  ESCROW_HOLD
 }
 
 enum PayoutStatus {

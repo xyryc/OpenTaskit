@@ -263,6 +263,32 @@ export class EscrowService {
       return null;
     }
 
+    const isWalletPayment =
+      hold.payment.payhereOrderId.startsWith('wallet-') ||
+      hold.payment.payherePaymentId?.startsWith('WALLET-');
+
+    if (isWalletPayment) {
+      const posterWallet = await this.walletService.ensureWallet(hold.payment.payerId);
+      return this.prisma.$transaction(async (tx) => {
+        await this.walletService.recordTransaction(tx, {
+          walletId: posterWallet.id,
+          type: WalletTransactionType.ADJUSTMENT,
+          amount: hold.amount,
+          taskId,
+          escrowHoldId: hold.id,
+          description: `Refund for "${hold.payment.payhereOrderId}": ${reason}`,
+        });
+        return tx.escrowHold.update({
+          where: { id: hold.id },
+          data: {
+            status: EscrowStatus.REFUNDED,
+            refundedAt: new Date(),
+            resolutionSource,
+          },
+        });
+      });
+    }
+
     if (hold.payment.payherePaymentId) {
       await refundPayment({
         payherePaymentId: hold.payment.payherePaymentId,

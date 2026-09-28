@@ -23,6 +23,9 @@ const TYPE_LABELS: Record<string, string> = {
   PLATFORM_FEE: 'Platform commission fee',
   WITHDRAWAL: 'Withdrawal payout',
   ADJUSTMENT: 'Wallet adjustment',
+  TOPUP: 'Wallet top-up',
+  DISPUTE_SPLIT: 'Dispute 50/50 resolution',
+  ESCROW_HOLD: 'Task escrow payment',
 };
 
 export default function TransactionDetailScreen() {

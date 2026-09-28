@@ -672,7 +672,8 @@ export type WalletTransactionType =
   | 'WITHDRAWAL'
   | 'ADJUSTMENT'
   | 'TOPUP'
-  | 'DISPUTE_SPLIT';
+  | 'DISPUTE_SPLIT'
+  | 'ESCROW_HOLD';
 
 export interface WalletTransactionItem {
   id: string;

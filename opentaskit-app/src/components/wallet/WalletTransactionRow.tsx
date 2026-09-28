@@ -44,6 +44,11 @@ const TYPE_META: Record<
     iconBg: 'bg-purple-100',
     label: 'Dispute 50/50 resolution',
   },
+  ESCROW_HOLD: {
+    icon: <ArrowUpRight size={18} color="#0072C4" />,
+    iconBg: 'bg-info/15',
+    label: 'Task payment held in escrow',
+  },
 };
 
 export function WalletTransactionRow({

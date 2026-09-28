@@ -41,6 +41,19 @@ export class PaymentsController {
   }
 
   @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Pay for an awaiting-confirmation task using digital wallet balance',
+  })
+  @UseGuards(JwtAuthGuard)
+  @Post('payments/wallet/:taskId')
+  payWithWallet(
+    @Param('taskId', ParseUUIDPipe) taskId: string,
+    @CurrentUser('id') posterId: string,
+  ) {
+    return this.paymentsService.payWithWallet(taskId, posterId);
+  }
+
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get the latest payment/escrow status for a task' })
   @UseGuards(JwtAuthGuard)
   @Get('payments/task/:taskId')

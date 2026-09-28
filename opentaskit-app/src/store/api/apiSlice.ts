@@ -840,6 +840,22 @@ export const apiSlice = createApi({
       invalidatesTags: (_result, _error, taskId) => [{ type: 'Payment', id: taskId }],
     }),
 
+    payWithWallet: builder.mutation<
+      { message: string; payment: any; hold: any; task: any },
+      string
+    >({
+      query: (taskId) => ({ url: `/payments/wallet/${taskId}`, method: 'POST' }),
+      invalidatesTags: (_result, _error, taskId) => [
+        { type: 'Payment', id: taskId },
+        { type: 'Task', id: taskId },
+        { type: 'Task', id: 'MY_POSTED' },
+        { type: 'Task', id: 'MY_ASSIGNED' },
+        { type: 'Task', id: 'LIST' },
+        { type: 'Wallet' },
+        { type: 'Offer', id: `TASK_${taskId}` },
+      ],
+    }),
+
     getPaymentStatus: builder.query<PaymentTaskStatus, string>({
       query: (taskId) => `/payments/task/${taskId}`,
       providesTags: (_result, _error, taskId) => [{ type: 'Payment', id: taskId }],
@@ -1030,6 +1046,7 @@ export const {
   useGetMessageThreadQuery,
   useSendMessageMutation,
   useInitiateCheckoutMutation,
+  usePayWithWalletMutation,
   useGetPaymentStatusQuery,
   useVerifyPaymentMutation,
   useLazyGetPaymentStatusQuery,

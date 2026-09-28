@@ -8,6 +8,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
+  AlertCircle,
   Banknote,
   CheckCircle2,
   CreditCard,
@@ -31,6 +32,8 @@ import {
   useGetOffersForTaskQuery,
   useCompleteTaskMutation,
   useInitiateCheckoutMutation,
+  usePayWithWalletMutation,
+  useGetMyWalletQuery,
   useGetTaskRulesQuery,
 } from '@/store/api/apiSlice';
 import { mapApiTaskToTask } from '@/utils/taskFilters';
@@ -48,8 +51,10 @@ export default function PaymentConfirmScreen() {
 
   const { data: apiTaskData, isLoading: isTaskLoading } = useGetTaskByIdQuery(taskId, { skip: !taskId });
   const { data: taskOffers } = useGetOffersForTaskQuery(taskId, { skip: !taskId });
+  const { data: myWallet, isLoading: isWalletLoading } = useGetMyWalletQuery();
   const [completeTaskApi, { isLoading: isCompleting }] = useCompleteTaskMutation();
   const [initiateCheckout, { isLoading: isInitiatingCheckout }] = useInitiateCheckoutMutation();
+  const [payWithWalletApi, { isLoading: isPayingWithWallet }] = usePayWithWalletMutation();
 
   const task = React.useMemo(
     () => (apiTaskData ? mapApiTaskToTask(apiTaskData) : taskById(taskId)),
@@ -70,8 +75,12 @@ export default function PaymentConfirmScreen() {
 
   const payment = paymentMethodMeta(task.paymentMethod);
   const isCardPayment = task.paymentMethod === 'card';
+  const isWalletPayment = task.paymentMethod === 'wallet';
   const acceptedOffer = taskOffers?.find((o) => o.status === 'ACCEPTED');
+  const taskAmount = acceptedOffer?.amount ?? task.budget;
   const isProvider = !!(authUser?.id && acceptedOffer && acceptedOffer.userId === authUser.id);
+  const walletBalance = myWallet?.availableBalance ?? 0;
+  const hasEnoughWalletBalance = walletBalance >= taskAmount;
 
   const otherSummary = isProvider ? apiTaskData?.user : acceptedOffer?.user;
   const fallbackOther = userById(
@@ -89,8 +98,8 @@ export default function PaymentConfirmScreen() {
   const { data: taskRules } = useGetTaskRulesQuery();
   const feePercent = taskRules?.platformFeePercent ?? 10;
   const feeRate = feePercent / 100;
-  const commission = commissionFor(task.budget, feeRate);
-  const providerEarnings = earningsFor(task.budget, feeRate);
+  const commission = commissionFor(taskAmount, feeRate);
+  const providerEarnings = earningsFor(taskAmount, feeRate);
 
   // Success Celebration View
   if (done || task.status === 'completed') {
@@ -107,13 +116,12 @@ export default function PaymentConfirmScreen() {
           </Text>
 
           <Text className="mt-2 max-w-[290px] text-center font-geist text-[14.5px] leading-relaxed text-ink-500">
-            {money(task.budget)} paid to {other.name.split(' ')[0]} by{' '}
-            {payment.label.toLowerCase()}. The task is now complete and the
-            wallet record is updated.
+            {money(taskAmount)} paid to {other.name.split(' ')[0]} by{' '}
+            {payment.label.toLowerCase()}. {isWalletPayment ? 'Funds are securely held in escrow and your wallet balance has been deducted.' : 'The task is now complete and the wallet record is updated.'}
           </Text>
 
           <View className="mt-6 w-full rounded-3xl border border-ink-200 bg-white p-4">
-            <SummaryLine label="Task amount" value={money(task.budget)} />
+            <SummaryLine label="Task amount" value={money(taskAmount)} />
             <SummaryLine
               label={`Platform commission (${feePercent}%)`}
               value={`− ${money(commission)}`}
@@ -194,7 +202,7 @@ export default function PaymentConfirmScreen() {
             <View className="mt-3 gap-2.5" style={{ gap: 10 }}>
               <SummaryLine
                 label="Agreed task amount"
-                value={money(task.budget)}
+                value={money(taskAmount)}
               />
               <SummaryLine
                 label={`Platform commission (${feePercent}%)`}
@@ -205,7 +213,7 @@ export default function PaymentConfirmScreen() {
               <View className="border-t border-ink-100 pt-2.5">
                 <SummaryLine
                   label="Amount payable now"
-                  value={money(task.budget)}
+                  value={money(taskAmount)}
                   strong
                 />
               </View>
@@ -213,13 +221,65 @@ export default function PaymentConfirmScreen() {
 
             <View className="mt-4 rounded-2xl bg-ink-100/70 p-3.5">
               <Text className="font-geist text-[12px] leading-relaxed text-ink-700">
-                You pay {other.name.split(' ')[0]} {money(task.budget)} by{' '}
-                {payment.label.toLowerCase()}. OpenTaskit deducts{' '}
-                {money(commission)} commission from their wallet — you are never
-                charged extra.
+                {isWalletPayment
+                  ? `You pay ${money(taskAmount)} from your digital wallet. Funds are held in escrow and released to ${other.name.split(' ')[0]} minus ${money(commission)} platform commission.`
+                  : `You pay ${other.name.split(' ')[0]} ${money(taskAmount)} by ${payment.label.toLowerCase()}. OpenTaskit deducts ${money(commission)} commission from their wallet — you are never charged extra.`}
               </Text>
             </View>
           </View>
+
+          {/* Wallet Balance Status Card (for Wallet Payments) */}
+          {isWalletPayment && (
+            <View
+              className={`rounded-3xl border p-4.5 ${
+                hasEnoughWalletBalance
+                  ? 'border-brand/20 bg-brand-tint/30'
+                  : 'border-danger/30 bg-danger/5'
+              }`}
+              style={{ padding: 18 }}
+            >
+              <View className="flex-row items-center justify-between">
+                <View className="flex-row items-center gap-2.5" style={{ gap: 10 }}>
+                  <View
+                    className={`h-10 w-10 items-center justify-center rounded-2xl ${
+                      hasEnoughWalletBalance ? 'bg-white' : 'bg-danger/10'
+                    }`}
+                  >
+                    <Wallet2
+                      size={20}
+                      color={hasEnoughWalletBalance ? '#0094F7' : '#EF4444'}
+                    />
+                  </View>
+                  <View>
+                    <Text className="text-[12px] font-geist-medium text-ink-500">
+                      Digital Wallet Balance
+                    </Text>
+                    <Text className="text-[17px] font-geist-bold text-ink">
+                      {money(walletBalance)}
+                    </Text>
+                  </View>
+                </View>
+                {!hasEnoughWalletBalance && (
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    onPress={() => router.push('/(screens)/wallet/topup')}
+                  >
+                    Top up
+                  </Button>
+                )}
+              </View>
+
+              {!hasEnoughWalletBalance && (
+                <View className="mt-3 flex-row items-center gap-2 pt-2.5 border-t border-danger/15" style={{ gap: 8 }}>
+                  <AlertCircle size={15} color="#EF4444" />
+                  <Text className="flex-1 font-geist text-[12px] text-danger-600">
+                    Insufficient balance. You need {money(taskAmount - walletBalance)} more to complete this payment.
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
 
           {/* Card: Payment Method */}
           <View>
@@ -290,11 +350,23 @@ export default function PaymentConfirmScreen() {
         <Button
           full
           size="lg"
-          variant="brand"
-          loading={isCompleting || isInitiatingCheckout}
-          onPress={() => setConfirmOpen(true)}
+          variant={isWalletPayment && !hasEnoughWalletBalance ? 'outline' : 'brand'}
+          loading={isCompleting || isInitiatingCheckout || isPayingWithWallet}
+          onPress={() => {
+            if (isWalletPayment && !hasEnoughWalletBalance) {
+              router.push('/(screens)/wallet/topup');
+            } else {
+              setConfirmOpen(true);
+            }
+          }}
         >
-          {isCardPayment ? 'Continue to payment' : 'Confirm completion & payment'}
+          {isWalletPayment && !hasEnoughWalletBalance
+            ? 'Top up wallet to pay'
+            : isCardPayment
+            ? 'Continue to payment'
+            : isWalletPayment
+            ? 'Pay from digital wallet'
+            : 'Confirm completion & payment'}
         </Button>
       </View>
 
@@ -313,6 +385,12 @@ export default function PaymentConfirmScreen() {
               } as any);
               return;
             }
+            if (isWalletPayment) {
+              await payWithWalletApi(task.id).unwrap();
+              settlePayment(task.id);
+              setDone(true);
+              return;
+            }
             if (apiTaskData && apiTaskData.status !== 'COMPLETED') {
               await completeTaskApi(task.id).unwrap();
             }
@@ -320,27 +398,43 @@ export default function PaymentConfirmScreen() {
             setDone(true);
           } catch (err) {
             toast({
-              title: isCardPayment ? 'Could not start payment' : 'Failed to complete task',
+              title: isCardPayment
+                ? 'Could not start payment'
+                : isWalletPayment
+                ? 'Wallet payment failed'
+                : 'Failed to complete task',
               description: getApiErrorMessage(err),
               variant: 'error',
             });
           }
         }}
-        title={isCardPayment ? 'Proceed to payment?' : 'Release payment?'}
+        title={
+          isCardPayment
+            ? 'Proceed to payment?'
+            : isWalletPayment
+            ? 'Pay with digital wallet?'
+            : 'Release payment?'
+        }
         message={
           isCardPayment
-            ? `Confirm the work is complete. You'll be taken to a secure card payment screen to pay ${money(task.budget)}.`
+            ? `Confirm the work is complete. You'll be taken to a secure card payment screen to pay ${money(taskAmount)}.`
+            : isWalletPayment
+            ? `Confirm the work is complete. ${money(taskAmount)} will be deducted from your digital wallet and held safely in escrow until released to ${other.name.split(' ')[0]}.`
             : `Confirm the work is complete and that ${money(
-                task.budget
+                taskAmount
               )} has been paid by ${payment.label.toLowerCase()}. This closes the task.`
         }
         confirmLabel={
           isInitiatingCheckout
             ? 'Starting payment...'
+            : isPayingWithWallet
+            ? 'Paying from wallet...'
             : isCompleting
             ? 'Processing...'
             : isCardPayment
             ? 'Continue'
+            : isWalletPayment
+            ? 'Pay now'
             : 'Confirm payment'
         }
       />

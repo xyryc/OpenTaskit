@@ -9,9 +9,11 @@ import { PrismaService } from '../prisma/prisma.service';
 import { EscrowService } from './escrow.service';
 import {
   EscrowStatus,
+  NotificationType,
   OfferStatus,
   PaymentStatus,
   TaskStatus,
+  WalletTransactionType,
 } from '../../generated/prisma/enums';
 import { FilterAdminPaymentsDto } from './dto/filter-admin-payments.dto';
 import {
@@ -26,6 +28,8 @@ import {
   retrievePaymentByOrderId,
   verifyIpnSignature,
 } from './payhere.util';
+import { WalletService } from '../wallet/wallet.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const CURRENCY = 'LKR';
 
@@ -36,6 +40,8 @@ export class PaymentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly escrowService: EscrowService,
+    private readonly walletService: WalletService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   // Poster pays for a task once the tasker has marked it done and the poster
@@ -123,6 +129,150 @@ export class PaymentsService {
       `initiateCheckout succeeded for task ${taskId}: order ${orderId}, amount ${amount}, sandbox ${isSandbox()}, merchant_id ${getMerchantId()}`,
     );
     return result;
+  }
+
+  // Poster pays for an awaiting-confirmation task using their digital wallet balance.
+  // Performs an atomic transaction:
+  // 1. Validates wallet has sufficient available balance.
+  // 2. Debits the poster's wallet and records ESCROW_HOLD WalletTransaction.
+  // 3. Creates a Payment record (status: COMPLETED, payhereOrderId: wallet-task-..., payherePaymentId: WALLET-...).
+  // 4. Creates an EscrowHold record (status: HELD, autoReleaseAt: now + holdDays).
+  // 5. Updates the task status to COMPLETED.
+  // 6. Notifies the tasker that payment is secured in escrow.
+  async payWithWallet(taskId: string, posterId: string) {
+    this.logger.log(`payWithWallet called for task ${taskId} by user ${posterId}`);
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      include: {
+        user: true,
+        offers: { where: { status: OfferStatus.ACCEPTED } },
+        payments: {
+          where: { status: { in: [PaymentStatus.PENDING, PaymentStatus.COMPLETED] } },
+        },
+      },
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+    if (task.userId !== posterId) {
+      throw new ForbiddenException('Only the task poster can pay for this task');
+    }
+    if (task.status !== TaskStatus.AWAITING_CONFIRMATION) {
+      throw new BadRequestException(
+        `Payment can only be confirmed once the tasker has marked the task done. Current status: ${task.status}`,
+      );
+    }
+    const acceptedOffer = task.offers[0];
+    if (!acceptedOffer) {
+      throw new BadRequestException('This task has no accepted offer to fund');
+    }
+    if (task.payments.some((p) => p.status === PaymentStatus.COMPLETED)) {
+      throw new BadRequestException('This task has already been funded');
+    }
+
+    const amount = acceptedOffer.amount;
+    const wallet = await this.walletService.ensureWallet(posterId);
+
+    if (wallet.availableBalance < amount) {
+      throw new BadRequestException(
+        `Insufficient wallet balance (LKR ${wallet.availableBalance.toLocaleString()}). You need LKR ${amount.toLocaleString()}. Please top up your wallet.`,
+      );
+    }
+
+    // Cancel any stale pending payments
+    const stalePending = task.payments.filter((p) => p.status === PaymentStatus.PENDING);
+    if (stalePending.length > 0) {
+      await this.prisma.payment.updateMany({
+        where: { id: { in: stalePending.map((p) => p.id) } },
+        data: { status: PaymentStatus.CANCELLED },
+      });
+    }
+
+    const orderId = `wallet-task-${taskId}-${Date.now()}`;
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      // 1. Debit poster's wallet with an ESCROW_HOLD transaction
+      const walletTx = await this.walletService.recordTransaction(tx, {
+        walletId: wallet.id,
+        type: WalletTransactionType.ESCROW_HOLD,
+        amount: -amount,
+        taskId,
+        description: `Escrow hold for "${task.title}"`,
+      });
+
+      // 2. Create COMPLETED Payment record so it shows in Admin Escrow Ledger & PayHere Transactions
+      const payment = await tx.payment.create({
+        data: {
+          taskId,
+          payerId: posterId,
+          amount,
+          currency: CURRENCY,
+          status: PaymentStatus.COMPLETED,
+          payhereOrderId: orderId,
+          payherePaymentId: `WALLET-${walletTx.id}`,
+          payhereRawPayload: {
+            method: 'WALLET',
+            walletId: wallet.id,
+            walletTransactionId: walletTx.id,
+          },
+        },
+      });
+
+      // 3. Create EscrowHold record (holds funds for tasker with auto-release delay)
+      const hold = await this.escrowService.createHold(tx, {
+        taskId,
+        paymentId: payment.id,
+        amount,
+      });
+
+      // 4. Update the wallet transaction with escrowHoldId
+      await tx.walletTransaction.update({
+        where: { id: walletTx.id },
+        data: { escrowHoldId: hold.id },
+      });
+
+      // 5. Update task to COMPLETED
+      const completedTask = await tx.task.update({
+        where: { id: taskId },
+        data: { status: TaskStatus.COMPLETED },
+        include: {
+          category: { select: { id: true, name: true, slug: true, icon: true } },
+          user: {
+            select: {
+              id: true,
+              fullName: true,
+              phoneNumber: true,
+              avatarUrl: true,
+              isVerified: true,
+            },
+          },
+        },
+      });
+
+      return { payment, hold, task: completedTask, walletTx };
+    });
+
+    // 🔔 Notify tasker that task was confirmed and payment is in escrow
+    try {
+      await this.notificationsService.createNotification({
+        userId: acceptedOffer.userId,
+        type: NotificationType.TASK,
+        title: 'Task Confirmed & Payment Held in Escrow',
+        body: `"${task.title}" has been confirmed by the poster. Payment of Rs ${amount.toLocaleString()} is held in escrow and will auto-release in 3 days.`,
+        taskId,
+        actionUrl: `/(screens)/job/${taskId}`,
+      });
+    } catch (err) {
+      this.logger.error('Failed to dispatch completion notification to tasker:', err);
+    }
+
+    return {
+      message: 'Task confirmed and payment secured in escrow',
+      payment: result.payment,
+      hold: result.hold,
+      task: result.task,
+    };
   }
 
   // PayHere server-to-server webhook (IPN). Idempotent on payhereOrderId -
