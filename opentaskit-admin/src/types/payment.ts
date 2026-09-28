@@ -72,7 +72,7 @@ export interface BankAccountSummary {
 
 export interface PayoutWalletSummary {
   id: string;
-  user: { id: string; fullName: string; email: string };
+  user: { id: string; fullName: string; email: string; phoneNumber?: string };
 }
 
 export interface PayoutRequestRecord {
@@ -82,12 +82,27 @@ export interface PayoutRequestRecord {
   amount: number;
   status: PayoutStatus;
   processedById: string | null;
+  processedBy?: { id: string; fullName: string; email: string } | null;
   processedAt: string | null;
   adminNotes: string | null;
+  bankReference: string | null;
   createdAt: string;
   updatedAt: string;
   bankAccount?: BankAccountSummary;
   wallet?: PayoutWalletSummary;
+}
+
+export interface PayoutMetrics {
+  pendingCount: number;
+  pendingAmount: number;
+  approvedCount: number;
+  approvedAmount: number;
+  paidCount: number;
+  paidAmount: number;
+  rejectedCount: number;
+  rejectedAmount: number;
+  totalCount: number;
+  totalAmount: number;
 }
 
 export interface PaginatedPayoutsResponse {
@@ -98,4 +113,5 @@ export interface PaginatedPayoutsResponse {
     total: number;
     totalPages: number;
   };
+  metrics?: PayoutMetrics;
 }

@@ -543,6 +543,7 @@ model PayoutRequest {
   processedBy   User?     @relation("PayoutsProcessed", fields: [processedById], references: [id])
   processedAt   DateTime?
   adminNotes    String?   @db.Text
+  bankReference String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

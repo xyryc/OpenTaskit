@@ -17,6 +17,7 @@ import {
   Layers,
   Inbox,
   AlertCircle,
+  Landmark,
 } from "lucide-react";
 import {
   Area,
@@ -33,7 +34,11 @@ import type { AnalyticsOverviewResponse } from "@/types/analytics";
 import type { TaskListItem, PaginatedTasksResponse } from "@/types/task";
 import type { KycVerification, PaginatedKycResponse } from "@/types/kyc";
 import type { DisputeRecord, PaginatedDisputesResponse } from "@/types/dispute";
-import type { PaginatedPaymentsResponse } from "@/types/payment";
+import type {
+  PaginatedPaymentsResponse,
+  PayoutRequestRecord,
+  PaginatedPayoutsResponse,
+} from "@/types/payment";
 import {
   Card,
   CardContent,
@@ -166,6 +171,8 @@ export default function DashboardPage() {
   const [disputeMetrics, setDisputeMetrics] = React.useState({ openCount: 0, underReviewCount: 0, resolvedCount: 0 });
   const [openReports, setOpenReports] = React.useState<ProblemReportSummary[]>([]);
   const [openReportsCount, setOpenReportsCount] = React.useState(0);
+  const [pendingPayouts, setPendingPayouts] = React.useState<PayoutRequestRecord[]>([]);
+  const [pendingPayoutsCount, setPendingPayoutsCount] = React.useState<number>(0);
 
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = React.useState<boolean>(false);
@@ -184,6 +191,7 @@ export default function DashboardPage() {
         kycRes,
         disputesRes,
         reportsRes,
+        payoutsRes,
       ] = await Promise.allSettled([
         adminFetch("/api/backend/admin/analytics/overview?range=30d"),
         adminFetch("/api/backend/admin/payments?page=1&limit=5"),
@@ -191,6 +199,7 @@ export default function DashboardPage() {
         adminFetch("/api/backend/admin/kyc?status=PENDING&limit=5"),
         adminFetch("/api/backend/admin/disputes?status=OPEN&limit=5"),
         adminFetch("/api/backend/admin/reports?status=OPEN&limit=5"),
+        adminFetch("/api/backend/admin/payouts?status=PENDING&limit=5"),
       ]);
 
       // 1. Analytics
@@ -238,6 +247,15 @@ export default function DashboardPage() {
         setOpenReports(list);
         setOpenReportsCount(typeof data.total === "number" ? data.total : list.length);
       }
+
+      // 7. Withdrawal Requests
+      if (payoutsRes.status === "fulfilled" && payoutsRes.value.ok) {
+        const data: PaginatedPayoutsResponse = await payoutsRes.value.json();
+        setPendingPayouts(data.data || []);
+        setPendingPayoutsCount(
+          data.metrics?.pendingCount ?? data.pagination?.total ?? (data.data?.length || 0)
+        );
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load dashboard data.");
     } finally {
@@ -251,7 +269,8 @@ export default function DashboardPage() {
   }, [loadDashboardData]);
 
   // Derived metrics
-  const totalActionItems = kycCounts.pending + disputeMetrics.openCount + openReportsCount;
+  const totalActionItems =
+    kycCounts.pending + disputeMetrics.openCount + openReportsCount + pendingPayoutsCount;
 
   // Chart data formatting
   const trendData = React.useMemo(() => {
@@ -393,7 +412,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 mt-1 font-medium">
               <Clock className="h-3.5 w-3.5" />
               <span>
-                {kycCounts.pending} KYC · {disputeMetrics.openCount} Disputes · {openReportsCount} Reports
+                {kycCounts.pending} KYC · {pendingPayoutsCount} Payouts · {disputeMetrics.openCount} Disputes · {openReportsCount} Reports
               </span>
             </div>
           </CardContent>
@@ -577,7 +596,7 @@ export default function DashboardPage() {
                   Action Required Queue
                 </CardTitle>
                 <CardDescription className="text-xs mt-0.5">
-                  High-priority KYC reviews, open disputes, and pending problem reports.
+                  High-priority KYC reviews, open disputes, withdrawal requests, and pending problem reports.
                 </CardDescription>
               </div>
               <Badge variant="secondary" className="text-xs font-semibold">
@@ -597,11 +616,53 @@ export default function DashboardPage() {
                   </div>
                   <span className="text-sm font-semibold text-foreground">All caught up!</span>
                   <p className="text-xs text-muted-foreground mt-1 max-w-xs">
-                    No urgent KYC verifications, disputes, or problem reports awaiting admin review.
+                    No urgent KYC verifications, disputes, withdrawal requests, or problem reports awaiting admin review.
                   </p>
                 </div>
               ) : (
                 <>
+                  {/* Pending Withdrawal Requests */}
+                  {pendingPayouts.slice(0, 3).map((payout) => (
+                    <div
+                      key={`payout-${payout.id}`}
+                      className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+                    >
+                      <div className="flex items-start gap-3.5 min-w-0 pr-2">
+                        <div className="h-9 w-9 rounded-xl bg-blue-500/10 flex items-center justify-center text-[#0094F7] shrink-0 mt-0.5">
+                          <Landmark className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-foreground truncate">
+                              Withdrawal · {payout.wallet?.user?.fullName || "Tasker"}
+                            </span>
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] font-semibold text-amber-600 border-amber-500/30 bg-amber-500/10 shrink-0"
+                            >
+                              LKR {payout.amount.toLocaleString()} Pending
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                            {payout.bankAccount?.bankName} ({payout.bankAccount?.branch}) · A/C:{" "}
+                            {payout.bankAccount?.accountNumber}
+                          </p>
+                          <span className="text-[10px] text-muted-foreground/75 mt-1 inline-block">
+                            Requested {formatTimeAgo(payout.createdAt)}
+                          </span>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 text-xs shrink-0 text-[#0094F7] border-[#0094F7]/30 hover:bg-[#0094F7]/10"
+                        asChild
+                      >
+                        <Link href="/finance/payouts">Review Payout</Link>
+                      </Button>
+                    </div>
+                  ))}
+
                   {/* Pending KYC Submissions */}
                   {pendingKyc.slice(0, 3).map((sub) => (
                     <div

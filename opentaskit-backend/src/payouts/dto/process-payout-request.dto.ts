@@ -18,4 +18,10 @@ export class ProcessPayoutRequestDto {
   @IsString()
   @MaxLength(1000)
   adminNotes?: string;
+
+  @ApiProperty({ required: false, example: 'BOC-TXN-984210' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  bankReference?: string;
 }

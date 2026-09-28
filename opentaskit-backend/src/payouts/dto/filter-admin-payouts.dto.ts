@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsEnum, IsInt, IsOptional, Max, Min } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import { PayoutStatus } from '../../../generated/prisma/enums';
 
 export class FilterAdminPayoutsDto {
@@ -8,6 +8,11 @@ export class FilterAdminPayoutsDto {
   @IsOptional()
   @IsEnum(PayoutStatus)
   status?: PayoutStatus;
+
+  @ApiPropertyOptional({ description: 'Search by tasker name, email, or bank account number' })
+  @IsOptional()
+  @IsString()
+  search?: string;
 
   @ApiPropertyOptional({ default: 1, minimum: 1 })
   @IsOptional()
