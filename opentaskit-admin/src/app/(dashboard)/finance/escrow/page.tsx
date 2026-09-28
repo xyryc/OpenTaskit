@@ -257,7 +257,7 @@ export default function EscrowLedgerPage() {
             <div className="relative flex-1 max-w-md w-full">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search task title, payer name or email..."
+                placeholder="Search by order ID, task title, payer name or email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-8 h-9 text-xs w-full"
@@ -283,8 +283,7 @@ export default function EscrowLedgerPage() {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="text-xs font-semibold whitespace-nowrap">Order ID</TableHead>
-                  <TableHead className="text-xs font-semibold whitespace-nowrap">Task</TableHead>
+                  <TableHead className="text-xs font-semibold whitespace-nowrap">Task & Order ID</TableHead>
                   <TableHead className="text-xs font-semibold whitespace-nowrap">Payer</TableHead>
                   <TableHead className="text-xs font-semibold text-right whitespace-nowrap">Amount</TableHead>
                   <TableHead className="text-xs font-semibold text-right whitespace-nowrap">Platform Fee</TableHead>
@@ -297,13 +296,13 @@ export default function EscrowLedgerPage() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="h-32 text-center">
+                    <TableCell colSpan={8} className="h-32 text-center">
                       <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
                     </TableCell>
                   </TableRow>
                 ) : payments.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="h-32 text-center text-xs text-muted-foreground">
+                    <TableCell colSpan={8} className="h-32 text-center text-xs text-muted-foreground">
                       <Inbox className="h-6 w-6 mx-auto mb-1.5 text-muted-foreground/60" />
                       No payment records found matching your filters.
                     </TableCell>
@@ -316,11 +315,18 @@ export default function EscrowLedgerPage() {
                       : null;
                     return (
                       <TableRow key={payment.id} className="text-xs hover:bg-muted/40">
-                        <TableCell className="font-mono text-[11px] text-foreground whitespace-nowrap">
-                          {payment.payhereOrderId}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap max-w-xs truncate text-foreground font-medium">
-                          {payment.task?.title || "—"}
+                        <TableCell className="whitespace-nowrap max-w-xs">
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-medium text-foreground truncate" title={payment.task?.title || "—"}>
+                              {payment.task?.title || "—"}
+                            </span>
+                            <span
+                              className="font-mono text-[11px] text-muted-foreground truncate"
+                              title={payment.payhereOrderId || undefined}
+                            >
+                              {payment.payhereOrderId || "—"}
+                            </span>
+                          </div>
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
                           <div className="flex flex-col">

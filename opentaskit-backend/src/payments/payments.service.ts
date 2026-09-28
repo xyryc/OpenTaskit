@@ -399,6 +399,7 @@ export class PaymentsService {
     }
     if (search) {
       where.OR = [
+        { payhereOrderId: { contains: search, mode: 'insensitive' } },
         { task: { title: { contains: search, mode: 'insensitive' } } },
         { payer: { fullName: { contains: search, mode: 'insensitive' } } },
         { payer: { email: { contains: search, mode: 'insensitive' } } },
