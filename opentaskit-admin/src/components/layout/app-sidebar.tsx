@@ -30,7 +30,6 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
@@ -288,32 +287,39 @@ export function AppSidebar() {
                         asChild
                         isActive={isActive}
                         tooltip={item.title}
-                        className={`h-9 px-3 text-sm font-medium transition-colors group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center ${
+                        className={`${
+                          badgeText ? "min-h-[46px] py-1.5" : "h-9"
+                        } px-3 text-sm font-medium transition-colors group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:min-h-0 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center ${
                           isActive
                             ? "bg-[#0094F7]/15 text-[#0094F7] font-semibold dark:bg-[#0094F7]/25 dark:text-[#38b6ff] shadow-xs"
                             : "text-muted-foreground hover:text-foreground hover:bg-muted/80"
                         }`}
                       >
-                        <Link href={item.url} className="flex items-center gap-2.5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0">
+                        <Link
+                          href={item.url}
+                          className="flex items-center gap-2.5 w-full group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0"
+                        >
                           <item.icon
                             className={`h-4 w-4 shrink-0 group-data-[collapsible=icon]:h-5 group-data-[collapsible=icon]:w-5 ${
                               isActive ? "text-[#0094F7] dark:text-[#38b6ff]" : "text-muted-foreground"
                             }`}
                           />
-                          <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>
-                          {badgeText && (
-                            <SidebarMenuBadge
-                              className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full group-data-[collapsible=icon]:hidden ${
-                                item.badgeVariant === "destructive"
-                                  ? "bg-destructive/15 text-destructive font-bold"
-                                  : isActive
-                                  ? "bg-[#0094F7]/25 text-[#0094F7] dark:text-[#38b6ff]"
-                                  : "bg-muted text-muted-foreground"
-                              }`}
-                            >
-                              {badgeText}
-                            </SidebarMenuBadge>
-                          )}
+                          <div className="flex flex-col items-start min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
+                            <span className="truncate leading-tight">{item.title}</span>
+                            {badgeText && (
+                              <span
+                                className={`mt-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full inline-flex items-center leading-none ${
+                                  item.badgeVariant === "destructive"
+                                    ? "bg-destructive/15 text-destructive font-bold"
+                                    : isActive
+                                    ? "bg-[#0094F7]/25 text-[#0094F7] dark:text-[#38b6ff]"
+                                    : "bg-muted text-muted-foreground"
+                                }`}
+                              >
+                                {badgeText}
+                              </span>
+                            )}
+                          </div>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
