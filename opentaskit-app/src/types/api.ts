@@ -845,6 +845,7 @@ export interface ContactConfigResponse {
 
 export interface TaskRulesResponse {
   minTaskBudgetLkr: number;
+  platformFeePercent?: number;
 }
 
 export interface RegisterPushTokenPayload {

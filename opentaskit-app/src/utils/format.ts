@@ -42,14 +42,14 @@ export function dayLabel(iso: string): string {
   });
 }
 
-export const COMMISSION_RATE = 0.12;
+export const COMMISSION_RATE = 0.10;
 
-export function commissionFor(amount: number): number {
-  return Math.round(amount * COMMISSION_RATE);
+export function commissionFor(amount: number, rate = COMMISSION_RATE): number {
+  return Math.round(amount * rate);
 }
 
-export function earningsFor(amount: number): number {
-  return amount - commissionFor(amount);
+export function earningsFor(amount: number, rate = COMMISSION_RATE): number {
+  return amount - commissionFor(amount, rate);
 }
 
 export function scheduleLabel(schedule?: {

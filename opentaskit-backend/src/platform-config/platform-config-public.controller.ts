@@ -24,6 +24,7 @@ export class PlatformConfigPublicController {
     const config = await this.platformConfigService.getConfig();
     return {
       minTaskBudgetLkr: config.minTaskBudgetLkr,
+      platformFeePercent: config.platformFeePercent,
     };
   }
 }

@@ -32,7 +32,7 @@ const FAQS = [
   },
   {
     q: 'How is commission calculated?',
-    a: 'OpenTaskit charges the provider 12% of the agreed job value. It is deducted from their wallet balance when the job is settled, so cash amounts stay simple.',
+    a: 'OpenTaskit charges the provider a platform commission (typically 10%) of the agreed job value. It is deducted from their payout or wallet balance when the job is settled, so poster prices stay clean and simple.',
   },
   {
     q: 'What if the work is not done properly?',

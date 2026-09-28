@@ -171,39 +171,40 @@ export class EscrowService {
       }
 
       const feePercent = await this.platformConfig.getPlatformFeePercent();
-      const totalPlatformFee =
-        Math.round(hold.amount * (feePercent / 100) * 100) / 100;
-      const feePerParty = Math.round((totalPlatformFee / 2) * 100) / 100;
       const halfAmount = Math.round((hold.amount / 2) * 100) / 100;
-      const payoutPerParty = halfAmount - feePerParty;
+      // Posters pay 0% platform commission on OpenTaskit, so their 50% refund is fee-free
+      const posterRefundAmount = halfAmount;
+      // Platform charges commission only on the tasker's earned half
+      const platformFee = Math.round(halfAmount * (feePercent / 100) * 100) / 100;
+      const taskerPayoutAmount = halfAmount - platformFee;
 
-      // 1. Credit Poster Wallet (50% minus half fee)
+      // 1. Credit Poster Wallet (Full 50% refund, no fee deducted)
       const posterWallet = await this.walletService.ensureWallet(posterId, tx);
       await this.walletService.recordTransaction(tx, {
         walletId: posterWallet.id,
         type: WalletTransactionType.DISPUTE_SPLIT,
-        amount: payoutPerParty,
+        amount: posterRefundAmount,
         taskId,
         escrowHoldId: hold.id,
-        description: `Dispute 50/50 split refund for "${task.title}" (${feePercent / 2}% fee deducted)`,
+        description: `Dispute 50/50 refund for "${task.title}"`,
       });
 
-      // 2. Credit Tasker Wallet (50% minus half fee)
+      // 2. Credit Tasker Wallet (50% minus platform commission on earned work)
       const taskerWallet = await this.walletService.ensureWallet(taskerId, tx);
       await this.walletService.recordTransaction(tx, {
         walletId: taskerWallet.id,
         type: WalletTransactionType.DISPUTE_SPLIT,
-        amount: payoutPerParty,
+        amount: taskerPayoutAmount,
         taskId,
         escrowHoldId: hold.id,
-        description: `Dispute 50/50 split payout for "${task.title}" (${feePercent / 2}% fee deducted)`,
+        description: `Dispute 50/50 payout for "${task.title}" (${feePercent}% platform fee deducted on earned half)`,
       });
 
       const updatedHold = await tx.escrowHold.update({
         where: { id: hold.id },
         data: {
           status: EscrowStatus.RELEASED,
-          platformFee: totalPlatformFee,
+          platformFee,
           releasedAt: new Date(),
           resolutionSource: 'DISPUTE',
         },
@@ -214,7 +215,8 @@ export class EscrowService {
         posterId,
         taskerId,
         taskTitle: task.title,
-        payoutPerParty,
+        posterRefundAmount,
+        taskerPayoutAmount,
       };
     });
 
@@ -225,7 +227,7 @@ export class EscrowService {
           userId: result.posterId,
           type: NotificationType.DISPUTE,
           title: 'Dispute Split Refund Credited',
-          body: `Rs ${result.payoutPerParty.toLocaleString()} has been refunded to your wallet for "${result.taskTitle}".`,
+          body: `Rs ${result.posterRefundAmount.toLocaleString()} has been refunded to your wallet for "${result.taskTitle}".`,
           taskId,
           actionUrl: '/(screens)/wallet',
         }),
@@ -233,7 +235,7 @@ export class EscrowService {
           userId: result.taskerId,
           type: NotificationType.DISPUTE,
           title: 'Dispute Split Payout Credited',
-          body: `Rs ${result.payoutPerParty.toLocaleString()} has been paid to your wallet for "${result.taskTitle}".`,
+          body: `Rs ${result.taskerPayoutAmount.toLocaleString()} has been paid to your wallet for "${result.taskTitle}".`,
           taskId,
           actionUrl: '/(screens)/wallet',
         }),

@@ -31,6 +31,7 @@ import {
   useGetOffersForTaskQuery,
   useCompleteTaskMutation,
   useInitiateCheckoutMutation,
+  useGetTaskRulesQuery,
 } from '@/store/api/apiSlice';
 import { mapApiTaskToTask } from '@/utils/taskFilters';
 import { getApiErrorMessage } from '@/utils/apiError';
@@ -85,7 +86,11 @@ export default function PaymentConfirmScreen() {
         verified: (otherSummary as any).isVerified ?? fallbackOther.verified,
       }
     : fallbackOther;
-  const commission = commissionFor(task.budget);
+  const { data: taskRules } = useGetTaskRulesQuery();
+  const feePercent = taskRules?.platformFeePercent ?? 10;
+  const feeRate = feePercent / 100;
+  const commission = commissionFor(task.budget, feeRate);
+  const providerEarnings = earningsFor(task.budget, feeRate);
 
   // Success Celebration View
   if (done || task.status === 'completed') {
@@ -110,14 +115,14 @@ export default function PaymentConfirmScreen() {
           <View className="mt-6 w-full rounded-3xl border border-ink-200 bg-white p-4">
             <SummaryLine label="Task amount" value={money(task.budget)} />
             <SummaryLine
-              label="Platform commission (12%)"
+              label={`Platform commission (${feePercent}%)`}
               value={`− ${money(commission)}`}
               muted
             />
             <View className="mt-2 border-t border-ink-100 pt-2">
               <SummaryLine
                 label="Provider receives"
-                value={money(earningsFor(task.budget))}
+                value={money(providerEarnings)}
                 strong
               />
             </View>
@@ -192,7 +197,7 @@ export default function PaymentConfirmScreen() {
                 value={money(task.budget)}
               />
               <SummaryLine
-                label="Platform commission (12%)"
+                label={`Platform commission (${feePercent}%)`}
                 value={money(commission)}
                 muted
                 note="Charged to the provider"

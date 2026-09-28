@@ -52,6 +52,7 @@ import {
   useStartTaskMutation,
   useCompleteTaskMutation,
   useCancelTaskMutation,
+  useGetTaskRulesQuery,
 } from '@/store/api/apiSlice';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { mapApiTaskToTask } from '@/utils/taskFilters';
@@ -106,6 +107,8 @@ export default function JobDetailScreen() {
   const { data: paymentStatus, refetch: refetchPayment } = useGetPaymentStatusQuery(taskId, {
     skip: !taskId || (apiTaskData?.status !== 'COMPLETED' && apiTaskData?.status !== 'DISPUTED'),
   });
+  const { data: taskRules } = useGetTaskRulesQuery();
+  const feeRate = (taskRules?.platformFeePercent ?? 10) / 100;
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -390,7 +393,7 @@ export default function JobDetailScreen() {
                 </Text>
                 {isProvider && (
                   <Text className="mt-0.5 font-geist text-[12.5px] text-ink-500">
-                    You keep {money(earningsFor(task.budget))} after {money(commissionFor(task.budget))} commission
+                    You keep {money(earningsFor(task.budget, feeRate))} after {money(commissionFor(task.budget, feeRate))} commission
                   </Text>
                 )}
               </View>
