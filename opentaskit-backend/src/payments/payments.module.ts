@@ -5,9 +5,10 @@ import { EscrowService } from './escrow.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { WalletModule } from '../wallet/wallet.module';
 import { PlatformConfigModule } from '../platform-config/platform-config.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [PrismaModule, WalletModule, PlatformConfigModule],
+  imports: [PrismaModule, WalletModule, PlatformConfigModule, NotificationsModule],
   controllers: [PaymentsController],
   providers: [PaymentsService, EscrowService],
   exports: [EscrowService],

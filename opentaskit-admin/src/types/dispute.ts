@@ -12,7 +12,8 @@ export type DisputeResolution =
   | "REFUND_POSTER"
   | "PAY_TASKER"
   | "CANCELLED_NO_PENALTY"
-  | "DISMISSED";
+  | "DISMISSED"
+  | "SPLIT_PAYOUT";
 
 export interface DisputeUser {
   id: string;

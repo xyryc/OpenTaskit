@@ -689,8 +689,8 @@ export class TasksService {
       },
     });
 
-    if (nextStatus === TaskStatus.COMPLETED) {
-      // No-op if this task was never funded through escrow (cash payment).
+    if (nextStatus === TaskStatus.COMPLETED && isAdmin) {
+      // If admin directly finalizes the task, release escrow immediately.
       await this.escrowService.releaseForTask(taskId, 'COMPLETION');
     }
 

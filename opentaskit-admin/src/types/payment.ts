@@ -22,6 +22,7 @@ export interface EscrowHoldRecord {
   status: EscrowStatus;
   releasedAt: string | null;
   refundedAt: string | null;
+  autoReleaseAt?: string | null;
   resolutionSource: string | null;
   createdAt: string;
   updatedAt: string;

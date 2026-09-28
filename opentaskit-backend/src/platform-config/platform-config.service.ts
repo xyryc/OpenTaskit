@@ -36,6 +36,11 @@ export class PlatformConfigService {
     return config.minTaskBudgetLkr;
   }
 
+  async getEscrowHoldDays(): Promise<number> {
+    const config = await this.getConfig();
+    return config.escrowHoldDays ?? 3;
+  }
+
   async updatePlatformFeePercent(platformFeePercent: number) {
     await this.getConfig();
     return this.prisma.platformConfig.update({
@@ -54,6 +59,9 @@ export class PlatformConfigService {
         }),
         ...(dto.minTaskBudgetLkr !== undefined && {
           minTaskBudgetLkr: dto.minTaskBudgetLkr,
+        }),
+        ...(dto.escrowHoldDays !== undefined && {
+          escrowHoldDays: dto.escrowHoldDays,
         }),
         ...(dto.supportEmail !== undefined && {
           supportEmail: dto.supportEmail,

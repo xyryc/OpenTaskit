@@ -297,16 +297,30 @@ export class PaymentsService {
     };
   }
 
-  async getPaymentStatus(taskId: string, userId: string) {
+  async getPaymentStatus(taskId: string, userId: string, userRole?: string) {
     const payment = await this.prisma.payment.findFirst({
       where: { taskId },
       orderBy: { createdAt: 'desc' },
-      include: { escrowHold: true },
+      include: {
+        escrowHold: true,
+        task: {
+          include: {
+            offers: {
+              where: { status: OfferStatus.ACCEPTED },
+            },
+          },
+        },
+      },
     });
     if (!payment) {
       throw new NotFoundException('No payment found for this task');
     }
-    if (payment.payerId !== userId) {
+    const taskerId = payment.task?.offers[0]?.userId;
+    const isPayer = payment.payerId === userId;
+    const isTasker = taskerId === userId;
+    const isAdmin = userRole === 'ADMIN';
+
+    if (!isPayer && !isTasker && !isAdmin) {
       throw new ForbiddenException('You cannot view this payment');
     }
     return payment;

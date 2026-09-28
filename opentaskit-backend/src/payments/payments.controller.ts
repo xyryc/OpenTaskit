@@ -15,13 +15,17 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { PaymentsService } from './payments.service';
+import { EscrowService } from './escrow.service';
 import { FilterAdminPaymentsDto } from './dto/filter-admin-payments.dto';
 import type { PayHereIpnPayload } from './payhere.util';
 
 @ApiTags('Payments')
 @Controller()
 export class PaymentsController {
-  constructor(private readonly paymentsService: PaymentsService) {}
+  constructor(
+    private readonly paymentsService: PaymentsService,
+    private readonly escrowService: EscrowService,
+  ) {}
 
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
@@ -43,8 +47,9 @@ export class PaymentsController {
   getPaymentStatus(
     @Param('taskId', ParseUUIDPipe) taskId: string,
     @CurrentUser('id') userId: string,
+    @CurrentUser('role') userRole: string,
   ) {
-    return this.paymentsService.getPaymentStatus(taskId, userId);
+    return this.paymentsService.getPaymentStatus(taskId, userId, userRole);
   }
 
   @ApiBearerAuth('JWT-auth')
@@ -67,6 +72,15 @@ export class PaymentsController {
   @Get('admin/payments')
   findAllAdmin(@Query() query: FilterAdminPaymentsDto) {
     return this.paymentsService.findAllAdmin(query);
+  }
+
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Admin manual early release of escrow hold to tasker' })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @Post('admin/payments/tasks/:taskId/release-now')
+  adminReleaseNow(@Param('taskId', ParseUUIDPipe) taskId: string) {
+    return this.escrowService.adminReleaseNow(taskId);
   }
 
   // PayHere server-to-server webhook. Not JWT-guarded - PayHere calls this

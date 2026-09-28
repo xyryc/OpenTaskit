@@ -108,6 +108,34 @@ export default function EscrowLedgerPage() {
     }
   }, [page, limit, debouncedSearch, statusFilter]);
 
+  const [releasingTaskId, setReleasingTaskId] = React.useState<string | null>(null);
+
+  const handleReleaseNow = async (taskId: string) => {
+    if (
+      !confirm(
+        "Are you sure you want to immediately release escrow to the tasker? This will bypass the remaining hold period.",
+      )
+    ) {
+      return;
+    }
+    setReleasingTaskId(taskId);
+    try {
+      const res = await adminFetch(
+        `/api/backend/admin/payments/tasks/${taskId}/release-now`,
+        { method: "POST" },
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.message || "Failed to release escrow");
+      }
+      await fetchPayments();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to release escrow");
+    } finally {
+      setReleasingTaskId(null);
+    }
+  };
+
   React.useEffect(() => {
     fetchPayments();
   }, [fetchPayments]);
@@ -263,18 +291,19 @@ export default function EscrowLedgerPage() {
                   <TableHead className="text-xs font-semibold text-center whitespace-nowrap">Payment</TableHead>
                   <TableHead className="text-xs font-semibold text-center whitespace-nowrap">Escrow</TableHead>
                   <TableHead className="text-xs font-semibold text-right whitespace-nowrap">Date</TableHead>
+                  <TableHead className="text-xs font-semibold text-center whitespace-nowrap">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="h-32 text-center">
+                    <TableCell colSpan={9} className="h-32 text-center">
                       <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
                     </TableCell>
                   </TableRow>
                 ) : payments.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="h-32 text-center text-xs text-muted-foreground">
+                    <TableCell colSpan={9} className="h-32 text-center text-xs text-muted-foreground">
                       <Inbox className="h-6 w-6 mx-auto mb-1.5 text-muted-foreground/60" />
                       No payment records found matching your filters.
                     </TableCell>
@@ -314,9 +343,21 @@ export default function EscrowLedgerPage() {
                         </TableCell>
                         <TableCell className="text-center whitespace-nowrap">
                           {escrowMeta ? (
-                            <Badge variant="secondary" className={`text-[10px] font-semibold ${escrowMeta.className}`}>
-                              {escrowMeta.label}
-                            </Badge>
+                            <div className="flex flex-col items-center">
+                              <Badge variant="secondary" className={`text-[10px] font-semibold ${escrowMeta.className}`}>
+                                {escrowMeta.label}
+                              </Badge>
+                              {payment.escrowHold?.status === "HELD" && payment.escrowHold?.autoReleaseAt && (
+                                <span className="text-[10px] text-muted-foreground mt-0.5">
+                                  Auto-releases: {new Date(payment.escrowHold.autoReleaseAt).toLocaleDateString("en-US", {
+                                    month: "short",
+                                    day: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </span>
+                              )}
+                            </div>
                           ) : (
                             <span className="text-muted-foreground">—</span>
                           )}
@@ -328,6 +369,26 @@ export default function EscrowLedgerPage() {
                             hour: "2-digit",
                             minute: "2-digit",
                           })}
+                        </TableCell>
+                        <TableCell className="text-center whitespace-nowrap">
+                          {payment.escrowHold?.status === "HELD" ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 px-2.5 text-[11px] text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10 font-semibold gap-1"
+                              disabled={releasingTaskId === payment.taskId}
+                              onClick={() => handleReleaseNow(payment.taskId)}
+                            >
+                              {releasingTaskId === payment.taskId ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <ArrowUpRight className="h-3 w-3" />
+                              )}
+                              Release Now
+                            </Button>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
                         </TableCell>
                       </TableRow>
                     );

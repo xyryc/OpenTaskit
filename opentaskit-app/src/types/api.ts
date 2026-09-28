@@ -495,7 +495,8 @@ export type DisputeResolutionValue =
   | 'REFUND_POSTER'
   | 'PAY_TASKER'
   | 'CANCELLED_NO_PENALTY'
-  | 'DISMISSED';
+  | 'DISMISSED'
+  | 'SPLIT_PAYOUT';
 
 export interface DisputeUserSummary {
   id: string;
@@ -667,7 +668,9 @@ export type WalletTransactionType =
   | 'ESCROW_RELEASE'
   | 'PLATFORM_FEE'
   | 'WITHDRAWAL'
-  | 'ADJUSTMENT';
+  | 'ADJUSTMENT'
+  | 'TOPUP'
+  | 'DISPUTE_SPLIT';
 
 export interface WalletTransactionItem {
   id: string;
@@ -708,6 +711,7 @@ export interface EscrowHoldSummary {
   status: EscrowStatusValue;
   releasedAt: string | null;
   refundedAt: string | null;
+  autoReleaseAt?: string | null;
 }
 
 export interface PaymentTaskStatus {

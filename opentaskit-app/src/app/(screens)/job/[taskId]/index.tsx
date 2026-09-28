@@ -23,6 +23,7 @@ import {
   Star,
   Wallet2,
   X,
+  Clock,
 } from 'lucide-react-native';
 
 import { useApp } from '@/contexts/AppContext';
@@ -47,6 +48,7 @@ import {
   useGetOffersForTaskQuery,
   useGetReviewsForTaskQuery,
   useGetDisputesForTaskQuery,
+  useGetPaymentStatusQuery,
   useStartTaskMutation,
   useCompleteTaskMutation,
   useCancelTaskMutation,
@@ -101,6 +103,9 @@ export default function JobDetailScreen() {
   const { data: taskOffers, refetch: refetchOffers } = useGetOffersForTaskQuery(taskId, { skip: !taskId });
   const { data: taskReviews, refetch: refetchReviews } = useGetReviewsForTaskQuery(taskId, { skip: !taskId });
   const { data: taskDisputes, refetch: refetchDisputes } = useGetDisputesForTaskQuery(taskId, { skip: !taskId });
+  const { data: paymentStatus, refetch: refetchPayment } = useGetPaymentStatusQuery(taskId, {
+    skip: !taskId || (apiTaskData?.status !== 'COMPLETED' && apiTaskData?.status !== 'DISPUTED'),
+  });
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -110,6 +115,7 @@ export default function JobDetailScreen() {
         refetchOffers(),
         refetchReviews(),
         refetchDisputes(),
+        refetchPayment().catch(() => {}),
       ]);
     } catch {
       // Ignored
@@ -261,6 +267,10 @@ export default function JobDetailScreen() {
   const reviewed = !!(authUser?.id && taskReviews?.some((r) => r.fromUserId === authUser.id));
   const currentStep = getStepIndex(task.status, task.paid, reviewed);
 
+  const escrowHold = paymentStatus?.escrowHold;
+  const isEscrowHeld = escrowHold?.status === 'HELD';
+  const autoReleaseDate = escrowHold?.autoReleaseAt ? new Date(escrowHold.autoReleaseAt) : null;
+
   return (
     <Screen tone="canvas" edges={['top']}>
       <StatusBar style="dark" />
@@ -303,6 +313,68 @@ export default function JobDetailScreen() {
                   This task was cancelled and offers were withdrawn.
                 </Text>
               </View>
+            </View>
+          )}
+
+          {/* Escrow Hold Timer Banner */}
+          {task.status === 'completed' && isEscrowHeld && (
+            <View
+              className="rounded-3xl border border-brand/30 bg-brand-tint/40 p-4"
+              style={{ gap: 10 }}
+            >
+              <View className="flex-row items-center gap-3" style={{ gap: 12 }}>
+                <View className="h-10 w-10 items-center justify-center rounded-2xl bg-white shadow-sm">
+                  <Clock size={20} color="#0094F7" />
+                </View>
+                <View className="flex-1 min-w-0">
+                  <Text className="text-[14.5px] font-geist-bold text-ink">
+                    Payment Held in Escrow
+                  </Text>
+                  <Text className="mt-0.5 text-[12px] font-geist text-ink-600">
+                    {autoReleaseDate
+                      ? `Auto-releasing ${autoReleaseDate.toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                        })} at ${autoReleaseDate.toLocaleTimeString('en-US', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}`
+                      : 'Auto-releasing after 3-day holding period'}
+                  </Text>
+                </View>
+              </View>
+
+              <View className="rounded-2xl bg-white/80 p-3">
+                <Text className="font-geist text-[12.5px] leading-relaxed text-ink-700">
+                  {isProvider
+                    ? `Your earnings of ${money(
+                        earningsFor(task.budget),
+                      )} are held safely in escrow and will clear automatically to your wallet once the inspection window ends.`
+                    : `Your payment of ${money(
+                        task.budget,
+                      )} is held safely in escrow. If there is any issue with the completed job, you can report a problem or file a dispute before release.`}
+                </Text>
+              </View>
+
+              {!isProvider && !activeDispute && (
+                <View className="flex-row justify-end pt-1">
+                  <Pressable
+                    onPress={() =>
+                      router.push({
+                        pathname: '/(screens)/dispute/new/[taskId]',
+                        params: { taskId: task.id },
+                      } as any)
+                    }
+                    className="flex-row items-center gap-1.5 py-1.5 px-3 rounded-xl bg-ink-100 active:bg-ink-200"
+                    style={{ gap: 6 }}
+                  >
+                    <Gavel size={13} color="#5B6A72" />
+                    <Text className="font-geist-semibold text-[11.5px] text-ink-700">
+                      Report issue / Dispute
+                    </Text>
+                  </Pressable>
+                </View>
+              )}
             </View>
           )}
 

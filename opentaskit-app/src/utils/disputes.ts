@@ -14,6 +14,7 @@ export const DISPUTE_RESOLUTION_LABELS: Record<DisputeResolutionValue, string> =
   PAY_TASKER: 'Tasker paid in full',
   CANCELLED_NO_PENALTY: 'Task cancelled, no penalty',
   DISMISSED: 'Dispute dismissed',
+  SPLIT_PAYOUT: 'Payment split 50/50 to wallets',
 };
 
 export const DISPUTE_STATUS_META: Record<

@@ -44,4 +44,14 @@ export class UpdatePlatformConfigDto {
   @IsOptional()
   @IsString()
   whatsappSupportNumber?: string;
+
+  @ApiPropertyOptional({
+    example: 3,
+    description: 'Number of days escrow is held before auto-releasing to tasker',
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(30)
+  escrowHoldDays?: number;
 }

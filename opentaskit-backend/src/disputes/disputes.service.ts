@@ -357,7 +357,10 @@ export class DisputesService {
       dto.resolution === DisputeResolution.CANCELLED_NO_PENALTY
     ) {
       targetTaskStatus = TaskStatus.CANCELLED;
-    } else if (dto.resolution === DisputeResolution.PAY_TASKER) {
+    } else if (
+      dto.resolution === DisputeResolution.PAY_TASKER ||
+      dto.resolution === DisputeResolution.SPLIT_PAYOUT
+    ) {
       targetTaskStatus = TaskStatus.COMPLETED;
     } else {
       // If DISMISSED, restore task to ASSIGNED
@@ -442,6 +445,11 @@ export class DisputesService {
       );
     } else if (dto.resolution === DisputeResolution.PAY_TASKER) {
       await this.escrowService.releaseForTask(dispute.taskId, 'DISPUTE');
+    } else if (dto.resolution === DisputeResolution.SPLIT_PAYOUT) {
+      await this.escrowService.splitPayoutForTask(
+        dispute.taskId,
+        dto.resolutionNotes,
+      );
     }
 
     return updatedDispute;

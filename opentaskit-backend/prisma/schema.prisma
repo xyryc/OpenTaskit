@@ -336,6 +336,7 @@ enum DisputeResolution {
   PAY_TASKER
   CANCELLED_NO_PENALTY
   DISMISSED
+  SPLIT_PAYOUT
 }
 
 enum NotificationType {
@@ -490,6 +491,7 @@ model EscrowHold {
 
   releasedAt       DateTime?
   refundedAt       DateTime?
+  autoReleaseAt    DateTime?
   resolutionSource String? // COMPLETION | DISPUTE | CANCELLATION
 
   createdAt DateTime @default(now())
@@ -554,6 +556,7 @@ model PlatformConfig {
   id                    String   @id @default("singleton")
   platformFeePercent    Float    @default(10)
   minTaskBudgetLkr      Float    @default(1000)
+  escrowHoldDays        Int      @default(3)
   supportEmail          String   @default("support@opentaskit.com")
   supportHotline        String   @default("+94 11 234 5678")
   whatsappSupportNumber String   @default("+94 77 123 4567")
@@ -629,6 +632,7 @@ enum WalletTransactionType {
   WITHDRAWAL
   ADJUSTMENT
   TOPUP
+  DISPUTE_SPLIT
 }
 
 enum PayoutStatus {

@@ -17,6 +17,7 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  Scale,
 } from "lucide-react";
 
 import type {
@@ -72,6 +73,7 @@ const RESOLUTION_LABELS: Record<DisputeResolution, string> = {
   PAY_TASKER: "Paid to tasker",
   CANCELLED_NO_PENALTY: "Cancelled, no penalty",
   DISMISSED: "Dismissed",
+  SPLIT_PAYOUT: "Split 50/50 payout",
 };
 
 function initialsOf(name: string): string {
@@ -699,6 +701,16 @@ export default function DisputesPage() {
                   >
                     <Wallet className="h-3.5 w-3.5" />
                     <span>Refund poster</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-9 px-3.5 text-xs text-purple-600 border-purple-500/30 hover:bg-purple-500/10 gap-1.5"
+                    disabled={isResolving}
+                    onClick={() => submitResolution(selectedDispute.id, "SPLIT_PAYOUT")}
+                  >
+                    <Scale className="h-3.5 w-3.5" />
+                    <span>Split 50/50</span>
                   </Button>
                   <Button
                     type="button"

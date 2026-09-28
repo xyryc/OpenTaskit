@@ -51,6 +51,7 @@ export default function SettingsPage() {
           const data = await res.json();
           if (data.platformFeePercent != null) setPlatformCommissionPercent(String(data.platformFeePercent));
           if (data.minTaskBudgetLkr != null) setMinTaskBudgetLkr(String(data.minTaskBudgetLkr));
+          if (data.escrowHoldDays != null) setEscrowAutoReleaseDays(String(data.escrowHoldDays));
           if (data.supportEmail) setSupportEmail(data.supportEmail);
           if (data.supportHotline) setSupportHotline(data.supportHotline);
           if (data.whatsappSupportNumber) setWhatsappSupportNumber(data.whatsappSupportNumber);
@@ -72,6 +73,7 @@ export default function SettingsPage() {
         body: JSON.stringify({
           platformFeePercent: Number(platformCommissionPercent),
           minTaskBudgetLkr: Number(minTaskBudgetLkr),
+          escrowHoldDays: Number(escrowAutoReleaseDays),
           supportEmail: supportEmail.trim(),
           supportHotline: supportHotline.trim(),
           whatsappSupportNumber: whatsappSupportNumber.trim(),
