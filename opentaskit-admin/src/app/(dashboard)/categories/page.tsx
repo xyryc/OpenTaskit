@@ -58,6 +58,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { CopyableId } from "@/components/ui/copyable-id";
 
 // Presets for the category icon picker matching backend supported strings
 const PRESET_ICONS = [
@@ -538,16 +539,23 @@ export default function CategoriesPage() {
                             <span className="font-semibold text-foreground block">
                               {cat.name}
                             </span>
-                            <span className="text-[10px] font-mono text-muted-foreground">
-                              {cat.id}
-                            </span>
+                            <CopyableId
+                              id={cat.id}
+                              textClassName="text-[10px]"
+                              tooltipText="Click to copy Category ID"
+                            />
                           </div>
                         </div>
                       </TableCell>
 
                       {/* Slug */}
-                      <TableCell className="font-mono text-[11px] text-muted-foreground whitespace-nowrap">
-                        /{cat.slug}
+                      <TableCell className="whitespace-nowrap">
+                        <CopyableId
+                          id={cat.slug}
+                          prefix="/"
+                          textClassName="font-mono text-[11px] text-muted-foreground"
+                          tooltipText="Click to copy category slug"
+                        />
                       </TableCell>
 
                       {/* Description */}

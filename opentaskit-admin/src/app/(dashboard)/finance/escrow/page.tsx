@@ -41,6 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CopyableId } from "@/components/ui/copyable-id";
 
 const STATUS_META: Record<PaymentStatus, { label: string; className: string }> = {
   INITIATED: { label: "Initiated", className: "text-muted-foreground" },
@@ -315,17 +316,17 @@ export default function EscrowLedgerPage() {
                       : null;
                     return (
                       <TableRow key={payment.id} className="text-xs hover:bg-muted/40">
-                        <TableCell className="whitespace-nowrap max-w-xs">
+                        <TableCell className="min-w-[220px] max-w-sm">
                           <div className="flex flex-col min-w-0">
-                            <span className="font-medium text-foreground truncate" title={payment.task?.title || "—"}>
+                            <span className="font-semibold text-foreground" title={payment.task?.title || "—"}>
                               {payment.task?.title || "—"}
                             </span>
-                            <span
-                              className="font-mono text-[11px] text-muted-foreground truncate"
-                              title={payment.payhereOrderId || undefined}
-                            >
-                              {payment.payhereOrderId || "—"}
-                            </span>
+                            <CopyableId
+                              id={payment.payhereOrderId}
+                              showFull
+                              alwaysShowIcon
+                              className="text-[11px] text-muted-foreground hover:text-foreground mt-0.5"
+                            />
                           </div>
                         </TableCell>
                         <TableCell className="whitespace-nowrap">

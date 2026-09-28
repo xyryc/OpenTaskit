@@ -60,6 +60,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CopyableId } from "@/components/ui/copyable-id";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function UsersPage() {
@@ -457,9 +458,18 @@ export default function UsersPage() {
                                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
                               )}
                             </div>
-                            <span className="text-[11px] text-muted-foreground block">
-                              {user.email} · {user.phoneNumber}
-                            </span>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className="text-[11px] text-muted-foreground">
+                                {user.email} · {user.phoneNumber}
+                              </span>
+                              <span className="text-muted-foreground/40">•</span>
+                              <CopyableId
+                                id={user.id}
+                                displayValue={`${user.id.slice(0, 8)}...`}
+                                textClassName="text-[10px]"
+                                tooltipText="Click to copy User ID"
+                              />
+                            </div>
                           </div>
                         </div>
                       </TableCell>

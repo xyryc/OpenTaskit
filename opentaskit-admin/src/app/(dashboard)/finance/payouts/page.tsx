@@ -60,6 +60,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CopyableId } from "@/components/ui/copyable-id";
 import { Textarea } from "@/components/ui/textarea";
 
 const STATUS_META: Record<PayoutStatus, { label: string; className: string; bg: string }> = {
@@ -432,13 +433,21 @@ export default function PayoutsPage() {
                             <span className="font-medium text-foreground">
                               {payout.bankAccount?.bankName} — {payout.bankAccount?.branch}
                             </span>
-                            <span className="text-[11px] text-muted-foreground font-mono">
-                              {payout.bankAccount?.accountHolderName} · {payout.bankAccount?.accountNumber}
-                            </span>
+                            <div className="flex items-center gap-1 text-[11px] text-muted-foreground font-mono">
+                              <span>{payout.bankAccount?.accountHolderName} ·</span>
+                              <CopyableId
+                                id={payout.bankAccount?.accountNumber}
+                                textClassName="text-[11px]"
+                                tooltipText="Click to copy account number"
+                              />
+                            </div>
                             {payout.bankReference && (
-                              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono mt-0.5">
-                                Ref: {payout.bankReference}
-                              </span>
+                              <CopyableId
+                                id={payout.bankReference}
+                                prefix="Ref: "
+                                textClassName="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono mt-0.5"
+                                tooltipText="Click to copy bank reference"
+                              />
                             )}
                           </div>
                         </TableCell>
@@ -542,8 +551,13 @@ export default function PayoutsPage() {
                   {(STATUS_META[selected.status] || STATUS_META.PENDING).label}
                 </Badge>
               </div>
-              <DialogDescription className="text-xs">
-                Requested by {selected.wallet?.user.fullName} on {new Date(selected.createdAt).toLocaleString()}
+              <DialogDescription className="text-xs flex items-center justify-between flex-wrap gap-2" asChild>
+                <div>
+                  <span>
+                    Requested by {selected.wallet?.user.fullName} on {new Date(selected.createdAt).toLocaleString()}
+                  </span>
+                  <CopyableId id={selected.id} prefix="ID: " alwaysShowIcon textClassName="text-[11px]" />
+                </div>
               </DialogDescription>
             </DialogHeader>
 
@@ -595,7 +609,7 @@ export default function PayoutsPage() {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Account Number:</span>
-                  <span className="font-mono font-bold text-foreground">{selected.bankAccount?.accountNumber}</span>
+                  <CopyableId id={selected.bankAccount?.accountNumber} alwaysShowIcon textClassName="font-mono font-bold text-foreground" />
                 </div>
               </div>
 

@@ -52,6 +52,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { CopyableId } from "@/components/ui/copyable-id";
 
 export type ReportCategory =
   | "TASK_OR_PROVIDER_ISSUE"
@@ -326,8 +327,13 @@ export default function SupportPage() {
                     reports.map((report) => (
                       <TableRow key={report.id} className="text-xs hover:bg-muted/40">
                         {/* ID */}
-                        <TableCell className="font-mono font-semibold text-foreground whitespace-nowrap">
-                          #{report.id.slice(0, 8)}
+                        <TableCell className="whitespace-nowrap">
+                          <CopyableId
+                            id={report.id}
+                            displayValue={`#${report.id.slice(0, 8)}`}
+                            textClassName="font-semibold text-foreground"
+                            tooltipText="Click to copy full Report ID"
+                          />
                         </TableCell>
 
                         {/* Reporter */}
@@ -460,7 +466,12 @@ export default function SupportPage() {
                 <div>
                   <DialogTitle className="text-base sm:text-lg font-bold text-foreground flex items-center gap-2">
                     <LifeBuoy className="h-5 w-5 text-[#0094F7]" />
-                    <span>Report #{selectedReport.id.slice(0, 8)}</span>
+                    <CopyableId
+                      id={selectedReport.id}
+                      prefix="Report #"
+                      alwaysShowIcon
+                      textClassName="text-base sm:text-lg font-bold text-foreground"
+                    />
                   </DialogTitle>
                   <DialogDescription className="text-xs text-muted-foreground mt-0.5">
                     Category: {CATEGORY_LABELS[selectedReport.category] || selectedReport.category} · Submitted {new Date(selectedReport.createdAt).toLocaleString()}
@@ -494,7 +505,7 @@ export default function SupportPage() {
                     Associated Task / Reference
                   </span>
                   <div className="p-3 rounded-lg border bg-muted/10 text-xs font-mono text-foreground flex items-center gap-2">
-                    <span>{selectedReport.taskRef}</span>
+                    <CopyableId id={selectedReport.taskRef} alwaysShowIcon showFull />
                   </div>
                 </div>
               )}

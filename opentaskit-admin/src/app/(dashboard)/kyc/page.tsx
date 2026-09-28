@@ -52,6 +52,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { CopyableId } from "@/components/ui/copyable-id";
 
 const DOCUMENT_LABELS: Record<string, string> = {
   NIC: "National ID (NIC)",
@@ -403,8 +404,12 @@ export default function KycPage() {
                         </Badge>
                       </TableCell>
 
-                      <TableCell className="font-mono text-xs font-medium text-foreground whitespace-nowrap">
-                        {sub.idNumber}
+                      <TableCell className="whitespace-nowrap">
+                        <CopyableId
+                          id={sub.idNumber}
+                          textClassName="font-mono text-xs font-medium text-foreground"
+                          tooltipText="Click to copy ID number"
+                        />
                       </TableCell>
 
                       <TableCell className="text-muted-foreground whitespace-nowrap">
@@ -528,8 +533,8 @@ export default function KycPage() {
                       </Badge>
                     </DialogTitle>
                     <DialogDescription className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5" asChild>
-                      <div>
-                        <span>National ID: {selectedSubmission.idNumber}</span>
+                      <div className="flex items-center gap-x-2 flex-wrap">
+                        <CopyableId id={selectedSubmission.idNumber} prefix="National ID: " alwaysShowIcon textClassName="text-xs font-mono" />
                         <span>•</span>
                         <span>{selectedSubmission.user?.email}</span>
                         {selectedSubmission.user?.phoneNumber && (

@@ -44,6 +44,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { CopyableId } from "@/components/ui/copyable-id";
 
 const DOCUMENT_LABELS: Record<string, string> = {
   NIC: "National ID (NIC)",
@@ -200,7 +201,12 @@ export default function UserDetailPage() {
                 <ShieldCheck className="h-4 w-4 text-emerald-600" />
               )}
             </h2>
-            <span className="text-xs text-muted-foreground">User ID: {user.id}</span>
+            <CopyableId
+              id={user.id}
+              prefix="User ID: "
+              alwaysShowIcon
+              className="text-xs text-muted-foreground hover:text-foreground mt-0.5"
+            />
           </div>
         </div>
 

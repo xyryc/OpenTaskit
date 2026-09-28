@@ -58,6 +58,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { CopyableId } from "@/components/ui/copyable-id";
 
 const REASON_LABELS: Record<string, string> = {
   WORK_UNSATISFACTORY: "Work unsatisfactory",
@@ -383,9 +384,12 @@ export default function DisputesPage() {
                           <span className="font-semibold text-foreground truncate block">
                             {dispute.task?.title || "Unknown task"}
                           </span>
-                          <span className="text-[11px] font-mono text-muted-foreground">
-                            {dispute.id.slice(0, 8)}...
-                          </span>
+                          <CopyableId
+                            id={dispute.id}
+                            displayValue={`${dispute.id.slice(0, 8)}...`}
+                            textClassName="text-[11px]"
+                            tooltipText="Click to copy Dispute ID"
+                          />
                         </div>
                       </TableCell>
 
@@ -505,8 +509,11 @@ export default function DisputesPage() {
                     <Gavel className="h-5 w-5 text-destructive" />
                     <span>{selectedDispute.task?.title || "Dispute"}</span>
                   </DialogTitle>
-                  <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                    Case #{selectedDispute.id.slice(0, 8).toUpperCase()} · Task status: {selectedDispute.task?.status}
+                  <DialogDescription className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5 flex-wrap" asChild>
+                    <div>
+                      <CopyableId id={selectedDispute.id} prefix="Case #" alwaysShowIcon textClassName="text-xs font-mono" />
+                      <span>· Task status: {selectedDispute.task?.status}</span>
+                    </div>
                   </DialogDescription>
                 </div>
                 <div className="flex items-center gap-2 self-start sm:self-auto">

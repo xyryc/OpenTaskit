@@ -61,6 +61,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CopyableId } from "@/components/ui/copyable-id";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TaskLocationMap } from "@/components/ui/task-location-map";
 
@@ -506,7 +507,12 @@ export default function TasksPage() {
                             {task.title}
                           </span>
                           <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                            <span className="font-mono text-[10px]">{task.id.slice(0, 8)}...</span>
+                            <CopyableId
+                              id={task.id}
+                              displayValue={`${task.id.slice(0, 8)}...`}
+                              textClassName="text-[10px]"
+                              tooltipText="Click to copy Task ID"
+                            />
                             <span>•</span>
                             <span>{task._count?.offers ?? 0} offers</span>
                             {task.images && task.images.length > 0 && (
@@ -688,8 +694,8 @@ export default function TasksPage() {
                       {taskDetail.title}
                     </DialogTitle>
                     <DialogDescription className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5" asChild>
-                      <div>
-                        <span>Task ID: {taskDetail.id}</span>
+                      <div className="flex items-center gap-x-2">
+                        <CopyableId id={taskDetail.id} prefix="Task ID: " alwaysShowIcon textClassName="text-xs font-mono" />
                         <span>•</span>
                         <span>Category: {taskDetail.category?.name || "General"}</span>
                         <span>•</span>
