@@ -12,7 +12,7 @@ import { BadgeCheck, Minus, Sparkles } from 'lucide-react-native';
 
 import { useApp } from '@/contexts/AppContext';
 import { bestMatchId } from '@/utils/offerScore';
-import { distance, money } from '@/utils/format';
+import { distance, experienceLabel, money } from '@/utils/format';
 import { Screen, ScreenHeader } from '@/components/layout/Screen';
 import { Button } from '@/components/ui/Button';
 import { EmptyState, TaskCardSkeleton } from '@/components/ui/Feedback';
@@ -175,9 +175,12 @@ export default function CompareOffersScreen() {
           </Text>
         );
       case 'experience':
+        const joinedDate = (offer as any).user?.createdAt;
         return (
           <Text className="font-geist text-[13px] text-ink-700">
-            {provider.experienceYears} yrs
+            {joinedDate
+              ? experienceLabel(joinedDate)
+              : `${provider.experienceYears} yrs`}
           </Text>
         );
       case 'verified':

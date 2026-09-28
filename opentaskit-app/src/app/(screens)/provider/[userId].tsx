@@ -69,7 +69,7 @@ export default function ProviderProfileScreen() {
   }, [profile, fallbackUser]);
 
   const experienceText = profile
-    ? experienceLabel(profile.memberSince)
+    ? experienceLabel(profile.memberSince || profile.createdAt)
     : `${fallbackUser.experienceYears} yrs`;
 
   const services = profile?.services ?? [];

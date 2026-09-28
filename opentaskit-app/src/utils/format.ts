@@ -105,18 +105,51 @@ export function monthYear(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 }
 
-/** Time on the platform since account creation, e.g. "2 yrs" or "3 mos". */
+/**
+ * Time on the platform since account creation.
+ * Formats as days (under 1 month, e.g. "1 day", "14 days"),
+ * months (under 1 year, e.g. "3 mos"), or years and months (e.g. "1 yr 2 mos", "2 yrs").
+ */
 export function experienceLabel(createdAtIso: string): string {
+  if (!createdAtIso) return '1 day';
   const created = new Date(createdAtIso);
-  const now = new Date();
-  const totalMonths =
-    (now.getFullYear() - created.getFullYear()) * 12 + (now.getMonth() - created.getMonth());
-  const months = now.getDate() < created.getDate() ? totalMonths - 1 : totalMonths;
+  if (isNaN(created.getTime())) return '1 day';
 
-  if (months < 1) return 'New';
-  if (months < 12) return `${months} mo${months === 1 ? '' : 's'}`;
-  const years = Math.floor(months / 12);
-  return `${years} yr${years === 1 ? '' : 's'}`;
+  const now = new Date();
+  if (created > now) return '1 day';
+
+  const diffMs = now.getTime() - created.getTime();
+  const totalDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  let years = now.getFullYear() - created.getFullYear();
+  let months = now.getMonth() - created.getMonth();
+
+  if (now.getDate() < created.getDate()) {
+    months -= 1;
+  }
+
+  if (months < 0) {
+    years -= 1;
+    months += 12;
+  }
+
+  // Under 1 month: show in days
+  if (years === 0 && months === 0) {
+    const d = Math.max(1, totalDays);
+    return `${d} day${d === 1 ? '' : 's'}`;
+  }
+
+  // Under 1 year: show in months
+  if (years === 0) {
+    return `${months} mo${months === 1 ? '' : 's'}`;
+  }
+
+  // 1 year or more: show year and months (or just years if months === 0)
+  const yrStr = `${years} yr${years === 1 ? '' : 's'}`;
+  if (months > 0) {
+    return `${yrStr} ${months} mo${months === 1 ? '' : 's'}`;
+  }
+  return yrStr;
 }
 
 export function initialsOf(name: string): string {
