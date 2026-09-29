@@ -6,6 +6,7 @@ import {
   type FetchBaseQueryError,
 } from "@reduxjs/toolkit/query/react";
 import { createMMKV } from "react-native-mmkv";
+import { Platform } from "react-native";
 import { router } from "expo-router";
 import { signOut } from "../slices/authActions";
 import type {
@@ -82,14 +83,33 @@ if (!API_BASE_URL?.trim()) {
   throw new Error("EXPO_PUBLIC_API_URL must be configured in .env");
 }
 
+const isServer = Platform.OS === 'web' && typeof window === 'undefined';
+
 const storage = createMMKV({ id: "opentaskit-auth" });
 const ACCESS_TOKEN_KEY = "opentaskit_access_token";
 const REFRESH_TOKEN_KEY = "opentaskit_refresh_token";
 const USER_KEY = "opentaskit_user";
 
-export const getAccessToken = () => storage.getString(ACCESS_TOKEN_KEY);
-export const getRefreshToken = () => storage.getString(REFRESH_TOKEN_KEY);
+export const getAccessToken = () => {
+  if (isServer) return undefined;
+  try {
+    return storage.getString(ACCESS_TOKEN_KEY);
+  } catch {
+    return undefined;
+  }
+};
+
+export const getRefreshToken = () => {
+  if (isServer) return undefined;
+  try {
+    return storage.getString(REFRESH_TOKEN_KEY);
+  } catch {
+    return undefined;
+  }
+};
+
 export const getStoredUser = (): AuthUser | null => {
+  if (isServer) return null;
   try {
     const raw = storage.getString(USER_KEY);
     return raw ? (JSON.parse(raw) as AuthUser) : null;
@@ -99,27 +119,66 @@ export const getStoredUser = (): AuthUser | null => {
 };
 
 export function clearAuthStorage() {
-  storage.remove(ACCESS_TOKEN_KEY);
-  storage.remove(REFRESH_TOKEN_KEY);
-  storage.remove(USER_KEY);
+  if (isServer) return;
+  try {
+    storage.remove(ACCESS_TOKEN_KEY);
+    storage.remove(REFRESH_TOKEN_KEY);
+    storage.remove(USER_KEY);
+  } catch {}
 }
 
 const PUSH_TOKEN_KEY = "opentaskit_push_token";
-export const getStoredPushToken = () => storage.getString(PUSH_TOKEN_KEY) ?? null;
-export const setStoredPushToken = (token: string) => storage.set(PUSH_TOKEN_KEY, token);
-export const clearStoredPushToken = () => storage.remove(PUSH_TOKEN_KEY);
+export const getStoredPushToken = () => {
+  if (isServer) return null;
+  try {
+    return storage.getString(PUSH_TOKEN_KEY) ?? null;
+  } catch {
+    return null;
+  }
+};
+
+export const setStoredPushToken = (token: string) => {
+  if (isServer) return;
+  try {
+    storage.set(PUSH_TOKEN_KEY, token);
+  } catch {}
+};
+
+export const clearStoredPushToken = () => {
+  if (isServer) return;
+  try {
+    storage.remove(PUSH_TOKEN_KEY);
+  } catch {}
+};
 
 const NOTIFICATIONS_ENABLED_KEY = "opentaskit_notifications_enabled";
-export const getStoredNotificationsEnabled = () => storage.getBoolean(NOTIFICATIONS_ENABLED_KEY) ?? true;
-export const setStoredNotificationsEnabled = (enabled: boolean) => storage.set(NOTIFICATIONS_ENABLED_KEY, enabled);
+export const getStoredNotificationsEnabled = () => {
+  if (isServer) return true;
+  try {
+    return storage.getBoolean(NOTIFICATIONS_ENABLED_KEY) ?? true;
+  } catch {
+    return true;
+  }
+};
+
+export const setStoredNotificationsEnabled = (enabled: boolean) => {
+  if (isServer) return;
+  try {
+    storage.set(NOTIFICATIONS_ENABLED_KEY, enabled);
+  } catch {}
+};
 
 /** Persist synchronously before mutation success allows a screen to navigate. */
 function persistSession(response: AuthResponse): AuthResponse {
   isHandlingForcedLogout = false;
-  storage.set(ACCESS_TOKEN_KEY, response.accessToken);
-  storage.set(REFRESH_TOKEN_KEY, response.refreshToken);
-  if (response.user) {
-    storage.set(USER_KEY, JSON.stringify(response.user));
+  if (!isServer) {
+    try {
+      storage.set(ACCESS_TOKEN_KEY, response.accessToken);
+      storage.set(REFRESH_TOKEN_KEY, response.refreshToken);
+      if (response.user) {
+        storage.set(USER_KEY, JSON.stringify(response.user));
+      }
+    } catch {}
   }
   return response;
 }
@@ -128,7 +187,7 @@ const rawBaseQuery = fetchBaseQuery({
   baseUrl: API_BASE_URL,
   timeout: 10000,
   prepareHeaders: (headers) => {
-    const token = storage.getString(ACCESS_TOKEN_KEY);
+    const token = getAccessToken();
     if (token) headers.set("Authorization", `Bearer ${token}`);
     return headers;
   },

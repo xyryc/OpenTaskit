@@ -1,10 +1,13 @@
 import { createMMKV } from 'react-native-mmkv';
+import { Platform } from 'react-native';
 import type { CategoryItem } from '@/types';
 
+const isServer = Platform.OS === 'web' && typeof window === 'undefined';
 const cacheStorage = createMMKV({ id: 'opentaskit-cache' });
 const CATEGORIES_CACHE_KEY = 'opentaskit_cached_categories';
 
 export function getCachedCategories(): CategoryItem[] | null {
+  if (isServer) return null;
   try {
     const raw = cacheStorage.getString(CATEGORIES_CACHE_KEY);
     if (!raw) return null;
@@ -16,6 +19,7 @@ export function getCachedCategories(): CategoryItem[] | null {
 }
 
 export function setCachedCategories(categories: CategoryItem[]): void {
+  if (isServer) return;
   try {
     if (Array.isArray(categories) && categories.length > 0) {
       cacheStorage.set(CATEGORIES_CACHE_KEY, JSON.stringify(categories));
