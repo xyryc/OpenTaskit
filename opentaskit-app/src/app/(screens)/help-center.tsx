@@ -11,6 +11,7 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import {
   ChevronDown,
+  Mail,
   MessageCircle,
   Phone,
   Search,
@@ -131,6 +132,34 @@ export default function HelpCenterScreen() {
               </Text>
             </Pressable>
           </View>
+
+          {/* Email Support Card */}
+          <Pressable
+            onPress={() => {
+              const email = contactConfig?.supportEmail || 'support@opentaskit.com';
+              Linking.openURL(`mailto:${email}`).catch(() => {
+                toast({ title: `Email: ${email}`, variant: 'info' });
+              });
+            }}
+            className="flex-row items-center justify-between rounded-3xl border border-ink-200 bg-white p-4 active:bg-ink-100/60"
+          >
+            <View className="flex-row items-center gap-3" style={{ gap: 12 }}>
+              <View className="h-10 w-10 items-center justify-center rounded-xl bg-purple-50">
+                <Mail size={18} color="#7C3AED" />
+              </View>
+              <View>
+                <Text className="font-geist-semibold text-[14px] text-ink">
+                  Email Support
+                </Text>
+                <Text className="mt-0.5 font-geist text-[12px] text-ink-500">
+                  {contactConfig?.supportEmail || 'support@opentaskit.com'}
+                </Text>
+              </View>
+            </View>
+            <Text className="font-geist-medium text-[12px] text-[#0094F7]">
+              Send email
+            </Text>
+          </Pressable>
 
           {/* Common Questions Accordion */}
           <View>
