@@ -30,6 +30,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth } from "@/contexts/auth-context";
+import { NotificationsDropdown } from "@/components/layout/notifications-dropdown";
 
 export function AppHeader() {
   const pathname = usePathname();
@@ -78,69 +79,7 @@ export function AppHeader() {
         </div>
 
         {/* Notifications Dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative h-9 w-9">
-              <Bell className="h-4 w-4 text-muted-foreground" />
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-destructive" />
-              <span className="sr-only">Notifications</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80 p-0">
-            <div className="flex items-center justify-between border-b px-4 py-3">
-              <span className="text-sm font-semibold text-foreground">
-                Notifications
-              </span>
-              <Badge variant="secondary" className="text-[10px] font-semibold">
-                3 New
-              </Badge>
-            </div>
-            <div className="divide-y text-xs">
-              <Link href="/kyc" className="flex gap-3 p-3 hover:bg-muted/40 transition-colors cursor-pointer">
-                <div className="mt-0.5 h-2 w-2 rounded-full bg-[#0094F7] shrink-0" />
-                <div className="flex flex-col gap-0.5">
-                  <span className="font-semibold text-foreground">
-                    New KYC Submission
-                  </span>
-                  <span className="text-muted-foreground">
-                    Kasun Perera submitted National ID for verification.
-                  </span>
-                  <span className="text-[10px] text-muted-foreground/75 mt-1">
-                    5 minutes ago
-                  </span>
-                </div>
-              </Link>
-              <Link href="/disputes" className="flex gap-3 p-3 hover:bg-muted/40 transition-colors cursor-pointer">
-                <div className="mt-0.5 h-2 w-2 rounded-full bg-destructive shrink-0" />
-                <div className="flex flex-col gap-0.5">
-                  <span className="font-semibold text-foreground">
-                    Dispute Opened #DSP-104
-                  </span>
-                  <span className="text-muted-foreground">
-                    Task #TSK-892 marked as disputed by poster.
-                  </span>
-                  <span className="text-[10px] text-muted-foreground/75 mt-1">
-                    25 minutes ago
-                  </span>
-                </div>
-              </Link>
-              <Link href="/finance/escrow" className="flex gap-3 p-3 hover:bg-muted/40 transition-colors cursor-pointer">
-                <div className="mt-0.5 h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
-                <div className="flex flex-col gap-0.5">
-                  <span className="font-semibold text-foreground">
-                    Escrow Locked #TXN-902
-                  </span>
-                  <span className="text-muted-foreground">
-                    LKR 14,000 locked via Stripe gateway.
-                  </span>
-                  <span className="text-[10px] text-muted-foreground/75 mt-1">
-                    1 hour ago
-                  </span>
-                </div>
-              </Link>
-            </div>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <NotificationsDropdown />
 
         {/* Theme Mode Switcher */}
         <ThemeToggle />

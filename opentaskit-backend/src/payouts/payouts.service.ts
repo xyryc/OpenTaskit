@@ -34,7 +34,7 @@ export class PayoutsService {
       throw new NotFoundException('Bank account not found');
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const wallet = await this.walletService.ensureWallet(userId, tx);
       if (wallet.availableBalance < dto.amount) {
         throw new BadRequestException('Insufficient wallet balance');
@@ -59,6 +59,17 @@ export class PayoutsService {
 
       return payoutRequest;
     });
+
+    this.notificationsService
+      .notifyAdmins({
+        type: NotificationType.PAYMENT,
+        title: `Withdrawal Request: Rs ${dto.amount.toLocaleString()}`,
+        body: `Bank payout requested for Rs ${dto.amount.toLocaleString()} to ${bankAccount.bankName} (Ref: #${result.id.slice(0, 8).toUpperCase()}).`,
+        actionUrl: '/finance/payouts',
+      })
+      .catch(() => null);
+
+    return result;
   }
 
   findMine(userId: string) {

@@ -111,6 +111,16 @@ export class KycService {
       actionUrl: '/(screens)/kyc',
     });
 
+    // Notify administrators
+    this.notificationsService
+      .notifyAdmins({
+        type: 'SYSTEM',
+        title: `KYC Review: ${user.fullName}`,
+        body: `${user.fullName} submitted National ID for verification (${dto.documentType} · ID: ${dto.idNumber}).`,
+        actionUrl: '/kyc',
+      })
+      .catch(() => null);
+
     return verification;
   }
 

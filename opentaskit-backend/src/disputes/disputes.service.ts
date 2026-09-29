@@ -133,6 +133,17 @@ export class DisputesService {
       })
       .catch((err) => console.error('Failed to dispatch dispute-opened notification:', err));
 
+    // Notify administrators
+    this.notificationsService
+      .notifyAdmins({
+        type: NotificationType.TASK,
+        title: `Dispute Opened #${dispute.id.slice(0, 8).toUpperCase()}`,
+        body: `Dispute opened on task "${dispute.task.title}". Arbitration pending review.`,
+        taskId,
+        actionUrl: '/disputes',
+      })
+      .catch(() => null);
+
     return dispute;
   }
 

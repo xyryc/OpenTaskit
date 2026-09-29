@@ -4,15 +4,19 @@ import { CreateReportDto } from './dto/create-report.dto';
 import { UpdateReportDto } from './dto/update-report.dto';
 import { FilterReportsDto } from './dto/filter-reports.dto';
 import { Prisma } from '../../generated/prisma/client';
-import { ReportStatus } from '../../generated/prisma/enums';
+import { NotificationType, ReportStatus } from '../../generated/prisma/enums';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class ReportsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   // 1. User submits a problem report
   async create(userId: string, dto: CreateReportDto) {
-    return this.prisma.problemReport.create({
+    const report = await this.prisma.problemReport.create({
       data: {
         userId,
         category: dto.category,
@@ -33,6 +37,17 @@ export class ReportsService {
         },
       },
     });
+
+    this.notificationsService
+      .notifyAdmins({
+        type: NotificationType.SYSTEM,
+        title: `Support Ticket: ${report.category}`,
+        body: `${report.user?.fullName || 'User'} reported an issue: ${dto.description.slice(0, 75)}... (Ref: #${report.id.slice(0, 8).toUpperCase()})`,
+        actionUrl: '/support',
+      })
+      .catch(() => null);
+
+    return report;
   }
 
   // 1b. User queries their own reports
