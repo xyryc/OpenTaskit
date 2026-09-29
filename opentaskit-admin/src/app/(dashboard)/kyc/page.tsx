@@ -51,7 +51,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CopyableId } from "@/components/ui/copyable-id";
 
 const DOCUMENT_LABELS: Record<string, string> = {
@@ -383,6 +383,13 @@ export default function KycPage() {
                       <TableCell>
                         <div className="flex items-center gap-3 min-w-[200px]">
                           <Avatar className="h-8 w-8 border shrink-0">
+                            {(sub.user?.avatarUrl || sub.selfieUrl) && (
+                              <AvatarImage
+                                src={sub.user?.avatarUrl || sub.selfieUrl || ""}
+                                alt={sub.user?.fullName || sub.fullName || "User"}
+                                className="object-cover"
+                              />
+                            )}
                             <AvatarFallback className="text-[11px] font-semibold bg-muted">
                               {initialsOf(sub.user?.fullName || sub.fullName || "?")}
                             </AvatarFallback>
@@ -518,6 +525,13 @@ export default function KycPage() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10 border shrink-0">
+                    {(selectedSubmission.user?.avatarUrl || selectedSubmission.selfieUrl) && (
+                      <AvatarImage
+                        src={selectedSubmission.user?.avatarUrl || selectedSubmission.selfieUrl || ""}
+                        alt={selectedSubmission.user?.fullName || selectedSubmission.fullName || "User"}
+                        className="object-cover"
+                      />
+                    )}
                     <AvatarFallback className="text-sm font-bold bg-primary/10 text-primary">
                       {initialsOf(selectedSubmission.user?.fullName || selectedSubmission.fullName || "?")}
                     </AvatarFallback>
