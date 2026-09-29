@@ -1,6 +1,15 @@
 import React from 'react';
-import { View, Text, Modal, Pressable, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  Modal,
+  Pressable,
+  ScrollView,
+  Platform,
+  KeyboardAvoidingView,
+} from 'react-native';
 import { X } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from './Button';
 import { shadows } from '@/utils/shadows';
 
@@ -21,6 +30,8 @@ export function BottomSheet({
   children,
   footer,
 }: BottomSheetProps) {
+  const insets = useSafeAreaInsets();
+
   return (
     <Modal
       visible={open}
@@ -28,14 +39,23 @@ export function BottomSheet({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View className="flex-1 justify-end bg-ink/40">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        className="flex-1 justify-end bg-ink/40"
+      >
         {/* Backdrop dismiss */}
         <Pressable className="flex-1" onPress={onClose} />
 
         {/* Sheet Content */}
         <View
-          className="w-full max-h-[85%] rounded-t-4xl bg-white pb-6 pt-3 px-6"
-          style={shadows.sheet}
+          className="w-full rounded-t-4xl bg-white pt-3 px-6"
+          style={[
+            shadows.sheet,
+            {
+              maxHeight: '90%',
+              paddingBottom: Math.max(insets.bottom, 16) + (footer ? 8 : 16),
+            },
+          ]}
         >
           {/* Top Grab Handle */}
           <View className="h-1.5 w-12 rounded-full bg-ink-200 self-center mb-4" />
@@ -65,13 +85,19 @@ export function BottomSheet({
           </View>
 
           {/* Body */}
-          <ScrollView className="mt-4" showsVerticalScrollIndicator={false}>
+          <ScrollView
+            className="mt-4"
+            style={{ flexGrow: 0, flexShrink: 1 }}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: 28 }}
+          >
             {children}
           </ScrollView>
 
           {footer && <View className="mt-4 pt-3 border-t border-ink-100">{footer}</View>}
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   Pressable,
   TextInput,
 } from 'react-native';
@@ -92,11 +91,7 @@ export function FilterSheet({
         </View>
       }
     >
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        className="max-h-[500px]"
-      >
-        <View className="gap-6 pb-6 pt-1" style={{ gap: 22 }}>
+      <View className="gap-6 pb-6 pt-1" style={{ gap: 22 }}>
           {/* Section: Distance */}
           <View>
             <View className="flex-row items-baseline justify-between">
@@ -252,7 +247,6 @@ export function FilterSheet({
             </View>
           </View>
         </View>
-      </ScrollView>
     </BottomSheet>
   );
 }
