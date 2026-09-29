@@ -18,7 +18,7 @@ import {
   Sparkles,
 } from 'lucide-react-native';
 
-import { useApp } from '@/contexts/AppContext';
+import { useAppSelector } from '@/store';
 import { Screen } from '@/components/layout/Screen';
 import { Avatar } from '@/components/ui/Avatar';
 
@@ -40,14 +40,14 @@ export default function SupportChatScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const isKeyboardVisible = useKeyboardState((state) => state.isVisible);
-  const { me } = useApp();
+  const authUser = useAppSelector((state) => state.auth.user);
   const scrollViewRef = useRef<ScrollView | null>(null);
 
   const [messages, setMessages] = useState<SupportMessage[]>([
     {
       id: 'msg-1',
       sender: 'support',
-      text: `Hello ${me?.name?.split(' ')[0] || 'there'}! Welcome to OpenTaskit Help Support. How can our customer care team assist you today?`,
+      text: `Hello ${authUser?.fullName?.split(' ')[0] || 'there'}! Welcome to OpenTaskit Help Support. How can our customer care team assist you today?`,
       timestamp: 'Just now',
     },
   ]);

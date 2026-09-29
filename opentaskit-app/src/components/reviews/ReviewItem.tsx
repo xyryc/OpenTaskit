@@ -1,15 +1,20 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import type { Review } from '@/types';
-import { useApp } from '@/contexts/AppContext';
-import { timeAgo } from '@/utils/format';
+import { initialsOf, timeAgo } from '@/utils/format';
 import { Avatar } from '@/components/ui/Avatar';
 import { StarRow } from '@/components/ui/Rating';
 import { Chip } from '@/components/ui/Chip';
 
-export function ReviewItem({ review }: { review: Review }) {
-  const { userById } = useApp();
-  const author = userById(review.fromId);
+export function ReviewItem({ review }: { review: Review & { author?: any } }) {
+  const authorName = review.author?.fullName || review.author?.name || 'User';
+  const author = {
+    name: authorName,
+    initials: initialsOf(authorName),
+    avatarUrl: review.author?.avatarUrl,
+    tone: 'bg-brand text-white',
+    verified: review.author?.isVerified ?? false,
+  };
 
   return (
     <View className="rounded-3xl border border-ink-200 bg-white p-4">

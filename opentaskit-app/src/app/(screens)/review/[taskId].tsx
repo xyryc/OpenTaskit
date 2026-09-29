@@ -11,6 +11,7 @@ import { CheckCircle2 } from 'lucide-react-native';
 
 import { useApp } from '@/contexts/AppContext';
 import { useAppSelector } from '@/store';
+import { initialsOf } from '@/utils/format';
 import {
   useCreateReviewMutation,
   useGetOffersForTaskQuery,
@@ -48,7 +49,7 @@ export default function LeaveReviewScreen() {
   const { taskId = '' } = useLocalSearchParams<{ taskId: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { userById, toast } = useApp();
+  const { toast } = useApp();
   const authUser = useAppSelector((state) => state.auth.user);
 
   const [rating, setRating] = useState(5);
@@ -66,18 +67,15 @@ export default function LeaveReviewScreen() {
   const isProvider = !!(authUser?.id && acceptedOffer && acceptedOffer.userId === authUser.id);
 
   const otherSummary = isProvider ? apiTask?.user : acceptedOffer?.user;
-  const fallbackOther = userById(
-    isProvider ? apiTask?.userId ?? '' : acceptedOffer?.userId ?? ''
-  );
-  const other = otherSummary
-    ? {
-        ...fallbackOther,
-        id: otherSummary.id,
-        name: otherSummary.fullName || fallbackOther.name,
-        avatarUrl: otherSummary.avatarUrl ?? fallbackOther.avatarUrl,
-        verified: (otherSummary as any).isVerified ?? fallbackOther.verified,
-      }
-    : fallbackOther;
+  const otherName = otherSummary?.fullName || 'User';
+  const other = {
+    id: otherSummary?.id ?? (isProvider ? apiTask?.userId ?? '' : acceptedOffer?.userId ?? ''),
+    name: otherName,
+    initials: initialsOf(otherName),
+    avatarUrl: otherSummary?.avatarUrl ?? undefined,
+    verified: (otherSummary as any)?.isVerified ?? false,
+    tone: 'bg-brand text-white',
+  };
 
   const alreadyReviewed = useMemo(
     () => !!authUser?.id && taskReviews?.some((r) => r.fromUserId === authUser.id),

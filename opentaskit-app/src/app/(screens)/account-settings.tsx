@@ -34,7 +34,7 @@ import { ConfirmDialog } from '@/components/ui/Overlay';
 export default function AccountSettingsScreen() {
   const router = useRouter();
   const { signOut } = useAuthActions();
-  const { me, updateMe, toast } = useApp();
+  const { toast } = useApp();
   const { data: kycData } = useGetMyKycQuery();
   const { data: profile } = useGetMyProfileQuery();
   const [updateProfile, { isLoading: isUpdating }] = useUpdateMyProfileMutation();
@@ -42,7 +42,7 @@ export default function AccountSettingsScreen() {
 
   const isVerified = kycData?.status === 'VERIFIED';
 
-  const [name, setName] = useState(profile?.fullName ?? me.name ?? '');
+  const [name, setName] = useState(profile?.fullName ?? storedUser?.fullName ?? '');
   const [phone, setPhone] = useState(profile?.phoneNumber ?? '');
   const [deleteOpen, setDeleteOpen] = useState(false);
 
@@ -63,7 +63,6 @@ export default function AccountSettingsScreen() {
         fullName: name.trim(),
         phoneNumber: phone.trim() || undefined,
       }).unwrap();
-      updateMe({ name: name.trim() });
       toast({ title: 'Details saved', variant: 'success' });
       router.back();
     } catch (err: any) {

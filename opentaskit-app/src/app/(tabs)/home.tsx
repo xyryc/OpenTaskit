@@ -50,7 +50,6 @@ export default function HomeScreen() {
   const router = useRouter();
   const {
     t,
-    me,
     mode,
     setMode,
     currentLocation,
@@ -58,14 +57,14 @@ export default function HomeScreen() {
     userCoords,
   } = useApp();
 
-  const guest = useAppSelector((state) => state.auth.guest);
+  const { guest, user } = useAppSelector((state) => state.auth);
   const { data: profile, refetch: refetchProfile } = useGetMyProfileQuery(undefined, { skip: guest });
   const { refetch: refetchPostedTasks } = useGetMyPostedTasksQuery(undefined, { skip: guest });
   const { refetch: refetchAssignedTasks } = useGetMyAssignedTasksQuery(undefined, { skip: guest });
   const { data: notificationsData } = useGetNotificationsQuery(undefined, { skip: guest });
   const unreadNotifications = notificationsData?.unreadCount ?? 0;
   const unreadMessages = useUnreadMessages();
-  const displayName = profile?.fullName ?? me.name;
+  const displayName = profile?.fullName ?? user?.fullName ?? (guest ? "Guest" : "User");
   const firstName = displayName.split(" ")[0];
 
   const {
@@ -121,8 +120,8 @@ export default function HomeScreen() {
   );
 
   const recommended = useMemo(
-    () => recommendedTasks(openTasks, me, 6),
-    [openTasks, me],
+    () => recommendedTasks(openTasks, profile, 6),
+    [openTasks, profile],
   );
 
   const handleRefresh = async () => {
@@ -163,10 +162,11 @@ export default function HomeScreen() {
           <Pressable onPress={() => router.push("/profile" as any)}>
             <Avatar
               user={{
-                ...me,
                 name: displayName,
-                initials: profile ? initialsOf(profile.fullName) : me.initials,
+                initials: initialsOf(displayName),
                 avatarUrl: profile?.avatarUrl ?? undefined,
+                tone: 'bg-brand text-white',
+                verified: profile?.isVerified ?? false,
               }}
               size="md"
               showVerified
@@ -446,7 +446,7 @@ export default function HomeScreen() {
                 />
                 {recommended.length > 0 && (
                   <Text className="font-geist -mt-1 mb-3 text-[12px] text-ink-400">
-                    {reasonLabel(recommended[0], me)} · based on your skills and
+                    {reasonLabel(recommended[0], profile)} · based on your skills and
                     location
                   </Text>
                 )}

@@ -20,10 +20,16 @@ const TITLE_MATCH_WEIGHT = 45;
 const LOCATION_WEIGHT = 60;
 export const MAX_DISTANCE_KM = 15;
 
-function skillWords(user: User): string[] {
-  return user.skills.
-  flatMap((skill) => skill.toLowerCase().split(/[\s&/-]+/)).
-  filter((word) => word.length > 3);
+export interface RecommendationUser {
+  skills?: string[];
+  categoryIds?: string[];
+}
+
+function skillWords(user?: RecommendationUser | null): string[] {
+  if (!user?.skills) return [];
+  return user.skills
+    .flatMap((skill) => skill.toLowerCase().split(/[\s&/-]+/))
+    .filter((word) => word.length > 3);
 }
 
 function locationScore(distanceKm: number): number {
@@ -38,15 +44,15 @@ export interface RecommendationReason {
   nearby: boolean;
 }
 
-export function reasonFor(task: Task, user: User): RecommendationReason {
+export function reasonFor(task: Task, user?: RecommendationUser | null): RecommendationReason {
   return {
-    skillMatch: user.categoryIds.includes(task.categoryId),
-    nearby: task.distanceKm <= MAX_DISTANCE_KM / 2
+    skillMatch: !!(user?.categoryIds && user.categoryIds.includes(task.categoryId)),
+    nearby: task.distanceKm <= MAX_DISTANCE_KM / 2,
   };
 }
 
 /** A short line explaining why a task surfaced, shown under the section heading. */
-export function reasonLabel(task: Task, user: User): string {
+export function reasonLabel(task: Task, user?: RecommendationUser | null): string {
   const reason = reasonFor(task, user);
   if (reason.skillMatch && reason.nearby) return 'Matches your skills · nearby';
   if (reason.skillMatch) return 'Matches your skills';
@@ -54,12 +60,13 @@ export function reasonLabel(task: Task, user: User): string {
   return 'Similar to your past work';
 }
 
-export function scoreTask(task: Task, user: User): number {
+export function scoreTask(task: Task, user?: RecommendationUser | null): number {
+  if (!user) return 0;
   const words = skillWords(user);
   const title = task.title.toLowerCase();
 
   let score = 0;
-  if (user.categoryIds.includes(task.categoryId)) score += SKILL_WEIGHT;
+  if (user.categoryIds && user.categoryIds.includes(task.categoryId)) score += SKILL_WEIGHT;
   if (words.some((word) => title.includes(word))) score += TITLE_MATCH_WEIGHT;
   if (score === 0) return 0;
 
@@ -67,11 +74,12 @@ export function scoreTask(task: Task, user: User): number {
 }
 
 /** Highest-scoring open tasks for this member, best first. */
-export function recommendedTasks(tasks: Task[], user: User, limit = 6): Task[] {
-  return tasks.
-  map((task) => ({ task, score: scoreTask(task, user) })).
-  filter((entry) => entry.score > 0).
-  sort((a, b) => b.score - a.score).
-  slice(0, limit).
-  map((entry) => entry.task);
+export function recommendedTasks(tasks: Task[], user?: RecommendationUser | null, limit = 6): Task[] {
+  if (!user) return [];
+  return tasks
+    .map((task) => ({ task, score: scoreTask(task, user) }))
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map((entry) => entry.task);
 }

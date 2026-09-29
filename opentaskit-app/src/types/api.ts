@@ -44,6 +44,27 @@ export interface ProviderServiceRecord {
   createdAt: string;
 }
 
+export interface ProviderItem {
+  id: string;
+  name: string;
+  fullName: string;
+  avatarUrl?: string;
+  headline?: string;
+  bio?: string;
+  location?: string;
+  skills: string[];
+  rating: number;
+  reviewCount: number;
+  verified: boolean;
+  isVerified: boolean;
+  completedJobs: number;
+  services: Array<{
+    id: string;
+    name: string;
+    fromPrice: number;
+  }>;
+}
+
 export interface PortfolioItemRecord {
   id: string;
   title: string;

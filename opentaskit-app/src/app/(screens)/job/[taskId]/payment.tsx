@@ -20,6 +20,7 @@ import { useAppSelector } from '@/store';
 import {
   commissionFor,
   earningsFor,
+  initialsOf,
   money,
 } from '@/utils/format';
 import { PAYMENT_METHODS, paymentMethodMeta } from '@/utils/payment';
@@ -43,7 +44,7 @@ export default function PaymentConfirmScreen() {
   const { taskId = '' } = useLocalSearchParams<{ taskId: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { taskById, userById, settlePayment, toast } = useApp();
+  const { toast } = useApp();
   const authUser = useAppSelector((state) => state.auth.user);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -57,8 +58,8 @@ export default function PaymentConfirmScreen() {
   const [payWithWalletApi, { isLoading: isPayingWithWallet }] = usePayWithWalletMutation();
 
   const task = React.useMemo(
-    () => (apiTaskData ? mapApiTaskToTask(apiTaskData) : taskById(taskId)),
-    [apiTaskData, taskById, taskId]
+    () => (apiTaskData ? mapApiTaskToTask(apiTaskData) : undefined),
+    [apiTaskData]
   );
   if (!task) {
     return (
@@ -83,18 +84,15 @@ export default function PaymentConfirmScreen() {
   const hasEnoughWalletBalance = walletBalance >= taskAmount;
 
   const otherSummary = isProvider ? apiTaskData?.user : acceptedOffer?.user;
-  const fallbackOther = userById(
-    isProvider ? apiTaskData?.userId ?? '' : acceptedOffer?.userId ?? ''
-  );
-  const other = otherSummary
-    ? {
-        ...fallbackOther,
-        id: otherSummary.id,
-        name: otherSummary.fullName || fallbackOther.name,
-        avatarUrl: otherSummary.avatarUrl ?? fallbackOther.avatarUrl,
-        verified: (otherSummary as any).isVerified ?? fallbackOther.verified,
-      }
-    : fallbackOther;
+  const otherName = otherSummary?.fullName || 'User';
+  const other = {
+    id: otherSummary?.id ?? (isProvider ? apiTaskData?.userId ?? '' : acceptedOffer?.userId ?? ''),
+    name: otherName,
+    initials: initialsOf(otherName),
+    avatarUrl: otherSummary?.avatarUrl ?? undefined,
+    verified: (otherSummary as any)?.isVerified ?? false,
+    tone: 'bg-brand text-white',
+  };
   const { data: taskRules } = useGetTaskRulesQuery();
   const feePercent = taskRules?.platformFeePercent ?? 10;
   const feeRate = feePercent / 100;
@@ -387,14 +385,12 @@ export default function PaymentConfirmScreen() {
             }
             if (isWalletPayment) {
               await payWithWalletApi(task.id).unwrap();
-              settlePayment(task.id);
               setDone(true);
               return;
             }
             if (apiTaskData && apiTaskData.status !== 'COMPLETED') {
               await completeTaskApi(task.id).unwrap();
             }
-            settlePayment(task.id);
             setDone(true);
           } catch (err) {
             toast({

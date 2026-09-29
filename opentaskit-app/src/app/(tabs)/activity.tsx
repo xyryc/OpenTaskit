@@ -13,7 +13,6 @@ import {
 } from 'lucide-react-native';
 
 import { useApp } from '@/contexts/AppContext';
-import { ME } from '@/data/users';
 import { DELETION_PENALTY_RATE, deletionPenaltyFor, money, scheduleLabel } from '@/utils/format';
 import { mapApiTaskToTask } from '@/utils/taskFilters';
 import type { MyOfferItem, Task, TaskStatus } from '@/types';
@@ -52,8 +51,6 @@ export default function ActivityScreen() {
   const params = useLocalSearchParams<{ tab?: Tab }>();
   const { savedCount } = useSavedTasks();
   const {
-    tasks,
-    deleteTask,
     requireAccount,
     toast,
   } = useApp();
@@ -103,15 +100,15 @@ export default function ActivityScreen() {
     if (apiPostedTasks) {
       return apiPostedTasks.map(mapApiTaskToTask);
     }
-    return tasks.filter((task) => task.requesterId === ME);
-  }, [apiPostedTasks, tasks]);
+    return [];
+  }, [apiPostedTasks]);
 
   const myJobs: Task[] = useMemo(() => {
     if (apiAssignedTasks) {
       return apiAssignedTasks.map(mapApiTaskToTask);
     }
-    return tasks.filter((task) => task.assignedProviderId === ME);
-  }, [apiAssignedTasks, tasks]);
+    return [];
+  }, [apiAssignedTasks]);
 
   /**
    * Once an offer is accepted it is a job, not an offer — accepted offers are
@@ -140,7 +137,6 @@ export default function ActivityScreen() {
         description: res.message || 'Task has been deleted.',
         variant: 'success',
       });
-      deleteTask(taskToDelete.id);
     } catch (err: any) {
       toast({
         title: 'Failed to delete task',

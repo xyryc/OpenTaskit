@@ -19,9 +19,9 @@ import {
 } from 'lucide-react-native';
 
 import { useApp } from '@/contexts/AppContext';
-import { ME } from '@/data/users';
 import { useAppSelector } from '@/store';
-import { useGetPublicProfileQuery } from '@/store/api/apiSlice';
+import { useGetPublicProfileQuery, useGetMyPostedTasksQuery } from '@/store/api/apiSlice';
+import { mapApiTaskToTask } from '@/utils/taskFilters';
 import { distance, experienceLabel, initialsOf, monthYear, money, timeAgo } from '@/utils/format';
 import { resolveImageSource } from '@/utils/images';
 import { Screen, ScreenHeader, SectionHeader } from '@/components/layout/Screen';
@@ -37,63 +37,79 @@ export default function ProviderProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const { userById, offers, tasks, toast, requireAccount } = useApp();
+  const { toast, requireAccount } = useApp();
   const authUser = useAppSelector((state) => state.auth.user);
   const [inviteOpen, setInviteOpen] = useState(false);
 
-  const targetId = userId || authUser?.id || ME;
+  const targetId = userId || authUser?.id || '';
   const isMe = !!authUser?.id && targetId === authUser.id;
 
   const { data: profile } = useGetPublicProfileQuery(targetId, { skip: !targetId });
-  const fallbackUser = userById(targetId);
+  const { data: myPostedTasks = [] } = useGetMyPostedTasksQuery(undefined, { skip: !authUser?.id });
 
-  // Merge the real public-profile card onto the mock user so fields the
-  // backend doesn't return yet (response/success rate, distance,
-  // availability) stay as clearly-dummy placeholders.
+  const fallbackUser = {
+    id: targetId,
+    name: 'Provider',
+    initials: 'P',
+    tone: 'bg-brand text-white',
+    headline: 'Service Provider',
+    about: 'No bio provided yet.',
+    rating: 5.0,
+    reviewCount: 0,
+    completedJobs: 0,
+    successRate: 100,
+    responseRate: 100,
+    experienceYears: 1,
+    verified: false,
+    kyc: 'none' as const,
+    memberSince: 'Recently',
+    location: 'Sri Lanka',
+    distanceKm: 0,
+    skills: [] as string[],
+    services: [] as any[],
+    portfolio: [] as any[],
+    available: true,
+    respondsIn: 'under 1 hr',
+  };
+
   const user = React.useMemo(() => {
     if (!profile) return fallbackUser;
     return {
       ...fallbackUser,
       id: profile.id,
       name: profile.fullName || fallbackUser.name,
-      avatarUrl: profile.avatarUrl ?? fallbackUser.avatarUrl,
+      avatarUrl: profile.avatarUrl ?? undefined,
       headline: profile.headline ?? fallbackUser.headline,
       about: profile.bio ?? fallbackUser.about,
       location: profile.location ?? fallbackUser.location,
       skills: profile.skills?.length ? profile.skills : fallbackUser.skills,
       rating: profile.rating,
       reviewCount: profile.reviewCount,
-      completedJobs: profile.stats.tasksCompleted,
-      memberSince: monthYear(profile.memberSince),
+      completedJobs: profile.stats?.tasksCompleted ?? 0,
+      memberSince: profile.memberSince ? monthYear(profile.memberSince) : 'Recently',
     };
-  }, [profile, fallbackUser]);
+  }, [profile]);
 
   const experienceText = profile
     ? experienceLabel(profile.memberSince || profile.createdAt)
-    : `${fallbackUser.experienceYears} yrs`;
+    : '< 1 yr';
 
   const services = profile?.services ?? [];
   const portfolio = profile?.portfolio ?? [];
-
   const reviews = profile?.recentReviews ?? [];
 
-  // Check if provider sent an offer to any of my tasks
-  const theirOffer = offers.find(
-    (offer) =>
-      offer.providerId === targetId &&
-      tasks.find((task) => task.id === offer.taskId)?.requesterId === ME
-  );
-
   // My open tasks for inviting
-  const myOpenTasks = tasks.filter(
-    (task) =>
-      task.requesterId === ME &&
-      ['posted', 'receiving_offers'].includes(task.status)
+  const myOpenTasks = React.useMemo(
+    () =>
+      myPostedTasks
+        .map(mapApiTaskToTask)
+        .filter((task) => ['posted', 'receiving_offers'].includes(task.status)),
+    [myPostedTasks]
   );
 
+  const theirOffer = null as { price: number; eta?: string; taskId: string } | null;
   const firstName = user.name.split(' ')[0] ?? 'Provider';
-  // Dummy until the backend has real KYC/identity verification - every profile shows verified for now.
-  const isVerified = true;
+  const isVerified = (profile as any)?.isVerified ?? false;
 
   return (
     <Screen tone="canvas" edges={['top']}>
@@ -166,8 +182,8 @@ export default function ProviderProfileScreen() {
           <TrustStats
             stats={[
               { label: 'Completed', value: `${user.completedJobs} jobs` },
-              { label: 'Success rate', value: `${user.successRate}%` },
-              { label: 'Response rate', value: `${user.responseRate}%` },
+              { label: 'Rating', value: `${user.rating.toFixed(1)} ★` },
+              { label: 'Reviews', value: `${user.reviewCount}` },
               { label: 'Experience', value: experienceText },
             ]}
           />

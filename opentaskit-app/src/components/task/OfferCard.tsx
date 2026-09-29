@@ -12,8 +12,7 @@ import {
 } from 'lucide-react-native';
 
 import type { Offer } from '@/types';
-import { useApp } from '@/contexts/AppContext';
-import { distance, money, timeAgo } from '@/utils/format';
+import { distance, initialsOf, money, timeAgo } from '@/utils/format';
 import { resolveImageSource } from '@/utils/images';
 import { Avatar } from '@/components/ui/Avatar';
 import { StarRating } from '@/components/ui/Rating';
@@ -36,28 +35,30 @@ export function OfferCard({
   showActions = true,
 }: OfferCardProps) {
   const router = useRouter();
-  const { userById } = useApp();
-  const fallbackProvider = userById(offer.providerId);
   const offerUser = (offer as any).user;
   const rawPortfolio = offerUser?.portfolio ?? offerUser?.portfolioItems;
-  const provider = offerUser
-    ? {
-        ...fallbackProvider,
-        id: offerUser.id,
-        name: offerUser.fullName || fallbackProvider.name,
-        avatarUrl: offerUser.avatarUrl ?? fallbackProvider.avatarUrl,
-        rating: offerUser.rating ?? fallbackProvider.rating,
-        reviewCount: offerUser.reviewCount ?? fallbackProvider.reviewCount,
-        verified: offerUser.isVerified ?? fallbackProvider.verified,
-        portfolio: Array.isArray(rawPortfolio)
-          ? rawPortfolio.map((item: any) => ({
-              id: item.id,
-              title: item.title || '',
-              image: item.imageUrl || item.image,
-            }))
-          : [],
-      }
-    : fallbackProvider;
+  const providerName = offerUser?.fullName || 'Tasker';
+  const provider = {
+    id: offerUser?.id || offer.providerId || '',
+    name: providerName,
+    initials: initialsOf(providerName),
+    avatarUrl: offerUser?.avatarUrl ?? undefined,
+    rating: offerUser?.rating ?? 5.0,
+    reviewCount: offerUser?.reviewCount ?? 0,
+    verified: offerUser?.isVerified ?? false,
+    distanceKm: 2.5,
+    location: offerUser?.location || 'Colombo',
+    respondsIn: 'within 1h',
+    completedJobs: 0,
+    tone: 'bg-brand text-white',
+    portfolio: Array.isArray(rawPortfolio)
+      ? rawPortfolio.map((item: any) => ({
+          id: item.id,
+          title: item.title || '',
+          image: item.imageUrl || item.image,
+        }))
+      : [],
+  };
 
   const navigateToProfile = () => {
     router.push({
@@ -124,10 +125,14 @@ export function OfferCard({
         </View>
 
         <View className="mt-3 flex-row flex-wrap gap-1.5" style={{ gap: 6 }}>
-          <Chip tone="outline" icon={<Clock size={12} color="#5A676E" />}>
-            {offer.eta}
-          </Chip>
-          <Chip tone="neutral">{provider.successRate}% success</Chip>
+          {offer.eta ? (
+            <Chip tone="outline" icon={<Clock size={12} color="#5A676E" />}>
+              {offer.eta}
+            </Chip>
+          ) : null}
+          {provider.completedJobs > 0 ? (
+            <Chip tone="neutral">{provider.completedJobs} completed</Chip>
+          ) : null}
           <Chip tone="neutral">Replies {provider.respondsIn}</Chip>
         </View>
 

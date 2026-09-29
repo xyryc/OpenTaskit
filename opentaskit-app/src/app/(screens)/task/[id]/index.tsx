@@ -73,10 +73,7 @@ export default function TaskDetailScreen() {
   const authUser = useAppSelector((state) => state.auth.user);
 
   const {
-    myOffer,
     toast,
-    withdrawOffer,
-    submitOffer,
     requireAccount,
   } = useApp();
 
@@ -166,7 +163,7 @@ export default function TaskDetailScreen() {
     return <Redirect href={`/job/${task.id}` as any} />;
   }
 
-  const existingOffer = myOffer(task.id);
+  const existingOffer = myRealOffer;
   const saved = isTaskSaved(task.id);
 
   const handleToggleSaved = async () => {
@@ -255,9 +252,6 @@ export default function TaskDetailScreen() {
     if (myRealOffer) {
       setOfferPrice(String(myRealOffer.amount));
       setOfferMessage(myRealOffer.message || '');
-    } else if (existingOffer) {
-      setOfferPrice(String(existingOffer.price));
-      setOfferMessage(existingOffer.message || '');
     } else {
       setOfferPrice(String(task.budget));
       setOfferMessage('I saw your task and I am available to help. I bring my own tools and can get it done cleanly.');
@@ -289,15 +283,6 @@ export default function TaskDetailScreen() {
           message: offerMessage.trim(),
         }).unwrap();
       }
-
-      // The submitted-offer badge/withdraw UI below is still driven by this
-      // local mock state until that flow is wired to the real API too.
-      submitOffer({
-        taskId: task.id,
-        price: num,
-        eta: '',
-        message: offerMessage.trim(),
-      });
 
       setMakeOfferOpen(false);
       toast({
@@ -434,16 +419,11 @@ export default function TaskDetailScreen() {
                 <Text className="text-[12.5px] font-geist-semibold uppercase tracking-[0.07em] text-brand-dark">
                   Your submitted offer
                 </Text>
-                <Chip tone="brand">{existingOffer.status}</Chip>
+                <Chip tone="brand">{existingOffer.status.toLowerCase()}</Chip>
               </View>
               <Text className="mt-2 text-[22px] font-geist-bold tracking-[-0.03em] text-ink">
-                {money(existingOffer.price)}
+                {money(existingOffer.amount)}
               </Text>
-              {existingOffer.eta ? (
-                <Text className="mt-0.5 font-geist-medium text-[13px] text-ink-700">
-                  {existingOffer.eta}
-                </Text>
-              ) : null}
               {existingOffer.message ? (
                 <Text className="mt-2 font-geist text-[13px] leading-relaxed text-ink-600">
                   {existingOffer.message}
@@ -924,13 +904,10 @@ export default function TaskDetailScreen() {
         open={confirmWithdraw}
         onClose={() => setConfirmWithdraw(false)}
         onConfirm={async () => {
+          if (!myRealOffer || !task) return;
           try {
-            if (myRealOffer) {
-              await withdrawOfferApi({ offerId: myRealOffer.id, taskId: task.id }).unwrap();
-            }
-            if (existingOffer) {
-              withdrawOffer(existingOffer.id);
-            }
+            await withdrawOfferApi({ offerId: myRealOffer.id, taskId: task.id }).unwrap();
+            setConfirmWithdraw(false);
             toast({ title: 'Offer withdrawn', variant: 'info' });
           } catch (err) {
             toast({

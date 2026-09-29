@@ -47,7 +47,7 @@ const STEP_LABELS = [
 export default function KycScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { me, toast } = useApp();
+  const { toast } = useApp();
   const authUser = useAppSelector((state) => state.auth.user);
 
   const { data: kycData, isLoading: isKycLoading } = useGetMyKycQuery();
@@ -58,7 +58,7 @@ export default function KycScreen() {
   const [started, setStarted] = useState(false);
   const [step, setStep] = useState(1);
 
-  const [fullName, setFullName] = useState(authUser?.fullName ?? me.name);
+  const [fullName, setFullName] = useState(authUser?.fullName ?? '');
   const [idNumber, setIdNumber] = useState('');
   const [dob, setDob] = useState('');
   const [dobDate, setDobDate] = useState<Date | null>(null);

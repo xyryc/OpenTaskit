@@ -3,7 +3,6 @@ import { View, Text, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { CheckCircle2, Send, Star, Wallet } from 'lucide-react-native';
 
-import { useApp } from '@/contexts/AppContext';
 import { useAppSelector } from '@/store';
 import {
   useGetMyProfileQuery,
@@ -17,7 +16,6 @@ import { ProviderAvailabilityCard } from '@/components/provider/ProviderAvailabi
 
 export function ProviderSnapshot() {
   const router = useRouter();
-  const { me } = useApp();
   const guest = useAppSelector((state) => state.auth.guest);
 
   const { data: walletData } = useGetMyWalletQuery(undefined, { skip: guest });
@@ -37,7 +35,7 @@ export function ProviderSnapshot() {
     : assignedTasksData.length > 0
     ? assignedCompleted
     : (profile?.stats?.tasksCompleted ?? 0);
-  const ratingValue = (profile?.rating ?? me.rating ?? 5.0).toFixed(1);
+  const ratingValue = (profile?.rating ?? 5.0).toFixed(1);
   const availableBalance = walletData?.availableBalance ?? 0;
 
   return (

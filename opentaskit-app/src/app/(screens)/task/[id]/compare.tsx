@@ -42,54 +42,69 @@ export default function CompareOffersScreen() {
   const { id = '' } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { taskById, offersForTask, userById, acceptOffer: localAcceptOffer, toast } = useApp();
+  const { toast } = useApp();
 
   const { data: apiTaskData, isLoading: isTaskLoading } = useGetTaskByIdQuery(id, { skip: !id });
   const { data: apiOffersData, isLoading: isOffersLoading } = useGetOffersForTaskQuery(id, { skip: !id });
   const [acceptOfferApi] = useAcceptOfferMutation();
 
   const task = useMemo(
-    () => (apiTaskData ? mapApiTaskToTask(apiTaskData) : taskById(id)),
-    [apiTaskData, taskById, id]
+    () => (apiTaskData ? mapApiTaskToTask(apiTaskData) : undefined),
+    [apiTaskData]
   );
 
   const offers = useMemo(() => {
     if (apiOffersData) {
       return apiOffersData.map(mapApiOfferToOffer).filter((offer) => offer.status === 'pending');
     }
-    return offersForTask(id).filter((offer) => offer.status === 'pending');
-  }, [apiOffersData, offersForTask, id]);
+    return [];
+  }, [apiOffersData]);
+
+  const resolveProvider = (offer: (typeof offers)[number]) => {
+    const offerUser = (offer as any).user;
+    const rawPortfolio = offerUser?.portfolio ?? offerUser?.portfolioItems;
+    return {
+      id: offerUser?.id || offer.providerId,
+      name: offerUser?.fullName || 'Tasker',
+      initials: (offerUser?.fullName || 'T').slice(0, 2).toUpperCase(),
+      tone: 'bg-brand text-white',
+      headline: '',
+      about: '',
+      avatarUrl: offerUser?.avatarUrl ?? undefined,
+      rating: offerUser?.rating ?? 5.0,
+      reviewCount: offerUser?.reviewCount ?? 0,
+      completedJobs: 0,
+      successRate: 100,
+      responseRate: 100,
+      experienceYears: 1,
+      verified: offerUser?.isVerified ?? false,
+      kyc: offerUser?.isVerified ? 'verified' as const : 'none' as const,
+      memberSince: offerUser?.createdAt ? new Date(offerUser.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '',
+      location: '',
+      distanceKm: 0,
+      skills: [],
+      services: [],
+      available: true,
+      respondsIn: '',
+      portfolio: Array.isArray(rawPortfolio)
+        ? rawPortfolio.map((item: any) => ({
+            id: item.id,
+            title: item.title || '',
+            image: item.imageUrl || item.image,
+          }))
+        : [],
+    };
+  };
 
   const best = useMemo(
-    () => bestMatchId(offers, userById, task?.budget ?? 0),
-    [offers, userById, task?.budget]
+    () => bestMatchId(offers, (providerId) => {
+      const found = offers.find((o) => o.providerId === providerId);
+      return found ? resolveProvider(found) : ({} as any);
+    }, task?.budget ?? 0),
+    [offers, task?.budget]
   );
   const [selectedId, setSelectedId] = useState<string | undefined>(best ?? offers[0]?.id);
   const [confirmOpen, setConfirmOpen] = useState(false);
-
-  const resolveProvider = (offer: (typeof offers)[number]) => {
-    const fallback = userById(offer.providerId);
-    const offerUser = (offer as any).user;
-    const rawPortfolio = offerUser?.portfolio ?? offerUser?.portfolioItems;
-    return offerUser
-      ? {
-          ...fallback,
-          id: offerUser.id,
-          name: offerUser.fullName || fallback.name,
-          avatarUrl: offerUser.avatarUrl ?? fallback.avatarUrl,
-          rating: offerUser.rating ?? fallback.rating,
-          reviewCount: offerUser.reviewCount ?? fallback.reviewCount,
-          verified: offerUser.isVerified ?? fallback.verified,
-          portfolio: Array.isArray(rawPortfolio)
-            ? rawPortfolio.map((item: any) => ({
-                id: item.id,
-                title: item.title || '',
-                image: item.imageUrl || item.image,
-              }))
-            : [],
-        }
-      : fallback;
-  };
 
   if (isTaskLoading || isOffersLoading) {
     return (
@@ -215,7 +230,6 @@ export default function CompareOffersScreen() {
         description: res.message || 'Task has been assigned.',
         variant: 'success',
       });
-      localAcceptOffer(offerIdToAccept);
       setConfirmOpen(false);
       router.push({
         pathname: '/(screens)/job/[taskId]',

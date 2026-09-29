@@ -22,6 +22,7 @@ import {
 } from 'lucide-react-native';
 
 import { useApp } from '@/contexts/AppContext';
+import { useAppSelector } from '@/store';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { initialsOf, money } from '@/utils/format';
 import { resolveImageSource } from '@/utils/images';
@@ -44,7 +45,8 @@ import {
 export default function EditProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { me, updateMe, toast } = useApp();
+  const user = useAppSelector((state) => state.auth.user);
+  const { toast } = useApp();
   const { data: profile } = useGetMyProfileQuery();
   const [updateMyProfile, { isLoading: isUpdatingProfile }] = useUpdateMyProfileMutation();
   const [uploadImagesApi, { isLoading: isUploadingAvatar }] = useUploadImagesMutation();
@@ -54,18 +56,17 @@ export default function EditProfileScreen() {
   const [removePortfolioItemApi] = useRemovePortfolioItemMutation();
   const [uploadPortfolioImageApi, { isLoading: isUploadingPortfolioImage }] = useUploadImagesMutation();
 
-  const [avatarUri, setAvatarUri] = useState<string | null>(null);
-  const [name, setName] = useState(me.name);
-  const [headline, setHeadline] = useState(me.headline);
-  const [about, setAbout] = useState(me.about);
-  const [location, setLocation] = useState(me.location ?? '');
-  const [skills, setSkills] = useState<string[]>(me.skills);
+  const [avatarUri, setAvatarUri] = useState<string | null>(profile?.avatarUrl ?? null);
+  const [name, setName] = useState(profile?.fullName ?? user?.fullName ?? '');
+  const [headline, setHeadline] = useState(profile?.headline ?? '');
+  const [about, setAbout] = useState(profile?.bio ?? '');
+  const [location, setLocation] = useState(profile?.location ?? '');
+  const [skills, setSkills] = useState<string[]>(profile?.skills ?? []);
   const [newSkill, setNewSkill] = useState('');
   const services = profile?.services ?? [];
   const portfolio = profile?.portfolio ?? [];
 
-  // Seed the editable fields from the real profile once it loads, without
-  // clobbering fields the API doesn't support (services/portfolio stay mock-only).
+  // Seed the editable fields from the real profile once it loads
   const seededFromApiRef = useRef(false);
   useEffect(() => {
     if (profile && !seededFromApiRef.current) {
@@ -73,7 +74,7 @@ export default function EditProfileScreen() {
       setName(profile.fullName);
       setHeadline(profile.headline ?? '');
       setAbout(profile.bio ?? '');
-      setLocation(profile.location ?? me.location ?? '');
+      setLocation(profile.location ?? '');
       setSkills(profile.skills ?? []);
       if (profile.avatarUrl) {
         setAvatarUri(profile.avatarUrl);
@@ -335,16 +336,6 @@ export default function EditProfileScreen() {
         skills,
       }).unwrap();
 
-      updateMe({
-        name: name.trim(),
-        initials: initialsOf(name.trim() || me.name),
-        avatarUrl: finalAvatarUrl,
-        headline: headline.trim(),
-        about: about.trim(),
-        location: location.trim(),
-        skills,
-      });
-
       toast({
         title: 'Profile updated',
         description: 'Your profile changes have been saved.',
@@ -383,10 +374,11 @@ export default function EditProfileScreen() {
             <View className="items-center py-2">
               <Avatar
                 user={{
-                  ...me,
-                  name: name.trim() || me.name,
-                  initials: initialsOf(name.trim() || me.name),
-                  avatarUrl: avatarUri || profile?.avatarUrl || me.avatarUrl || undefined,
+                  name: name.trim() || user?.fullName || 'User',
+                  initials: initialsOf(name.trim() || user?.fullName || 'U'),
+                  avatarUrl: avatarUri || profile?.avatarUrl || undefined,
+                  tone: 'bg-brand text-white',
+                  verified: profile?.isVerified ?? false,
                 }}
                 size="xl"
               />

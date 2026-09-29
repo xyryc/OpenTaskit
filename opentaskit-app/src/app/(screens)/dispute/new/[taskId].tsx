@@ -43,7 +43,7 @@ export default function RaiseDisputeScreen() {
   const { taskId = '' } = useLocalSearchParams<{ taskId: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { taskById, toast } = useApp();
+  const { toast } = useApp();
 
   const [reason, setReason] = useState<DisputeReason | ''>('');
   const [description, setDescription] = useState('');
@@ -57,8 +57,8 @@ export default function RaiseDisputeScreen() {
   const [uploadImagesApi] = useUploadImagesMutation();
 
   const task = useMemo(
-    () => (apiTaskData ? mapApiTaskToTask(apiTaskData) : taskById(taskId)),
-    [apiTaskData, taskById, taskId]
+    () => (apiTaskData ? mapApiTaskToTask(apiTaskData) : undefined),
+    [apiTaskData]
   );
   if (!task) {
     return (

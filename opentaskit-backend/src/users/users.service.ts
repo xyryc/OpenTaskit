@@ -523,4 +523,133 @@ export class UsersService {
       recentReviews,
     };
   }
+
+  // 8. Public: List taskers/providers by category, skill, or search
+  async findProviders(query: {
+    categoryId?: string;
+    skill?: string;
+    search?: string;
+  }) {
+    const { categoryId, skill, search } = query;
+    const where: Prisma.UserWhereInput = {
+      status: 'ACTIVE',
+      role: 'USER',
+    };
+
+    const conditions: Prisma.UserWhereInput[] = [];
+
+    let categoryName: string | undefined;
+    if (categoryId && categoryId.trim()) {
+      const cat = await this.prisma.category.findFirst({
+        where: {
+          OR: [
+            { id: categoryId.trim() },
+            { slug: categoryId.trim() },
+          ],
+        },
+      });
+      if (cat) {
+        categoryName = cat.name;
+      } else {
+        categoryName = categoryId.trim();
+      }
+    }
+
+    if (categoryName) {
+      conditions.push({
+        OR: [
+          { skills: { has: categoryName } },
+          {
+            providerServices: {
+              some: { name: { contains: categoryName, mode: 'insensitive' } },
+            },
+          },
+          { headline: { contains: categoryName, mode: 'insensitive' } },
+        ],
+      });
+    }
+
+    if (search && search.trim()) {
+      const s = search.trim();
+      conditions.push({
+        OR: [
+          { fullName: { contains: s, mode: 'insensitive' } },
+          { headline: { contains: s, mode: 'insensitive' } },
+          { skills: { has: s } },
+          {
+            providerServices: {
+              some: { name: { contains: s, mode: 'insensitive' } },
+            },
+          },
+        ],
+      });
+    }
+
+    if (skill && skill.trim()) {
+      const sk = skill.trim();
+      conditions.push({
+        OR: [
+          { skills: { has: sk } },
+          {
+            providerServices: {
+              some: { name: { contains: sk, mode: 'insensitive' } },
+            },
+          },
+        ],
+      });
+    }
+
+    if (conditions.length > 0) {
+      where.AND = conditions;
+    }
+
+    const users = await this.prisma.user.findMany({
+      where,
+      take: 30,
+      orderBy: [
+        { rating: 'desc' },
+        { reviewCount: 'desc' },
+        { createdAt: 'desc' },
+      ],
+      select: {
+        id: true,
+        fullName: true,
+        avatarUrl: true,
+        headline: true,
+        bio: true,
+        location: true,
+        skills: true,
+        rating: true,
+        reviewCount: true,
+        isVerified: true,
+        createdAt: true,
+        providerServices: {
+          select: { id: true, name: true, fromPrice: true },
+        },
+        _count: {
+          select: {
+            offers: { where: { status: 'ACCEPTED' } },
+          },
+        },
+      },
+    });
+
+    return users.map((u) => ({
+      id: u.id,
+      name: u.fullName,
+      fullName: u.fullName,
+      avatarUrl: u.avatarUrl,
+      headline: u.headline || 'OpenTaskit Tasker',
+      bio: u.bio,
+      location: u.location || 'Sri Lanka',
+      skills: u.skills,
+      rating: u.rating,
+      reviewCount: u.reviewCount,
+      verified: u.isVerified,
+      isVerified: u.isVerified,
+      completedJobs: u._count.offers,
+      services: u.providerServices,
+    }));
+  }
 }
+

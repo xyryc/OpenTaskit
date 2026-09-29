@@ -17,10 +17,10 @@ export default function TaskPostedScreen() {
   const { taskId = '' } = useLocalSearchParams<{ taskId: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { taskById, toast } = useApp();
+  const { toast } = useApp();
 
   const { data: apiTask } = useGetTaskByIdQuery(taskId, { skip: !taskId });
-  const task = apiTask ? mapApiTaskToTask(apiTask) : taskById(taskId);
+  const task = apiTask ? mapApiTaskToTask(apiTask) : undefined;
 
   const handleShare = async () => {
     try {

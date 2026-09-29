@@ -33,7 +33,7 @@ export default function TaskOffersScreen() {
   const { id = '' } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { taskById, offersForTask, userById, acceptOffer: localAcceptOffer, rejectOffer: localRejectOffer, toast } = useApp();
+  const { toast } = useApp();
 
   const { data: apiTaskData, isLoading: isTaskLoading } = useGetTaskByIdQuery(id, { skip: !id });
   const { data: apiOffersData, isLoading: isOffersLoading } = useGetOffersForTaskQuery(id, { skip: !id });
@@ -46,20 +46,34 @@ export default function TaskOffersScreen() {
   const [pendingReject, setPendingReject] = useState<string | null>(null);
 
   const task = useMemo(
-    () => (apiTaskData ? mapApiTaskToTask(apiTaskData) : taskById(id)),
-    [apiTaskData, taskById, id]
+    () => (apiTaskData ? mapApiTaskToTask(apiTaskData) : undefined),
+    [apiTaskData]
   );
 
   const offers = useMemo(() => {
     if (apiOffersData) {
       return apiOffersData.map(mapApiOfferToOffer);
     }
-    return offersForTask(id);
-  }, [apiOffersData, offersForTask, id]);
+    return [];
+  }, [apiOffersData]);
+
+  const resolveUser = (providerId: string): any => {
+    const foundOffer = offers.find((o) => o.providerId === providerId) as any;
+    const u = foundOffer?.user;
+    return {
+      id: u?.id || providerId,
+      name: u?.fullName || 'Provider',
+      rating: u?.rating ?? 5.0,
+      reviewCount: u?.reviewCount ?? 0,
+      verified: !!u?.isVerified,
+      completedJobs: 0,
+      successRate: 100,
+    };
+  };
 
   const best = useMemo(
-    () => bestMatchId(offers, userById, task?.budget ?? 0),
-    [offers, userById, task?.budget]
+    () => bestMatchId(offers, resolveUser, task?.budget ?? 0),
+    [offers, task?.budget]
   );
 
   const sorted = useMemo(() => {
@@ -67,8 +81,8 @@ export default function TaskOffersScreen() {
     if (sort === 'lowest') list.sort((a, b) => a.price - b.price);
     if (sort === 'rating') {
       list.sort((a, b) => {
-        const ratingB = (b as any).user?.rating ?? userById(b.providerId).rating;
-        const ratingA = (a as any).user?.rating ?? userById(a.providerId).rating;
+        const ratingB = (b as any).user?.rating ?? 0;
+        const ratingA = (a as any).user?.rating ?? 0;
         return ratingB - ratingA;
       });
     }
@@ -76,7 +90,7 @@ export default function TaskOffersScreen() {
       list.sort((a, b) => (a.id === best ? -1 : b.id === best ? 1 : 0));
     }
     return list;
-  }, [offers, sort, best, userById]);
+  }, [offers, sort, best]);
 
   if (isTaskLoading || isOffersLoading) {
     return (
@@ -106,8 +120,7 @@ export default function TaskOffersScreen() {
   const acceptTarget = offers.find((offer) => offer.id === pendingAccept);
   const acceptTargetName =
     (acceptTarget as any)?.user?.fullName ||
-    userById(acceptTarget?.providerId ?? '')?.name ||
-    'Tasker';
+    (acceptTarget ? resolveUser(acceptTarget.providerId)?.name : 'Tasker');
 
   const handleConfirmAccept = async () => {
     if (!pendingAccept || !task) return;
@@ -119,7 +132,6 @@ export default function TaskOffersScreen() {
         description: res.message || 'Task is now assigned.',
         variant: 'success',
       });
-      localAcceptOffer(offerIdToAccept);
       setPendingAccept(null);
       router.push({
         pathname: '/(screens)/job/[taskId]',
@@ -144,7 +156,6 @@ export default function TaskOffersScreen() {
         description: res.message || 'Offer has been declined.',
         variant: 'info',
       });
-      localRejectOffer(offerIdToReject);
       setPendingReject(null);
     } catch (err: any) {
       toast({

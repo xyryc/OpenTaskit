@@ -13,7 +13,6 @@ import {
   Gavel,
 } from 'lucide-react-native';
 
-import { useApp } from '@/contexts/AppContext';
 import { useAppSelector } from '@/store';
 import { useGetTaskByIdQuery, useGetDisputesForTaskQuery } from '@/store/api/apiSlice';
 import { mapApiTaskToTask } from '@/utils/taskFilters';
@@ -28,15 +27,14 @@ export default function DisputeDetailScreen() {
   const { taskId = '' } = useLocalSearchParams<{ taskId: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { taskById } = useApp();
   const authUser = useAppSelector((state) => state.auth.user);
 
   const { data: apiTaskData } = useGetTaskByIdQuery(taskId, { skip: !taskId });
   const { data: disputes, isLoading } = useGetDisputesForTaskQuery(taskId, { skip: !taskId });
 
   const task = useMemo(
-    () => (apiTaskData ? mapApiTaskToTask(apiTaskData) : taskById(taskId)),
-    [apiTaskData, taskById, taskId]
+    () => (apiTaskData ? mapApiTaskToTask(apiTaskData) : undefined),
+    [apiTaskData]
   );
   const dispute = disputes?.[0];
 

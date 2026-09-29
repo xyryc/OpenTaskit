@@ -27,7 +27,6 @@ import {
 } from 'lucide-react-native';
 
 import { useApp } from '@/contexts/AppContext';
-import { ME } from '@/data/users';
 import { paymentMethodMeta } from '@/utils/payment';
 import {
   commissionFor,
@@ -82,8 +81,6 @@ export default function JobDetailScreen() {
   const insets = useSafeAreaInsets();
   const authUser = useAppSelector((state) => state.auth.user);
   const {
-    taskById,
-    userById,
     toast,
   } = useApp();
 
@@ -128,8 +125,8 @@ export default function JobDetailScreen() {
   };
 
   const task = useMemo(
-    () => (apiTaskData ? mapApiTaskToTask(apiTaskData) : taskById(taskId)),
-    [apiTaskData, taskById, taskId]
+    () => (apiTaskData ? mapApiTaskToTask(apiTaskData) : undefined),
+    [apiTaskData]
   );
 
   const acceptedOffer = taskOffers?.find((o) => o.status === 'ACCEPTED');
@@ -149,8 +146,8 @@ export default function JobDetailScreen() {
       (task?.status !== 'in_progress' && task?.status !== 'awaiting_completion'));
 
   const isProvider = authUser?.id
-    ? (acceptedOffer ? acceptedOffer.userId === authUser.id : task?.assignedProviderId === ME)
-    : task?.assignedProviderId === ME;
+    ? (acceptedOffer ? acceptedOffer.userId === authUser.id : (task as any)?.assignedToId === authUser.id)
+    : false;
 
   const handleConfirmStart = async () => {
     if (!task) return;
@@ -210,11 +207,18 @@ export default function JobDetailScreen() {
     }
   };
 
-  const fallbackOther = userById(
-    isProvider
-      ? task?.requesterId ?? ''
-      : acceptedOffer?.userId ?? task?.assignedProviderId ?? task?.requesterId ?? ''
-  );
+  const fallbackOther = {
+    id: isProvider ? task?.requesterId ?? '' : acceptedOffer?.userId ?? '',
+    name: isProvider ? 'Requester' : 'Tasker',
+    initials: isProvider ? 'RQ' : 'TK',
+    headline: isProvider ? 'Requester' : 'Tasker',
+    tone: 'bg-brand text-white',
+    avatarUrl: undefined,
+    phoneNumber: '',
+    rating: 5.0,
+    reviewCount: 0,
+    verified: false,
+  };
 
   const other = isProvider
     ? ((task as any)?.user

@@ -26,8 +26,6 @@ import { CreateServiceDto } from './dto/create-service.dto';
 import { CreatePortfolioItemDto } from './dto/create-portfolio-item.dto';
 
 @ApiTags('Users')
-@ApiBearerAuth('JWT-auth')
-@UseGuards(JwtAuthGuard)
 @Controller('users')
 export class UsersController {
   constructor(
@@ -36,7 +34,20 @@ export class UsersController {
     private readonly offersService: OffersService,
   ) {}
 
+  // GET /api/v1/users/providers - Public: list taskers/providers by category, skill, or search
+  @ApiOperation({ summary: 'List taskers/providers by category, skill, or search' })
+  @Get('providers')
+  getProviders(
+    @Query('categoryId') categoryId?: string,
+    @Query('skill') skill?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.usersService.findProviders({ categoryId, skill, search });
+  }
+
   // GET /users/me/tasks - Tasks posted or assigned to the authenticated user
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: "Get authenticated user's posted or assigned tasks" })
   @Get('me/tasks')
   getMyTasks(
@@ -50,6 +61,8 @@ export class UsersController {
   }
 
   // GET /users/me/assigned-tasks - Tasks where the authenticated user is the hired tasker
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: "Get tasks assigned to the authenticated user" })
   @Get('me/assigned-tasks')
   getMyAssignedTasks(@CurrentUser('id') userId: string) {
@@ -57,6 +70,8 @@ export class UsersController {
   }
 
   // GET /users/me/saved-tasks - Tasks bookmarked by the authenticated user
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: "Get authenticated user's bookmarked tasks" })
   @Get('me/saved-tasks')
   getMySavedTasks(@CurrentUser('id') userId: string) {
@@ -64,6 +79,8 @@ export class UsersController {
   }
 
   // GET /users/me/offers - Offers submitted by the authenticated user
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: "Get authenticated user's submitted offers/bids" })
   @Get('me/offers')
   getMyOffers(@CurrentUser('id') userId: string) {
@@ -71,6 +88,8 @@ export class UsersController {
   }
 
   // GET /api/v1/users/me - Full authenticated profile with statistics
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get full authenticated user profile and stats' })
   @Get('me')
   getMyProfile(@CurrentUser('id') userId: string) {
@@ -78,6 +97,8 @@ export class UsersController {
   }
 
   // PATCH /api/v1/users/me - Update authenticated user profile
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Update authenticated user profile' })
   @Patch('me')
   updateMyProfile(
@@ -88,6 +109,8 @@ export class UsersController {
   }
 
   // POST /api/v1/users/me/services - Add a service to the authenticated user profile
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Add a service to the authenticated user profile' })
   @Post('me/services')
   addService(@CurrentUser('id') userId: string, @Body() dto: CreateServiceDto) {
@@ -95,6 +118,8 @@ export class UsersController {
   }
 
   // DELETE /api/v1/users/me/services/:serviceId - Remove one of my services
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Remove a service from the authenticated user profile' })
   @Delete('me/services/:serviceId')
   removeService(
@@ -105,6 +130,8 @@ export class UsersController {
   }
 
   // POST /api/v1/users/me/portfolio - Add a portfolio item to the authenticated user profile
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Add a portfolio item to the authenticated user profile' })
   @Post('me/portfolio')
   addPortfolioItem(
@@ -115,6 +142,8 @@ export class UsersController {
   }
 
   // DELETE /api/v1/users/me/portfolio/:itemId - Remove one of my portfolio items
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Remove a portfolio item from the authenticated user profile' })
   @Delete('me/portfolio/:itemId')
   removePortfolioItem(
@@ -132,10 +161,11 @@ export class UsersController {
   }
 
   // GET /api/v1/users - Admin User Directory with Search & Pagination;
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'List and search users with pagination (Admin only)',
   })
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @Get()
   findAll(@Query() query: FilterUsersDto) {
@@ -143,10 +173,11 @@ export class UsersController {
   }
 
   // GET /api/v1/users/:id - Admin Get Single User Details & Activity History
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Get single user profile and history by ID (Admin only)',
   })
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @Get(':id')
   findOne(@Param('id') id: string) {
@@ -154,8 +185,9 @@ export class UsersController {
   }
 
   // PATCH /api/v1/users/:id/status - Admin Suspend or Reactivate Account;
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Update user account status (Admin only)' })
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @Patch(':id/status')
   updateStatus(@Param('id') id: string, @Body() dto: UpdateUserStatusDto) {
@@ -163,8 +195,9 @@ export class UsersController {
   }
 
   // PATCH /api/v1/users/:id/role - Admin Update User Role
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Update user role (Admin only)' })
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @Patch(':id/role')
   updateRole(@Param('id') id: string, @Body() dto: UpdateUserRoleDto) {

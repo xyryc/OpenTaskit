@@ -47,6 +47,7 @@ import type {
   PaginatedTasksResponse,
   PaymentTaskStatus,
   PayoutRequestItem,
+  ProviderItem,
   RejectOfferResponse,
   ReviewItem,
   UpdateMyProfilePayload,
@@ -721,6 +722,17 @@ export const apiSlice = createApi({
       providesTags: (_result, _error, userId) => [{ type: 'User', id: userId }],
     }),
 
+    getProviders: builder.query<
+      ProviderItem[],
+      { categoryId?: string; skill?: string; search?: string } | void
+    >({
+      query: (params) => ({
+        url: '/users/providers',
+        params: params || undefined,
+      }),
+      providesTags: ['User'],
+    }),
+
     // Disputes
     createDispute: builder.mutation<DisputeItem, { taskId: string } & CreateDisputePayload>({
       query: ({ taskId, ...body }) => ({
@@ -1031,6 +1043,7 @@ export const {
   useGetUserReviewsQuery,
   useGetMyReviewsQuery,
   useGetPublicProfileQuery,
+  useGetProvidersQuery,
   useGetMyKycQuery,
   useSubmitKycMutation,
   useCreateDisputeMutation,

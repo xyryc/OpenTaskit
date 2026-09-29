@@ -26,7 +26,6 @@ import {
 } from 'lucide-react-native';
 
 import { useApp } from '@/contexts/AppContext';
-import { ME } from '@/data/users';
 import { experienceLabel, initialsOf, money, monthYear } from '@/utils/format';
 import { Screen, SectionHeader } from '@/components/layout/Screen';
 import { Avatar, VerifiedPill } from '@/components/ui/Avatar';
@@ -53,7 +52,6 @@ export default function ProfileScreen() {
   const { guest, user } = useAppSelector((state) => state.auth);
   const { savedCount } = useSavedTasks();
   const {
-    me,
     available,
     toggleAvailable,
     toast,
@@ -218,10 +216,10 @@ export default function ProfileScreen() {
           <View className="flex-row items-start gap-4" style={{ gap: 14 }}>
             <Avatar
               user={{
-                ...me,
-                name: profile?.fullName ?? me.name,
-                initials: profile ? initialsOf(profile.fullName) : me.initials,
+                name: profile?.fullName ?? user?.fullName ?? 'User',
+                initials: initialsOf(profile?.fullName ?? user?.fullName ?? 'U'),
                 avatarUrl: profile?.avatarUrl ?? undefined,
+                tone: 'bg-brand text-white',
                 verified: isVerified,
               }}
               size="xl"
@@ -232,16 +230,16 @@ export default function ProfileScreen() {
                 numberOfLines={1}
                 className="text-[20px] font-geist-semibold tracking-[-0.03em] text-ink"
               >
-                {profile?.fullName ?? user?.fullName}
+                {profile?.fullName ?? user?.fullName ?? 'User'}
               </Text>
               <Text
                 numberOfLines={1}
                 className="mt-0.5 font-geist text-[13px] text-ink-500"
               >
-                {profile?.headline || me.headline}
+                {profile?.headline || 'Tasker & Community Member'}
               </Text>
               <View className="mt-1.5 flex-row flex-wrap items-center gap-2" style={{ gap: 8 }}>
-                <StarRating value={profile?.rating ?? me.rating} count={profile?.reviewCount ?? me.reviewCount} />
+                <StarRating value={profile?.rating ?? 5.0} count={profile?.reviewCount ?? 0} />
                 <VerifiedPill verified={isVerified} />
               </View>
             </View>
@@ -256,18 +254,21 @@ export default function ProfileScreen() {
           </View>
 
           <Text className="mt-3 font-geist text-[12.5px] text-ink-500">
-            {profile?.location || me.location} · member since{' '}
-            {profile ? monthYear(profile.createdAt) : me.memberSince}
+            {profile?.location || 'Sri Lanka'} · member since{' '}
+            {profile?.createdAt ? monthYear(profile.createdAt) : 'Recently'}
           </Text>
 
           {/* Public Profile View Shortcut */}
           <Pressable
-            onPress={() =>
-              router.push({
-                pathname: '/(screens)/provider/[userId]',
-                params: { userId: user?.id ?? ME },
-              } as any)
-            }
+            onPress={() => {
+              const targetUserId = profile?.id ?? user?.id;
+              if (targetUserId) {
+                router.push({
+                  pathname: '/(screens)/provider/[userId]',
+                  params: { userId: targetUserId },
+                } as any);
+              }
+            }}
             className="mt-4 flex-row items-center rounded-2xl border border-ink-200 bg-canvas p-3.5 active:bg-ink-100"
             style={{ gap: 12 }}
           >
@@ -361,12 +362,12 @@ export default function ProfileScreen() {
             />
             <TrustStats
               stats={[
-                { label: 'Completed', value: `${profile?.stats.tasksCompleted ?? me.completedJobs} jobs` },
-                { label: 'Success rate', value: `${me.successRate}%` },
-                { label: 'Response rate', value: `${me.responseRate}%` },
+                { label: 'Completed', value: `${profile?.stats?.tasksCompleted ?? 0} jobs` },
+                { label: 'Posted', value: `${profile?.stats?.tasksPosted ?? 0} jobs` },
+                { label: 'Offers sent', value: `${profile?.stats?.offersSubmitted ?? 0}` },
                 {
                   label: 'Experience',
-                  value: profile?.createdAt ? experienceLabel(profile.createdAt) : `${me.experienceYears} yrs`,
+                  value: profile?.createdAt ? experienceLabel(profile.createdAt) : '< 1 yr',
                 },
               ]}
             />

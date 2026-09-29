@@ -72,7 +72,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 export default function ReportProblemScreen() {
   const router = useRouter();
   const { tab } = useLocalSearchParams<{ tab?: string }>();
-  const { me, toast } = useApp();
+  const { toast } = useApp();
 
   const [activeTab, setActiveTab] = useState<'create' | 'history'>(
     tab === 'history' ? 'history' : 'create'
@@ -88,7 +88,7 @@ export default function ReportProblemScreen() {
   } = useGetMyReportsQuery();
   const { data: contactConfig } = useGetContactConfigQuery();
 
-  const displayName = profile?.fullName || authUser?.fullName || me.name;
+  const displayName = profile?.fullName || authUser?.fullName || 'User';
   const userPhone = profile?.phoneNumber || authUser?.phoneNumber || '';
   const userEmail = profile?.email || authUser?.email || '';
 
